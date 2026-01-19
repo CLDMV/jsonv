@@ -1,0 +1,238 @@
+// Test file for BigInt with hexadecimal literals (ES2020 feature)
+// Demonstrates BigInt + hex (0x) syntax
+// Includes realistic bloat: large hex values for hashes, addresses, UUIDs
+
+{
+  // Memory addresses as hex BigInts
+  memory: {
+    addressSpace: {
+      base: 0x0n,
+      maxAddress32bit: 0xFFFFFFFFn,
+      maxAddress64bit: 0xFFFFFFFFFFFFFFFFn,
+      kernelStart: 0xFFFF800000000000n,
+      kernelEnd: 0xFFFFFFFFFFFFFFFFn,
+      userStart: 0x0000000000000000n,
+      userEnd: 0x00007FFFFFFFFFFFn
+    },
+    regions: {
+      code: 0x0000000000400000n,
+      data: 0x0000000000600000n,
+      heap: 0x0000000000800000n,
+      stack: 0x00007FFFFFFFFFFFn,
+      mmapBase: 0x00007F0000000000n
+    }
+  },
+  
+  // Large hash values in hex BigInt
+  cryptography: {
+    sha256Hashes: {
+      hash1: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFn,
+      hash2: 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFn,
+      hash3: 0xCAFEBABECAFEBABECAFEBABECAFEBABECAFEBABECAFEBABECAFEBABECAFEBABEn,
+      hash4: 0x123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0n,
+      hash5: 0xFEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210n
+    },
+    
+    sha512Hashes: {
+      hash1: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFn,
+      hash2: 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFn
+    },
+    
+    // RSA key components
+    rsa: {
+      modulus: 0xC7A8D9E6F5B3A1C4E7D8F9B2A5C6E3D4F1B8A9C2E5D6F3A4B7C8D9E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4n,
+      publicExponent: 0x10001n,
+      privateExponent: 0xA3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4A5B6C7D8E9F0A1B2C3D4E5F6A7B8C9D0n
+    }
+  },
+  
+  // UUID-like values in hex BigInt (128-bit)
+  uuids: {
+    uuid1: 0x550e8400e29b41d4a716446655440000n,
+    uuid2: 0x6ba7b8109dad11d180b400c04fd430c8n,
+    uuid3: 0xc9bf9e571d4d4ff7a2f8d8c5f0e5d9b4n,
+    uuid4: 0xf47ac10b58cc4372a5670e02b2c3d479n,
+    uuid5: 0x3d813cbb47fb42179f4f0954f95d6c7bn,
+    uuid6: 0x1b4e28ba2fa44e6a819e4f24cfb9e5d7n,
+    uuid7: 0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6n,
+    uuid8: 0xdeadbeefcafebabefeedface12345678n
+  },
+  
+  // Blockchain transaction IDs and block hashes
+  blockchain: {
+    bitcoin: {
+      genesisBlockHash: 0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26fn,
+      block100000: 0x000000000003ba27aa200b1cecaad478d2b00432346c3f1f3986da1afd33e506n,
+      block200000: 0x000000000000034a7dedef4a161fa058a2d67a173a90155f3a2fe6fc132e0ebfn,
+      block300000: 0x000000000000000082ccf8f1557c5d40b21edabb18d2d691cfbf87118bac7254n,
+      
+      transactions: {
+        tx1: 0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33bn,
+        tx2: 0xf4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16n,
+        tx3: 0xa1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48dn
+      }
+    },
+    
+    ethereum: {
+      blockHashes: {
+        block1: 0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6n,
+        block2: 0xb495a1d7e6663152ae92708da4843337b958146015a2802f4193a410044698c9n,
+        block3: 0x3d6122660cc824376f11ee842f83addc3525e2dd6756b9bcf0affa6aa88cf741n
+      },
+      
+      addresses: {
+        address1: 0x742d35Cc6634C0532925a3b844Bc9e7595f0n,
+        address2: 0xdAC17F958D2ee523a2206206994597C13D831ec7n,
+        address3: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48n
+      }
+    }
+  },
+  
+  // Color values with alpha channel (32-bit RGBA in hex)
+  colors: {
+    primary: 0xFF2196F3n, // Blue with full opacity
+    secondary: 0xFFF50057n, // Pink with full opacity
+    success: 0xFF4CAF50n, // Green
+    error: 0xFFF44336n, // Red
+    warning: 0xFFFF9800n, // Orange
+    info: 0xFF2196F3n, // Blue
+    
+    // With transparency
+    semiTransparent: {
+      primary: 0x802196F3n, // 50% opacity
+      secondary: 0x80F50057n,
+      success: 0x804CAF50n,
+      error: 0x80F44336n
+    },
+    
+    // Extended color palette
+    palette: {
+      gray50: 0xFFFAFAFAn,
+      gray100: 0xFFF5F5F5n,
+      gray200: 0xFFEEEEEEn,
+      gray300: 0xFFE0E0E0n,
+      gray400: 0xFFBDBDBDn,
+      gray500: 0xFF9E9E9En,
+      gray600: 0xFF757575n,
+      gray700: 0xFF616161n,
+      gray800: 0xFF424242n,
+      gray900: 0xFF212121n
+    }
+  },
+  
+  // MAC addresses as hex BigInt
+  network: {
+    macAddresses: {
+      device1: 0x00155D123456n,
+      device2: 0x001A2B3C4D5En,
+      device3: 0xACDE48001122n,
+      device4: 0xB8E85629A3B4n,
+      device5: 0xDC85DE2BF9C6n,
+      device6: 0xF0189876ABCDn
+    },
+    
+    // IPv6 addresses (128-bit) as hex BigInt
+    ipv6Addresses: {
+      localhost: 0x00000000000000000000000000000001n,
+      linkLocal: 0xFE80000000000000000000000000000An,
+      uniqueLocal: 0xFD00000000000000000000000000000An,
+      multicast: 0xFF02000000000000000000000000000An,
+      global1: 0x20010DB8000000000000000000000001n,
+      global2: 0x20010DB8000000000000000000000002n
+    }
+  },
+  
+  // File system inode numbers (large hex values)
+  filesystem: {
+    inodes: {
+      root: 0x2n,
+      home: 0x123456n,
+      var: 0x234567n,
+      tmp: 0x345678n,
+      usr: 0x456789n,
+      opt: 0x56789An,
+      boot: 0x6789ABn,
+      dev: 0x789ABCn,
+      proc: 0x89ABCDn,
+      sys: 0x9ABCDEn
+    },
+    
+    // Large file sizes in bytes
+    sizes: {
+      petabyte: 0x3B9ACA00000000n, // 1 PB
+      exabyte: 0xDE0B6B3A7640000n, // 1 EB
+      zettabyte: 0x36A992D368000000n // 1 ZB (approximate)
+    }
+  },
+  
+  // Hardware register values
+  hardware: {
+    registers: {
+      control: 0xFFFF0000FFFFn,
+      status: 0xAAAA5555AAAAn,
+      data: 0xDEADBEEFCAFEBABEn,
+      interrupt: 0x123456789ABCDEFn,
+      config: 0xFEDCBA9876543210n
+    },
+    
+    // PCI device IDs
+    pciDevices: {
+      gpu: 0x10DE1234n, // NVIDIA GPU
+      network: 0x80868086n, // Intel Network
+      storage: 0x144D5678n, // Samsung Storage
+      audio: 0x8086ABCDn, // Intel Audio
+      usb: 0x1022DEF0n // AMD USB
+    }
+  },
+  
+  // Database primary keys (large hex)
+  database: {
+    primaryKeys: {
+      users: [
+        0x7FFFFFFF00000001n,
+        0x7FFFFFFF00000002n,
+        0x7FFFFFFF00000003n,
+        0x7FFFFFFF00000004n,
+        0x7FFFFFFF00000005n
+      ],
+      orders: [
+        0xFFFFFFFF00000001n,
+        0xFFFFFFFF00000002n,
+        0xFFFFFFFF00000003n,
+        0xFFFFFFFF00000004n,
+        0xFFFFFFFF00000005n
+      ]
+    }
+  },
+  
+  // Checksum values
+  checksums: {
+    crc32: {
+      file1: 0xFFFFFFFFn,
+      file2: 0xDEADBEEFn,
+      file3: 0xCAFEBABEn,
+      file4: 0x12345678n,
+      file5: 0xFEDCBA98n
+    },
+    
+    crc64: {
+      file1: 0xFFFFFFFFFFFFFFFFn,
+      file2: 0xDEADBEEFDEADBEEFn,
+      file3: 0xCAFEBABECAFEBABEn
+    }
+  },
+  
+  // Bitmasks and flags (large hex)
+  flags: {
+    permissions: 0xFFFFFFFFFFFFFFFFn,
+    features: 0xDEADBEEFCAFEBABEn,
+    capabilities: 0x123456789ABCDEFn,
+    attributes: 0xFEDCBA9876543210n,
+    
+    // Individual bit positions
+    bit63: 0x8000000000000000n,
+    bit62: 0x4000000000000000n,
+    bit61: 0x2000000000000000n,
+    bit60: 0x1000000000000000n
+  }
+}

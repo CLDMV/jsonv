@@ -1,0 +1,233 @@
+// Test file for trailing commas (JSON5/ES2011 feature)
+// Demonstrates trailing commas in objects and arrays throughout the structure
+// Includes realistic e-commerce product catalog bloat
+
+{
+  // Product catalog with trailing commas
+  products: [
+    {
+      id: 'PROD-001',
+      name: 'Wireless Bluetooth Headphones',
+      category: 'Electronics',
+      price: 79.99,
+      currency: 'USD',
+      stock: 150,
+      attributes: {
+        brand: 'AudioTech',
+        color: 'Midnight Black',
+        weight: '250g',
+        connectivity: 'Bluetooth 5.0',
+        batteryLife: '30 hours',
+        features: [
+          'Active Noise Cancellation',
+          'Touch Controls',
+          'Foldable Design',
+          'Voice Assistant Compatible',
+        ], // Trailing comma in array
+      }, // Trailing comma in nested object
+    },
+    {
+      id: 'PROD-002',
+      name: 'Ergonomic Office Chair',
+      category: 'Furniture',
+      price: 249.99,
+      currency: 'USD',
+      stock: 45,
+      attributes: {
+        brand: 'ComfortPlus',
+        color: 'Charcoal Gray',
+        material: 'Mesh and Steel',
+        adjustments: [
+          'Height',
+          'Armrests',
+          'Lumbar Support',
+          'Tilt Tension',
+        ],
+        warranty: '5 years',
+      },
+    },
+    {
+      id: 'PROD-003',
+      name: 'Smart Watch Fitness Tracker',
+      category: 'Electronics',
+      price: 199.99,
+      currency: 'USD',
+      stock: 200,
+      attributes: {
+        brand: 'FitTech',
+        color: 'Space Gray',
+        displaySize: '1.4 inches',
+        waterResistance: '5ATM',
+        sensors: [
+          'Heart Rate Monitor',
+          'GPS',
+          'Accelerometer',
+          'Gyroscope',
+          'Barometer',
+        ],
+        batteryLife: '7 days',
+      },
+    },
+    {
+      id: 'PROD-004',
+      name: 'Portable SSD External Drive 1TB',
+      category: 'Storage',
+      price: 129.99,
+      currency: 'USD',
+      stock: 300,
+      attributes: {
+        brand: 'DataVault',
+        capacity: '1TB',
+        interface: 'USB 3.2 Gen 2',
+        readSpeed: '1050 MB/s',
+        writeSpeed: '1000 MB/s',
+        encryption: 'AES-256',
+        compatibility: [
+          'Windows',
+          'macOS',
+          'Linux',
+          'PlayStation',
+          'Xbox',
+        ],
+      },
+    },
+  ], // Trailing comma in main array
+  
+  // User accounts with nested arrays and objects
+  users: [
+    {
+      userId: 'USR-1001',
+      name: 'Alice Johnson',
+      email: 'alice.johnson@example.com',
+      role: 'admin',
+      permissions: [
+        'read',
+        'write',
+        'delete',
+        'admin',
+      ],
+      preferences: {
+        theme: 'dark',
+        language: 'en-US',
+        notifications: {
+          email: true,
+          push: true,
+          sms: false,
+        },
+      },
+      addresses: [
+        {
+          type: 'shipping',
+          street: '123 Main St',
+          city: 'New York',
+          state: 'NY',
+          zip: '10001',
+          country: 'USA',
+        },
+        {
+          type: 'billing',
+          street: '456 Oak Ave',
+          city: 'Brooklyn',
+          state: 'NY',
+          zip: '11201',
+          country: 'USA',
+        },
+      ],
+    },
+    {
+      userId: 'USR-1002',
+      name: 'Bob Smith',
+      email: 'bob.smith@example.com',
+      role: 'customer',
+      permissions: [
+        'read',
+        'write',
+      ],
+      preferences: {
+        theme: 'light',
+        language: 'en-US',
+        notifications: {
+          email: true,
+          push: false,
+          sms: true,
+        },
+      },
+      addresses: [
+        {
+          type: 'shipping',
+          street: '789 Elm St',
+          city: 'Los Angeles',
+          state: 'CA',
+          zip: '90001',
+          country: 'USA',
+        },
+      ],
+    },
+  ],
+  
+  // Configuration settings with deeply nested structures
+  settings: {
+    application: {
+      name: 'E-Commerce Platform',
+      version: '3.2.1',
+      features: [
+        'shopping-cart',
+        'wishlists',
+        'reviews',
+        'recommendations',
+      ],
+    },
+    payment: {
+      providers: [
+        'stripe',
+        'paypal',
+        'apple-pay',
+        'google-pay',
+      ],
+      currencies: [
+        'USD',
+        'EUR',
+        'GBP',
+        'JPY',
+      ],
+      taxRates: {
+        'US-NY': 0.08875,
+        'US-CA': 0.0725,
+        'US-TX': 0.0625,
+        'UK': 0.20,
+      },
+    },
+    shipping: {
+      carriers: [
+        {
+          name: 'USPS',
+          services: [
+            'Priority Mail',
+            'First Class',
+            'Express',
+          ],
+        },
+        {
+          name: 'FedEx',
+          services: [
+            'Ground',
+            'Express',
+            'Overnight',
+          ],
+        },
+        {
+          name: 'UPS',
+          services: [
+            'Ground',
+            '2nd Day Air',
+            'Next Day Air',
+          ],
+        },
+      ],
+      zones: [
+        'domestic',
+        'international',
+      ],
+    },
+  },
+}

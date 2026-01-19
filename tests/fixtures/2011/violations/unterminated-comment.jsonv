@@ -1,0 +1,5 @@
+// Invalid: unterminated multi-line comment
+{
+  /* This comment is never closed
+  value: 42
+}

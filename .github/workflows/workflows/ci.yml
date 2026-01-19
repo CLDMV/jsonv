@@ -1,0 +1,118 @@
+#
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/workflows/ci.yml
+# @Date: 2025-09-15 13:21:31 -07:00 (1757967691)
+# @Author: Nate Hyson <CLDMV>
+# @Email: <Shinrai@users.noreply.github.com>
+# -----
+# @Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
+# @Last modified time: 2026-01-18 21:01:25 -08:00 (1768798885)
+# -----
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+name: 🧪 CI Tests & Build
+
+on:
+    pull_request:
+        types: [opened, synchronize, reopened, ready_for_review]
+        branches: [master, main]
+        paths-ignore:
+            - "**.md"
+            - "docs/**"
+            - "*.md"
+            - "LICENSE"
+            - ".gitignore"
+    push:
+        branches: ["**"]
+        paths-ignore:
+            - "**.md"
+            - "docs/**"
+            - "*.md"
+            - "LICENSE"
+            - ".gitignore"
+    workflow_dispatch:
+        inputs:
+            debug:
+                description: "Enable debug logging for troubleshooting"
+                type: boolean
+                required: false
+                default: false
+            node_version:
+                description: "Node.js version to use (default: lts/*)"
+                type: string
+                required: false
+                default: "lts/*"
+            min_node_version:
+                description: "Minimum Node.js version for matrix testing (default: 16.20.2, due to stack trace regression in 16.4-16.19)"
+                type: string
+                required: false
+                default: "16.20.2"
+            max_node_major:
+                description: "Override max Node.js major version (default: 24)"
+                type: string
+                required: false
+                default: "24"
+            package_manager:
+                description: "Package manager (npm or yarn)"
+                type: string
+                required: false
+                default: "npm"
+            test_environment:
+                description: "Environment for tests (affects NODE_ENV and NODE_OPTIONS --conditions flag)"
+                type: string
+                required: false
+                default: "slothlet-dev" # Their desired default
+
+jobs:
+    ci:
+        name: 🏗️ Continuous Integration
+        uses: CLDMV/.github/.github/workflows/workflow-ci.yml@v1
+        with:
+            package_name: "@cldmv/slothlet" # Required: Your NPM package name
+            debug: ${{ github.event.inputs.debug == 'true' }}
+            node_version: ${{ github.event.inputs.node_version || 'lts/*' }}
+            min_node_version: ${{ github.event.inputs.min_node_version || '16.20.2' }}
+            max_node_major: ${{ github.event.inputs.max_node_major || '24' }}
+            package_manager: ${{ github.event.inputs.package_manager || 'npm' }}
+            test_command: "npm test"
+            test_environment: ${{ github.event.inputs.test_environment || 'slothlet-dev' }} # Alternative to setting in test_command
+            build_command: "npm run build:ci"
+            skip_performance_tests: false
+            skip_matrix_tests: false
+
+        # Authentication & Bot Configuration
+        # The workflow supports automatic App token detection for enhanced permissions and proper attribution:
+        # - WITH App secrets: Operations attributed to CLDMV bot, enhanced permissions for workflow repositories
+        # - WITHOUT App secrets: Falls back to GitHub Actions bot with standard permissions
+        # Note: CI workflow currently only runs build/test jobs, but App secrets are included for consistency
+        # To set up App authentication, add these secrets to your repository settings:
+        secrets:
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            # Optional: CLDMV Bot credentials for enhanced permissions and proper attribution
+            # If not provided, will use default GITHUB_TOKEN with GitHub Actions bot attribution
+            BOT_APP_ID: ${{ secrets.CLDMV_BOT_APP_ID }}
+            BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+    # ✅ Stable check that runs on BOTH push and PR and mirrors ci result
+    required-check:
+        name: ✅ Required PR Check
+        needs: ci
+        # run on both push and PR so the context exists on the PR head SHA
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - name: Mirror reusable result
+              run: |
+                  echo "ci.result=${{ needs.ci.result }}"
+                  if [ "${{ needs.ci.result }}" = "success" ]; then
+                    echo "Reusable CI passed."
+                    exit 0
+                  elif [ "${{ needs.ci.result }}" = "failure" ] || [ "${{ needs.ci.result }}" = "cancelled" ]; then
+                    echo "Reusable CI did not pass."
+                    exit 1
+                  else
+                    # covers 'skipped' or undefined; force red to avoid silent green
+                    echo "Reusable CI produced no pass/fail; treating as failure."
+                    exit 1
+                  fi

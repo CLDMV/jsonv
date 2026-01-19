@@ -1,0 +1,5 @@
+// Invalid: circular reference
+{
+  a: b,
+  b: a
+}

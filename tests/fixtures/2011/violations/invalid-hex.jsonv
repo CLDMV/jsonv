@@ -1,0 +1,4 @@
+// Invalid: invalid hex literal (missing digits)
+{
+  value: 0x
+}

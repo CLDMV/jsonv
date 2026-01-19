@@ -1,0 +1,327 @@
+// ES2021 Comprehensive Test File
+// Demonstrates ALL ES2021 features (numeric separators) + ES2020 + ES2015 + JSON5
+// Minimum 200-300 lines with realistic bloat
+
+{
+  // Server configuration with readable numbers using numeric separators
+  server: {
+    name: 'Production API Server',
+    port: 8_080,
+    maxConnections: 10_000,
+    timeoutMs: 30_000,
+    maxRequestSize: 10_485_760, // 10 MB
+    workerThreads: 16,
+    
+    // Memory limits with separators
+    memory: {
+      heapSize: 2_147_483_648, // 2 GB
+      maxOldSpace: 1_536_000_000,
+      maxYoungSpace: 536_870_912
+    }
+  },
+  
+  // Database configuration with large numbers
+  database: {
+    connections: {
+      min: 10,
+      max: 100,
+      idleTimeout: 10_000,
+      connectionTimeout: 30_000,
+      acquireTimeout: 60_000
+    },
+    
+    // Row limits with separators
+    limits: {
+      maxRows: 1_000_000,
+      maxQueryTime: 30_000,
+      slowQueryThreshold: 1_000,
+      batchSize: 10_000
+    },
+    
+    // IDs as BigInt with separators
+    sequences: {
+      users: 9_007_199_254_740_992n,
+      orders: 18_014_398_509_481_984n,
+      products: 36_028_797_018_963_968n
+    }
+  },
+  
+  /* Financial values with readable separators */
+  financial: {
+    budgets: {
+      marketing: 5_000_000.50, // $5M
+      engineering: 10_000_000.75, // $10M
+      operations: 3_500_000.25, // $3.5M
+      sales: 7_500_000.00 // $7.5M
+    },
+    
+    // Cryptocurrency in smallest units (BigInt with separators)
+    crypto: {
+      bitcoin: {
+        satoshis: 2_100_000_000_000_000n, // 21M BTC
+        price: 42_000.50, // $42k per BTC
+        marketCap: 882_000_000_000.00 // $882B
+      },
+      
+      ethereum: {
+        wei: 120_000_000_000_000_000_000_000_000n,
+        price: 2_200.75, // $2.2k per ETH
+        marketCap: 264_090_000_000.00 // $264B
+      }
+    },
+    
+    // Precision values in microdollars (BigInt)
+    precision: {
+      balance: 1_234_567_890_123n,
+      transaction: 98_765_432_109n,
+      fee: 12_345_678n
+    }
+  },
+  
+  // Hexadecimal with separators
+  hex: {
+    colors: {
+      // RGB with separators for readability
+      red: 0xFF_00_00,
+      green: 0x00_FF_00,
+      blue: 0x00_00_FF,
+      white: 0xFF_FF_FF,
+      black: 0x00_00_00,
+      
+      // Web colors
+      purple: 0x9C_27_B0,
+      teal: 0x00_96_88,
+      orange: 0xFF_57_22,
+      pink: 0xE9_1E_63
+    },
+    
+    // Memory addresses with separators (BigInt)
+    memory: {
+      kernelStart: 0xFF_FF_80_00_00_00_00_00n,
+      kernelEnd: 0xFF_FF_FF_FF_FF_FF_FF_FFn,
+      userStart: 0x00_00_00_00_00_00_00_00n,
+      userEnd: 0x00_00_7F_FF_FF_FF_FF_FFn
+    },
+    
+    // SHA-256 hashes with separators (BigInt)
+    hashes: {
+      block1: 0xFF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FFn,
+      block2: 0xDE_AD_BE_EF_DE_AD_BE_EF_DE_AD_BE_EF_DE_AD_BE_EFn,
+      block3: 0x12_34_56_78_9A_BC_DE_F0_12_34_56_78_9A_BC_DE_F0n
+    },
+    
+    // MAC addresses (hex BigInt with separators)
+    macAddresses: {
+      device1: 0x00_15_5D_12_34_56n,
+      device2: 0xAC_DE_48_00_11_22n,
+      device3: 0x08_00_27_AB_CD_EFn
+    }
+  },
+  
+  // Binary with separators
+  binary: {
+    // Permissions (grouped by owner/group/other)
+    permissions: {
+      readWrite: 0b110_000_000,
+      executable: 0b111_101_101,
+      restricted: 0b111_000_000,
+      worldReadable: 0b100_100_100
+    },
+    
+    // Network masks (grouped by bytes)
+    masks: {
+      class_a: 0b1111_1111_0000_0000_0000_0000_0000_0000,
+      class_b: 0b1111_1111_1111_1111_0000_0000_0000_0000,
+      class_c: 0b1111_1111_1111_1111_1111_1111_0000_0000
+    },
+    
+    // Feature flags (BigInt with separators)
+    features: {
+      all: 0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111n,
+      auth: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001n,
+      cache: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0100n,
+      monitor: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001_0000n
+    },
+    
+    // 64-bit permission masks (BigInt)
+    extendedPerms: {
+      full: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001_1100_0000n,
+      read: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001_0000_0000n,
+      write: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1000_0000n,
+      execute: 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0100_0000n
+    }
+  },
+  
+  // Octal with separators
+  octal: {
+    // Unix permissions
+    permissions: {
+      standard: 0o755,
+      secret: 0o600,
+      public: 0o644,
+      sticky: 0o1_777,
+      setuid: 0o4_755,
+      setgid: 0o2_755
+    },
+    
+    // Large file modes (BigInt)
+    extendedModes: {
+      mode1: 0o777_777_777_777n,
+      mode2: 0o666_666_666_666n,
+      mode3: 0o755_755_755_755n
+    },
+    
+    // Inode numbers with separators (BigInt)
+    inodes: {
+      root: 0o2n,
+      home: 0o1_234_567n,
+      var: 0o2_345_670n,
+      usr: 0o3_456_701n,
+      large: 0o77_777_777_777n
+    },
+    
+    // Device numbers
+    devices: {
+      sda: 0o10_000, // Major 8, minor 0
+      sdb: 0o10_020, // Major 8, minor 16
+      nvme: 0o103_000 // Major 259, minor 0
+    }
+  },
+  
+  /* Decimal with separators for readability */
+  metrics: {
+    // User counts
+    users: {
+      total: 1_500_000,
+      active: 750_000,
+      premium: 125_000,
+      enterprise: 5_000
+    },
+    
+    // Traffic stats
+    traffic: {
+      requestsPerDay: 50_000_000,
+      uniqueVisitors: 2_500_000,
+      pageViews: 75_000_000,
+      apiCalls: 125_000_000
+    },
+    
+    // Revenue (in cents)
+    revenue: {
+      monthly: 15_750_000, // $157,500
+      yearly: 189_000_000, // $1,890,000
+      lifetime: 2_350_000_000 // $23,500,000
+    },
+    
+    // Storage usage (bytes)
+    storage: {
+      used: 5_497_558_138_880, // 5 TB
+      available: 10_995_116_277_760, // 10 TB
+      total: 16_492_674_416_640 // 15 TB
+    }
+  },
+  
+  // Performance thresholds
+  performance: {
+    latency: {
+      p50: 125, // ms
+      p95: 500,
+      p99: 1_000,
+      p999: 2_500,
+      max: 30_000
+    },
+    
+    throughput: {
+      min: 1_000, // req/sec
+      target: 10_000,
+      max: 50_000,
+      peak: 100_000
+    },
+    
+    // Memory thresholds (bytes)
+    memory: {
+      warning: 1_610_612_736, // 1.5 GB
+      critical: 2_147_483_648, // 2 GB
+      max: 4_294_967_296 // 4 GB
+    }
+  },
+  
+  /* Scientific notation (still supported with separators) */
+  scientific: {
+    avogadro: 6.022_140_76e23,
+    speedOfLight: 2.997_924_58e8, // m/s
+    planck: 6.626_070_15e-34, // J⋅s
+    electron: 9.109_383_56e-31 // kg
+  },
+  
+  // Geographic coordinates with separators
+  geography: {
+    locations: {
+      newYork: {
+        lat: 40.712_8,
+        lon: -74.006_0
+      },
+      london: {
+        lat: 51.507_4,
+        lon: -0.127_8
+      },
+      tokyo: {
+        lat: 35.689_5,
+        lon: 139.691_7
+      },
+      sydney: {
+        lat: -33.868_8,
+        lon: 151.209_3
+      }
+    },
+    
+    // Distances in meters (with separators)
+    distances: {
+      earthRadius: 6_371_000,
+      earthCircumference: 40_075_017,
+      moonDistance: 384_400_000,
+      sunDistance: 149_600_000_000
+    }
+  },
+  
+  // Population demographics
+  demographics: {
+    world: 8_045_311_447n,
+    china: 1_425_671_352n,
+    india: 1_428_627_663n,
+    usa: 339_996_563,
+    indonesia: 277_534_122,
+    pakistan: 240_485_658,
+    brazil: 216_422_446,
+    nigeria: 223_804_632
+  },
+  
+  /* Corporate market caps (in cents) */
+  marketCaps: {
+    apple: 2_800_000_000_000_00n, // $2.8T
+    microsoft: 2_500_000_000_000_00n, // $2.5T
+    alphabet: 1_600_000_000_000_00n, // $1.6T
+    amazon: 1_400_000_000_000_00n, // $1.4T
+    nvidia: 1_200_000_000_000_00n // $1.2T
+  },
+  
+  // Time durations (milliseconds)
+  durations: {
+    second: 1_000,
+    minute: 60_000,
+    hour: 3_600_000,
+    day: 86_400_000,
+    week: 604_800_000,
+    month: 2_592_000_000, // 30 days
+    year: 31_536_000_000 // 365 days
+  },
+  
+  // Buffer sizes
+  buffers: {
+    small: 4_096, // 4 KB
+    medium: 65_536, // 64 KB
+    large: 1_048_576, // 1 MB
+    huge: 16_777_216, // 16 MB
+    massive: 268_435_456 // 256 MB
+  }
+}

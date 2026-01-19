@@ -1,0 +1,219 @@
+/*
+ * Test file for multi-line comments (JSON5/ES2011 feature)
+ * This file demonstrates multi-line comment blocks throughout a configuration
+ * Includes realistic config bloat to meet 100-200 line requirement
+ */
+
+{
+  /* 
+   * Application Metadata Section
+   * Contains basic information about the application
+   */
+  app: {
+    name: 'Production Application',
+    version: '2.5.3', /* Semantic versioning */
+    description: 'Enterprise-grade web application with microservices architecture',
+    /* Release information */
+    release: {
+      date: '2024-01-15',
+      codename: 'Phoenix', /* Internal release codename */
+      changelog: 'https://example.com/changelog/v2.5.3'
+    }
+  },
+  
+  /*
+   * Database Configuration
+   * Multi-database setup for read/write splitting
+   */
+  databases: {
+    /* Primary write database */
+    primary: {
+      type: 'postgresql',
+      host: 'db-primary.example.com',
+      port: 5432,
+      database: 'app_production',
+      /* Connection settings with comments explaining each parameter */
+      connection: {
+        max: 20, /* Maximum pool size */
+        min: 5,  /* Minimum pool size */
+        idle: 10000, /* Idle timeout in milliseconds */
+        acquire: 30000, /* Acquire timeout */
+        evict: 1000 /* Eviction run interval */
+      }
+    },
+    /* Read replica for load distribution */
+    replica: {
+      type: 'postgresql',
+      host: 'db-replica.example.com',
+      port: 5432,
+      database: 'app_production',
+      /* Read-only connection pool */
+      connection: {
+        max: 50, /* Higher max for read replicas */
+        min: 10,
+        idle: 10000,
+        acquire: 30000,
+        evict: 1000
+      },
+      /*
+       * Replication lag monitoring
+       * Alert if lag exceeds threshold
+       */
+      replication: {
+        monitorLag: true,
+        maxLagSeconds: 30, /* Maximum acceptable lag */
+        alertThreshold: 60 /* Alert if lag exceeds this */
+      }
+    }
+  },
+  
+  /*
+   * Microservices Configuration
+   * Service discovery and communication settings
+   */
+  services: {
+    /* User service configuration */
+    userService: {
+      url: 'http://user-service:3001',
+      timeout: 5000, /* Request timeout in ms */
+      /*
+       * Circuit breaker pattern configuration
+       * Prevents cascading failures
+       */
+      circuitBreaker: {
+        enabled: true,
+        threshold: 5, /* Failure threshold */
+        timeout: 60000, /* Reset timeout */
+        resetTimeout: 30000 /* Time before attempting reset */
+      }
+    },
+    /* Authentication service */
+    authService: {
+      url: 'http://auth-service:3002',
+      timeout: 3000,
+      /* Service-specific circuit breaker settings */
+      circuitBreaker: {
+        enabled: true,
+        threshold: 3, /* Lower threshold for auth */
+        timeout: 30000,
+        resetTimeout: 15000
+      }
+    },
+    /* Payment processing service */
+    paymentService: {
+      url: 'http://payment-service:3003',
+      timeout: 10000, /* Higher timeout for payments */
+      /*
+       * Retry policy for payment operations
+       * Critical operations require careful retry logic
+       */
+      retry: {
+        enabled: true,
+        maxAttempts: 3,
+        backoff: 'exponential', /* exponential or linear */
+        initialDelay: 1000,
+        maxDelay: 10000
+      }
+    }
+  },
+  
+  /*
+   * Message Queue Configuration
+   * RabbitMQ settings for async processing
+   */
+  messageQueue: {
+    type: 'rabbitmq',
+    host: 'mq.example.com',
+    port: 5672,
+    /* Virtual host configuration */
+    vhost: '/production',
+    /* Connection credentials */
+    credentials: {
+      username: 'app_user',
+      password: 'mq_password' /* TODO: Move to secrets manager */
+    },
+    /*
+     * Queue definitions
+     * Each queue handles specific job types
+     */
+    queues: {
+      /* Email notification queue */
+      emailQueue: {
+        name: 'email.notifications',
+        durable: true, /* Survive broker restarts */
+        exclusive: false,
+        autoDelete: false,
+        /* Dead letter exchange for failed messages */
+        deadLetterExchange: 'dlx.email',
+        messageTtl: 86400000 /* 24 hours in milliseconds */
+      },
+      /* Background job processing queue */
+      jobQueue: {
+        name: 'jobs.background',
+        durable: true,
+        exclusive: false,
+        autoDelete: false,
+        deadLetterExchange: 'dlx.jobs',
+        messageTtl: 172800000 /* 48 hours */
+      }
+    }
+  },
+  
+  /*
+   * Monitoring and Observability
+   * Metrics, tracing, and alerting configuration
+   */
+  monitoring: {
+    /* Prometheus metrics */
+    prometheus: {
+      enabled: true,
+      port: 9090,
+      path: '/metrics',
+      /* Metric collection interval */
+      scrapeInterval: 15 /* seconds */
+    },
+    /* Distributed tracing with Jaeger */
+    tracing: {
+      enabled: true,
+      serviceName: 'production-app',
+      /*
+       * Jaeger agent configuration
+       * Sends traces to Jaeger collector
+       */
+      agent: {
+        host: 'jaeger-agent',
+        port: 6831
+      },
+      /* Sampling strategy */
+      sampling: {
+        type: 'probabilistic', /* probabilistic or rate-limiting */
+        param: 0.1 /* Sample 10% of traces */
+      }
+    },
+    /* Health check endpoints */
+    health: {
+      enabled: true,
+      path: '/health',
+      /*
+       * Liveness probe configuration
+       * Kubernetes uses this to restart unhealthy pods
+       */
+      liveness: {
+        initialDelaySeconds: 30,
+        periodSeconds: 10,
+        timeoutSeconds: 5,
+        failureThreshold: 3
+      },
+      /*
+       * Readiness probe configuration  
+       * Determines if pod can receive traffic
+       */
+      readiness: {
+        initialDelaySeconds: 10,
+        periodSeconds: 5,
+        timeoutSeconds: 3,
+        failureThreshold: 3
+      }
+    }
+  }
+}

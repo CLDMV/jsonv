@@ -1,0 +1,251 @@
+// Test file for BigInt literals (ES2020 feature)
+// Demonstrates BigInt with 'n' suffix in decimal form
+// Includes realistic bloat: large IDs, timestamps, financial values, crypto
+
+{
+  // Large unique identifiers using BigInt
+  identifiers: {
+    users: {
+      userId1: 9007199254740992n, // Beyond MAX_SAFE_INTEGER
+      userId2: 9007199254740993n,
+      userId3: 9007199254740994n,
+      userId4: 9007199254740995n,
+      userId5: 9007199254740996n,
+      userId6: 9007199254740997n,
+      userId7: 9007199254740998n,
+      userId8: 9007199254740999n,
+      userId9: 9007199254741000n,
+      userId10: 9007199254741001n
+    },
+    orders: {
+      orderId1: 18014398509481984n,
+      orderId2: 18014398509481985n,
+      orderId3: 18014398509481986n,
+      orderId4: 18014398509481987n,
+      orderId5: 18014398509481988n
+    },
+    transactions: {
+      txId1: 36028797018963968n,
+      txId2: 36028797018963969n,
+      txId3: 36028797018963970n,
+      txId4: 36028797018963971n,
+      txId5: 36028797018963972n
+    }
+  },
+  
+  // Timestamps in microseconds (BigInt)
+  timestamps: {
+    created: 1705276800000000n, // 2024-01-15 00:00:00 UTC in microseconds
+    updated: 1705363200000000n, // 2024-01-16 00:00:00 UTC
+    deleted: 1705449600000000n, // 2024-01-17 00:00:00 UTC
+    lastLogin: 1705536000000000n, // 2024-01-18 00:00:00 UTC
+    lastActivity: 1705622400000000n, // 2024-01-19 00:00:00 UTC
+    sessionStart: 1705708800000000n, // 2024-01-20 00:00:00 UTC
+    sessionEnd: 1705795200000000n, // 2024-01-21 00:00:00 UTC
+    tokenExpiry: 1705881600000000n, // 2024-01-22 00:00:00 UTC
+    
+    // Nanosecond timestamps
+    nanoCreated: 1705276800000000000n,
+    nanoUpdated: 1705363200000000000n,
+    nanoDeleted: 1705449600000000000n
+  },
+  
+  // Financial values in smallest currency units (BigInt for precision)
+  financial: {
+    accounts: {
+      checking: {
+        balance: 1234567890123n, // $12,345,678.90123 in microdollars
+        available: 1234567890000n,
+        pending: 123n
+      },
+      savings: {
+        balance: 9876543210987n, // $98,765,432.10987
+        interest: 12345678n,
+        principal: 9876530865309n
+      },
+      investment: {
+        balance: 5432109876543n,
+        gains: 432109876543n,
+        losses: 10000000000n
+      }
+    },
+    
+    // Large transaction amounts
+    transactions: {
+      wireTransfer: 10000000000000n, // $100 million
+      ach: 500000000000n, // $5 million
+      check: 250000000000n, // $2.5 million
+      card: 50000000n, // $500
+      cash: 10000000n // $100
+    },
+    
+    // Market capitalization values
+    marketCap: {
+      apple: 2800000000000000000n, // $2.8 trillion in microdollars
+      microsoft: 2500000000000000000n, // $2.5 trillion
+      google: 1800000000000000000n, // $1.8 trillion
+      amazon: 1500000000000000000n, // $1.5 trillion
+      meta: 900000000000000000n // $900 billion
+    }
+  },
+  
+  // Cryptocurrency values (smallest units)
+  cryptocurrency: {
+    bitcoin: {
+      // Values in satoshis (1 BTC = 100,000,000 satoshis)
+      wallet1: 2100000000000000n, // 21 million BTC max supply
+      wallet2: 100000000000000n, // 1 million BTC
+      wallet3: 10000000000000n, // 100,000 BTC
+      wallet4: 1000000000000n, // 10,000 BTC
+      wallet5: 100000000000n, // 1,000 BTC
+      
+      // Transaction amounts
+      tx1: 50000000n, // 0.5 BTC
+      tx2: 10000000n, // 0.1 BTC
+      tx3: 1000000n, // 0.01 BTC
+      tx4: 100000n, // 0.001 BTC
+      tx5: 10000n // 0.0001 BTC
+    },
+    ethereum: {
+      // Values in wei (1 ETH = 1,000,000,000,000,000,000 wei)
+      wallet1: 120000000000000000000000000n, // 120 million ETH
+      wallet2: 10000000000000000000000000n, // 10 million ETH
+      wallet3: 1000000000000000000000000n, // 1 million ETH
+      wallet4: 100000000000000000000000n, // 100,000 ETH
+      wallet5: 10000000000000000000000n, // 10,000 ETH
+      
+      // Gas prices in wei
+      gasPrice: 50000000000n, // 50 Gwei
+      maxGasPrice: 200000000000n, // 200 Gwei
+      minGasPrice: 1000000000n // 1 Gwei
+    }
+  },
+  
+  // Large scientific values
+  science: {
+    astronomy: {
+      distanceToProxima: 40208000000000000n, // Proxima Centauri in km
+      ageOfUniverse: 13800000000n, // Years
+      atomsInUniverse: 1000000000000000000000000000000000000000000000000000000000000000000000000000000n,
+      planckTime: 539n, // 5.39 × 10^-44 seconds (as integer)
+      speedOfLight: 299792458n // m/s
+    },
+    computing: {
+      // Storage capacities in bytes
+      petabyte: 1000000000000000n,
+      exabyte: 1000000000000000000n,
+      zettabyte: 1000000000000000000000n,
+      yottabyte: 1000000000000000000000000n,
+      
+      // Memory addresses
+      address1: 0n,
+      address2: 18446744073709551615n, // 2^64 - 1
+      address3: 340282366920938463463374607431768211455n // 2^128 - 1
+    }
+  },
+  
+  // Population and census data
+  demographics: {
+    worldPopulation: {
+      2024: 8045311447n,
+      2023: 8000000000n,
+      2020: 7794798739n,
+      2015: 7379797139n,
+      2010: 6956823603n
+    },
+    countryPopulation: {
+      china: 1425671352n,
+      india: 1428627663n,
+      usa: 339996563n,
+      indonesia: 277534122n,
+      pakistan: 240485658n,
+      brazil: 216422446n,
+      nigeria: 223804632n,
+      bangladesh: 172954319n
+    },
+    cityPopulation: {
+      tokyo: 37274000n,
+      delhi: 32941000n,
+      shanghai: 29210000n,
+      saoPaulo: 22619736n,
+      mexicoCity: 22281442n,
+      cairo: 22183200n,
+      mumbai: 20961472n,
+      beijing: 20896820n
+    }
+  },
+  
+  // National debt values (in cents)
+  nationalDebt: {
+    usa: 3400000000000000n, // $34 trillion
+    china: 1400000000000000n, // $14 trillion
+    japan: 1200000000000000n, // $12 trillion
+    uk: 300000000000000n, // $3 trillion
+    france: 280000000000000n, // $2.8 trillion
+    germany: 250000000000000n, // $2.5 trillion
+    italy: 270000000000000n, // $2.7 trillion
+    spain: 150000000000000n // $1.5 trillion
+  },
+  
+  // Corporate revenue (in cents)
+  revenue: {
+    fiscal2023: {
+      apple: 38300000000000n, // $383 billion
+      amazon: 57400000000000n, // $574 billion
+      alphabet: 30700000000000n, // $307 billion
+      microsoft: 21100000000000n, // $211 billion
+      walmart: 64800000000000n, // $648 billion
+      exxonmobil: 39800000000000n, // $398 billion
+      berkshire: 36400000000000n, // $364 billion
+      samsung: 23400000000000n // $234 billion
+    }
+  },
+  
+  // Hash values and checksums
+  hashes: {
+    sha256: {
+      hash1: 115792089237316195423570985008687907853269984665640564039457584007913129639935n,
+      hash2: 115792089237316195423570985008687907853269984665640564039457584007913129639934n,
+      hash3: 115792089237316195423570985008687907853269984665640564039457584007913129639933n
+    },
+    sha512: {
+      hash1: 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084095n,
+      hash2: 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084094n
+    }
+  },
+  
+  // Database sequence generators
+  sequences: {
+    users: {
+      lastValue: 9007199254740992n,
+      increment: 1n,
+      minValue: 1n,
+      maxValue: 9223372036854775807n // 2^63 - 1
+    },
+    orders: {
+      lastValue: 18014398509481984n,
+      increment: 1n,
+      minValue: 1n,
+      maxValue: 9223372036854775807n
+    },
+    transactions: {
+      lastValue: 36028797018963968n,
+      increment: 1n,
+      minValue: 1n,
+      maxValue: 9223372036854775807n
+    }
+  },
+  
+  // Network packet counters
+  network: {
+    statistics: {
+      packetsReceived: 9007199254740992n,
+      packetsSent: 9007199254740993n,
+      bytesReceived: 18014398509481984n,
+      bytesSent: 18014398509481985n,
+      errorsReceived: 1000000n,
+      errorsSent: 500000n,
+      droppedPackets: 250000n
+    }
+  }
+}

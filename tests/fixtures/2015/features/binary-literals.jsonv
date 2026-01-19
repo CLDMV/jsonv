@@ -1,0 +1,273 @@
+// Test file for binary literals (ES2015 feature)
+// Demonstrates 0b prefix binary numbers throughout configuration
+// Includes realistic bloat: bit flags, permissions, network masks, RGB values
+
+{
+  // File system permissions using binary literals
+  permissions: {
+    files: {
+      owner: {
+        read: 0b100000000, // 256 (0o400)
+        write: 0b010000000, // 128 (0o200)
+        execute: 0b001000000, // 64 (0o100)
+        all: 0b111000000 // 448 (0o700)
+      },
+      group: {
+        read: 0b000100000, // 32 (0o040)
+        write: 0b000010000, // 16 (0o020)
+        execute: 0b000001000, // 8 (0o010)
+        all: 0b000111000 // 56 (0o070)
+      },
+      other: {
+        read: 0b000000100, // 4 (0o004)
+        write: 0b000000010, // 2 (0o002)
+        execute: 0b000000001, // 1 (0o001)
+        all: 0b000000111 // 7 (0o007)
+      },
+      // Common permission combinations
+      readOnly: 0b100100100, // 292 (0o444)
+      readWrite: 0b110110110, // 438 (0o666)
+      executable: 0b111101101, // 493 (0o755)
+      restricted: 0b111000000 // 448 (0o700)
+    },
+    // Application feature flags using binary
+    features: {
+      authentication: 0b00000001, // 1
+      authorization: 0b00000010, // 2
+      caching: 0b00000100, // 4
+      logging: 0b00001000, // 8
+      monitoring: 0b00010000, // 16
+      analytics: 0b00100000, // 32
+      notifications: 0b01000000, // 64
+      experimental: 0b10000000, // 128
+      // Feature combinations
+      basic: 0b00001111, // 15 (auth + authz + cache + log)
+      standard: 0b00111111, // 63 (all except experimental)
+      premium: 0b01111111, // 127 (all except experimental)
+      enterprise: 0b11111111 // 255 (all features)
+    }
+  },
+  
+  // Network configuration with binary masks
+  network: {
+    ipv4: {
+      // Subnet masks in binary
+      class_a: 0b11111111000000000000000000000000, // 255.0.0.0
+      class_b: 0b11111111111111110000000000000000, // 255.255.0.0
+      class_c: 0b11111111111111111111111100000000, // 255.255.255.0
+      class_d: 0b11111111111111111111111111000000, // 255.255.255.192 (/26)
+      class_e: 0b11111111111111111111111111110000, // 255.255.255.240 (/28)
+      // CIDR notation equivalents
+      cidr_8: 0b11111111000000000000000000000000,
+      cidr_16: 0b11111111111111110000000000000000,
+      cidr_24: 0b11111111111111111111111100000000,
+      cidr_28: 0b11111111111111111111111111110000,
+      cidr_30: 0b11111111111111111111111111111100
+    },
+    tcp: {
+      // TCP flags
+      FIN: 0b00000001, // 1
+      SYN: 0b00000010, // 2
+      RST: 0b00000100, // 4
+      PSH: 0b00001000, // 8
+      ACK: 0b00010000, // 16
+      URG: 0b00100000, // 32
+      ECE: 0b01000000, // 64
+      CWR: 0b10000000, // 128
+      // Common flag combinations
+      SYN_ACK: 0b00010010, // 18
+      FIN_ACK: 0b00010001, // 17
+      RST_ACK: 0b00010100 // 20
+    },
+    protocols: {
+      // IP protocol numbers
+      ICMP: 0b00000001, // 1
+      TCP: 0b00000110, // 6
+      UDP: 0b00010001, // 17
+      ICMPV6: 0b00111010, // 58
+      OSPF: 0b01011001 // 89
+    }
+  },
+  
+  // RGB color values in binary
+  colors: {
+    primary: {
+      red: 0b11111111, // 255
+      green: 0b00000000, // 0
+      blue: 0b00000000 // 0
+    },
+    secondary: {
+      red: 0b00000000,
+      green: 0b11111111,
+      blue: 0b00000000
+    },
+    tertiary: {
+      red: 0b00000000,
+      green: 0b00000000,
+      blue: 0b11111111
+    },
+    custom: {
+      lightBlue: {
+        red: 0b01000001, // 65
+        green: 0b10101101, // 173
+        blue: 0b11111001 // 249
+      },
+      darkGreen: {
+        red: 0b00110011, // 51
+        green: 0b10000101, // 133
+        blue: 0b01001100 // 76
+      },
+      purple: {
+        red: 0b10000000, // 128
+        green: 0b00000000, // 0
+        blue: 0b10000000 // 128
+      }
+    },
+    // Alpha channel (transparency)
+    alpha: {
+      transparent: 0b00000000, // 0
+      semiTransparent: 0b10000000, // 128
+      opaque: 0b11111111 // 255
+    }
+  },
+  
+  // Hardware register configuration
+  hardware: {
+    gpio: {
+      // GPIO pin modes
+      input: 0b00,
+      output: 0b01,
+      alternate: 0b10,
+      analog: 0b11,
+      // Pull-up/down configuration
+      noPull: 0b00,
+      pullUp: 0b01,
+      pullDown: 0b10,
+      // Pin configuration register (32 pins, 2 bits each)
+      portA: 0b01010101010101010101010101010101,
+      portB: 0b10101010101010101010101010101010
+    },
+    interrupts: {
+      // Interrupt enable flags
+      timer0: 0b0000000000000001,
+      timer1: 0b0000000000000010,
+      uart0: 0b0000000000000100,
+      uart1: 0b0000000000001000,
+      spi0: 0b0000000000010000,
+      spi1: 0b0000000000100000,
+      i2c0: 0b0000000001000000,
+      i2c1: 0b0000000010000000,
+      adc: 0b0000000100000000,
+      dma: 0b0000001000000000,
+      gpio: 0b0000010000000000,
+      usb: 0b0000100000000000,
+      // Interrupt priority levels
+      lowPriority: 0b00,
+      mediumPriority: 0b01,
+      highPriority: 0b10,
+      criticalPriority: 0b11
+    },
+    control: {
+      // Control register bits
+      enable: 0b00000001,
+      reset: 0b00000010,
+      clock: 0b00000100,
+      interrupt: 0b00001000,
+      dma: 0b00010000,
+      mode0: 0b00100000,
+      mode1: 0b01000000,
+      mode2: 0b10000000
+    }
+  },
+  
+  // Bit manipulation operations
+  bitOperations: {
+    masks: {
+      lowerByte: 0b00000000000000000000000011111111,
+      upperByte: 0b11111111000000000000000000000000,
+      lowerNibble: 0b00001111,
+      upperNibble: 0b11110000,
+      evenBits: 0b01010101,
+      oddBits: 0b10101010,
+      allBits: 0b11111111
+    },
+    patterns: {
+      checkerboard: 0b10101010101010101010101010101010,
+      stripes: 0b11110000111100001111000011110000,
+      gradient: 0b00011011001110100101101001111010
+    }
+  },
+  
+  // Status flags and error codes
+  status: {
+    flags: {
+      ready: 0b00000001,
+      busy: 0b00000010,
+      error: 0b00000100,
+      warning: 0b00001000,
+      complete: 0b00010000,
+      pending: 0b00100000,
+      cancelled: 0b01000000,
+      timeout: 0b10000000
+    },
+    errors: {
+      none: 0b00000000,
+      invalidInput: 0b00000001,
+      outOfMemory: 0b00000010,
+      timeout: 0b00000100,
+      networkError: 0b00001000,
+      permissionDenied: 0b00010000,
+      notFound: 0b00100000,
+      conflict: 0b01000000,
+      internalError: 0b10000000
+    }
+  },
+  
+  // Access control lists (ACL)
+  acl: {
+    resources: {
+      read: 0b0001,
+      write: 0b0010,
+      execute: 0b0100,
+      delete: 0b1000,
+      // Combinations
+      readWrite: 0b0011,
+      readExecute: 0b0101,
+      fullAccess: 0b1111,
+      noAccess: 0b0000
+    },
+    roles: {
+      guest: 0b00000001,
+      user: 0b00000010,
+      moderator: 0b00000100,
+      admin: 0b00001000,
+      owner: 0b00010000,
+      // Role combinations
+      staff: 0b00001100, // moderator + admin
+      superuser: 0b00011000, // admin + owner
+      all: 0b00011111
+    }
+  },
+  
+  // Compression and encoding flags
+  encoding: {
+    formats: {
+      none: 0b000,
+      gzip: 0b001,
+      deflate: 0b010,
+      brotli: 0b011,
+      lz4: 0b100,
+      zstd: 0b101
+    },
+    options: {
+      fast: 0b00,
+      balanced: 0b01,
+      best: 0b10,
+      ultra: 0b11
+    },
+    // Combined format + level flags
+    gzipFast: 0b00001,
+    gzipBest: 0b10001,
+    brotliBest: 0b10011
+  }
+}

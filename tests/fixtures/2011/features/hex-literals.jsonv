@@ -1,0 +1,268 @@
+// Test file for hexadecimal literals (JSON5/ES2011 feature)
+// Demonstrates hex numbers throughout configuration: colors, flags, addresses, masks
+// Includes realistic bloat with various hex use cases
+
+{
+  // Color palette configuration with hex values
+  colors: {
+    primary: {
+      // Standard web colors
+      main: 0x2196F3,
+      light: 0x64B5F6,
+      dark: 0x1976D2,
+      contrast: 0xFFFFFF
+    },
+    secondary: {
+      main: 0xF50057,
+      light: 0xFF4081,
+      dark: 0xC51162,
+      contrast: 0xFFFFFF
+    },
+    success: {
+      main: 0x4CAF50,
+      light: 0x81C784,
+      dark: 0x388E3C,
+      contrast: 0x000000
+    },
+    error: {
+      main: 0xF44336,
+      light: 0xE57373,
+      dark: 0xD32F2F,
+      contrast: 0xFFFFFF
+    },
+    warning: {
+      main: 0xFF9800,
+      light: 0xFFB74D,
+      dark: 0xF57C00,
+      contrast: 0x000000
+    },
+    info: {
+      main: 0x2196F3,
+      light: 0x64B5F6,
+      dark: 0x1976D2,
+      contrast: 0xFFFFFF
+    },
+    background: {
+      paper: 0xFFFFFF,
+      default: 0xFAFAFA,
+      dark: 0x303030
+    },
+    text: {
+      primary: 0x212121,
+      secondary: 0x757575,
+      disabled: 0xBDBDBD,
+      hint: 0x9E9E9E
+    }
+  },
+  
+  // Extended color palette for design system
+  palette: {
+    gray: {
+      50: 0xFAFAFA,
+      100: 0xF5F5F5,
+      200: 0xEEEEEE,
+      300: 0xE0E0E0,
+      400: 0xBDBDBD,
+      500: 0x9E9E9E,
+      600: 0x757575,
+      700: 0x616161,
+      800: 0x424242,
+      900: 0x212121
+    },
+    blue: {
+      50: 0xE3F2FD,
+      100: 0xBBDEFB,
+      200: 0x90CAF9,
+      300: 0x64B5F6,
+      400: 0x42A5F5,
+      500: 0x2196F3,
+      600: 0x1E88E5,
+      700: 0x1976D2,
+      800: 0x1565C0,
+      900: 0x0D47A1
+    },
+    green: {
+      50: 0xE8F5E9,
+      100: 0xC8E6C9,
+      200: 0xA5D6A7,
+      300: 0x81C784,
+      400: 0x66BB6A,
+      500: 0x4CAF50,
+      600: 0x43A047,
+      700: 0x388E3C,
+      800: 0x2E7D32,
+      900: 0x1B5E20
+    },
+    red: {
+      50: 0xFFEBEE,
+      100: 0xFFCDD2,
+      200: 0xEF9A9A,
+      300: 0xE57373,
+      400: 0xEF5350,
+      500: 0xF44336,
+      600: 0xE53935,
+      700: 0xD32F2F,
+      800: 0xC62828,
+      900: 0xB71C1C
+    }
+  },
+  
+  // System flags and bit masks (hex)
+  flags: {
+    permissions: {
+      READ: 0x0001,
+      WRITE: 0x0002,
+      EXECUTE: 0x0004,
+      DELETE: 0x0008,
+      ADMIN: 0x0010,
+      OWNER: 0x0020,
+      GROUP: 0x0040,
+      PUBLIC: 0x0080
+    },
+    features: {
+      FEATURE_A: 0x0001,
+      FEATURE_B: 0x0002,
+      FEATURE_C: 0x0004,
+      FEATURE_D: 0x0008,
+      FEATURE_E: 0x0010,
+      FEATURE_F: 0x0020,
+      FEATURE_G: 0x0040,
+      FEATURE_H: 0x0080,
+      FEATURE_I: 0x0100,
+      FEATURE_J: 0x0200
+    },
+    status: {
+      ACTIVE: 0x01,
+      INACTIVE: 0x02,
+      PENDING: 0x04,
+      SUSPENDED: 0x08,
+      BANNED: 0x10,
+      VERIFIED: 0x20,
+      PREMIUM: 0x40,
+      TRIAL: 0x80
+    }
+  },
+  
+  // Network configuration with hex values
+  network: {
+    ipv4Config: {
+      // IP addresses represented as hex
+      gatewayHex: 0xC0A80001, // 192.168.0.1
+      dnsServerHex: 0x08080808, // 8.8.8.8
+      subnetMask: 0xFFFFFF00, // 255.255.255.0
+      broadcastAddr: 0xC0A800FF // 192.168.0.255
+    },
+    ports: {
+      http: 0x0050, // 80
+      https: 0x01BB, // 443
+      ssh: 0x0016, // 22
+      ftp: 0x0015, // 21
+      smtp: 0x0019, // 25
+      dns: 0x0035, // 53
+      mysql: 0x0CEA, // 3306
+      postgresql: 0x1538, // 5432
+      redis: 0x18EB, // 6379
+      mongodb: 0x6978 // 27017
+    }
+  },
+  
+  // Memory addresses and hardware configuration
+  hardware: {
+    memoryMap: {
+      romStart: 0x00000000,
+      romEnd: 0x000FFFFF,
+      ramStart: 0x00100000,
+      ramEnd: 0x00FFFFFF,
+      ioStart: 0x01000000,
+      ioEnd: 0x01FFFFFF,
+      peripheralStart: 0x02000000,
+      peripheralEnd: 0x02FFFFFF
+    },
+    registers: {
+      control: 0xA0000000,
+      status: 0xA0000004,
+      data: 0xA0000008,
+      interrupt: 0xA000000C,
+      config: 0xA0000010,
+      timer: 0xA0000014
+    },
+    interrupts: {
+      maskAll: 0xFFFFFFFF,
+      maskNone: 0x00000000,
+      timer0: 0x00000001,
+      timer1: 0x00000002,
+      uart: 0x00000004,
+      gpio: 0x00000008,
+      spi: 0x00000010,
+      i2c: 0x00000020
+    }
+  },
+  
+  // Cryptographic constants (hex)
+  crypto: {
+    // AES-256 key expansion constants
+    rcon: [
+      0x01000000, 0x02000000, 0x04000000, 0x08000000,
+      0x10000000, 0x20000000, 0x40000000, 0x80000000,
+      0x1B000000, 0x36000000
+    ],
+    // SHA-256 initial hash values
+    h0: 0x6A09E667,
+    h1: 0xBB67AE85,
+    h2: 0x3C6EF372,
+    h3: 0xA54FF53A,
+    h4: 0x510E527F,
+    h5: 0x9B05688C,
+    h6: 0x1F83D9AB,
+    h7: 0x5BE0CD19,
+    // Magic numbers
+    md5Magic: 0xD76AA478,
+    sha1Magic: 0x67452301
+  },
+  
+  // Unicode code points and character ranges (hex)
+  unicode: {
+    ranges: {
+      basicLatinStart: 0x0000,
+      basicLatinEnd: 0x007F,
+      latin1SupplementStart: 0x0080,
+      latin1SupplementEnd: 0x00FF,
+      latinExtendedAStart: 0x0100,
+      latinExtendedAEnd: 0x017F,
+      greekStart: 0x0370,
+      greekEnd: 0x03FF,
+      cyrillicStart: 0x0400,
+      cyrillicEnd: 0x04FF,
+      arabicStart: 0x0600,
+      arabicEnd: 0x06FF,
+      cjkStart: 0x4E00,
+      cjkEnd: 0x9FFF,
+      emojiStart: 0x1F600,
+      emojiEnd: 0x1F64F
+    },
+    specialChars: {
+      nullChar: 0x0000,
+      tab: 0x0009,
+      lineFeed: 0x000A,
+      carriageReturn: 0x000D,
+      space: 0x0020,
+      nbsp: 0x00A0,
+      zerWidthSpace: 0x200B,
+      replacementChar: 0xFFFD
+    }
+  },
+  
+  // File format magic numbers (hex)
+  fileFormats: {
+    png: 0x89504E47,
+    jpeg: 0xFFD8FFE0,
+    gif: 0x47494638,
+    pdf: 0x25504446,
+    zip: 0x504B0304,
+    gzip: 0x1F8B0800,
+    bzip2: 0x425A68,
+    elf: 0x7F454C46,
+    classFile: 0xCAFEBABE,
+    macho: 0xFEEDFACE
+  }
+}

@@ -1,0 +1,279 @@
+// Test file for Infinity, -Infinity, and NaN (JSON5/ES2011 feature)
+// Demonstrates special numeric values in realistic configurations
+// Includes timeout configs, limits, error states, and boundary conditions
+
+{
+  // Timeout configurations using Infinity
+  timeouts: {
+    connection: {
+      http: 30000, // 30 seconds
+      https: 30000,
+      websocket: Infinity, // No timeout - keep alive forever
+      longPolling: Infinity // Persistent connection
+    },
+    operation: {
+      query: 60000, // 1 minute
+      transaction: 300000, // 5 minutes
+      batch: Infinity, // No limit on batch operations
+      migration: Infinity // Database migrations can run indefinitely
+    },
+    session: {
+      idle: 1800000, // 30 minutes
+      absolute: 86400000, // 24 hours
+      remember: Infinity, // "Remember me" never expires
+      api: 3600000 // 1 hour for API tokens
+    },
+    cache: {
+      staticAssets: Infinity, // Cache static assets indefinitely
+      apiResponses: 300000, // 5 minutes
+      userSessions: 3600000, // 1 hour
+      database: 60000 // 1 minute
+    }
+  },
+  
+  // Rate limits and thresholds
+  limits: {
+    api: {
+      anonymous: 100, // requests per hour
+      authenticated: 1000,
+      premium: 10000,
+      admin: Infinity // No rate limit for admins
+    },
+    upload: {
+      fileSize: 10485760, // 10MB
+      totalSize: 104857600, // 100MB
+      admin: Infinity // Admins can upload any size
+    },
+    storage: {
+      free: 1073741824, // 1GB
+      basic: 10737418240, // 10GB
+      premium: 107374182400, // 100GB
+      enterprise: Infinity // Unlimited storage
+    },
+    connections: {
+      perUser: 5,
+      perIP: 100,
+      system: Infinity // No system-wide connection limit
+    }
+  },
+  
+  // Error states and invalid values represented by NaN
+  errorStates: {
+    measurements: {
+      validTemperature: 23.5,
+      sensorFailure: NaN, // Sensor returned invalid reading
+      validHumidity: 0.45,
+      calibrationError: NaN, // Needs recalibration
+      validPressure: 1013.25,
+      outOfRange: NaN // Reading outside sensor range
+    },
+    calculations: {
+      validResult: 42.5,
+      divisionByZero: NaN, // 0/0 = NaN
+      invalidInput: NaN, // sqrt(-1) = NaN
+      overflow: Infinity, // Number too large
+      underflow: -Infinity // Number too small (negative)
+    },
+    userInput: {
+      age: 25,
+      invalidAge: NaN, // User entered non-numeric value
+      height: 175.5,
+      invalidHeight: NaN,
+      weight: 70.0,
+      invalidWeight: NaN
+    }
+  },
+  
+  // Boundary conditions and edge cases
+  boundaries: {
+    numeric: {
+      maxSafeInteger: 9007199254740991,
+      minSafeInteger: -9007199254740991,
+      positiveInfinity: Infinity,
+      negativeInfinity: -Infinity,
+      notANumber: NaN
+    },
+    coordinates: {
+      northPole: {
+        latitude: 90.0,
+        longitude: NaN // Longitude undefined at poles
+      },
+      southPole: {
+        latitude: -90.0,
+        longitude: NaN
+      },
+      equator: {
+        latitude: 0.0,
+        longitude: 0.0
+      }
+    },
+    ranges: {
+      temperature: {
+        min: -273.15, // Absolute zero
+        max: Infinity // No theoretical upper limit
+      },
+      pressure: {
+        min: 0.0, // Perfect vacuum
+        max: Infinity // No theoretical upper limit
+      },
+      speed: {
+        min: 0.0,
+        max: 299792458.0 // Speed of light (practical limit)
+      }
+    }
+  },
+  
+  // Retry policies with exponential backoff
+  retryPolicies: {
+    standard: {
+      maxAttempts: 3,
+      initialDelay: 1000,
+      maxDelay: 30000,
+      backoffMultiplier: 2.0,
+      timeout: 60000
+    },
+    aggressive: {
+      maxAttempts: 10,
+      initialDelay: 100,
+      maxDelay: 10000,
+      backoffMultiplier: 1.5,
+      timeout: 300000
+    },
+    persistent: {
+      maxAttempts: Infinity, // Retry forever
+      initialDelay: 1000,
+      maxDelay: 60000,
+      backoffMultiplier: 2.0,
+      timeout: Infinity // No timeout
+    },
+    none: {
+      maxAttempts: 1, // No retries
+      initialDelay: 0,
+      maxDelay: 0,
+      backoffMultiplier: 1.0,
+      timeout: 30000
+    }
+  },
+  
+  // Queue and buffer sizes
+  queues: {
+    messageQueue: {
+      maxSize: 10000,
+      warningThreshold: 8000,
+      unlimited: Infinity // Some queues are unbounded
+    },
+    eventQueue: {
+      maxSize: 1000,
+      warningThreshold: 800,
+      adminQueue: Infinity // Admin events never dropped
+    },
+    uploadQueue: {
+      maxSize: 100,
+      maxFileSize: 104857600,
+      priorityQueue: Infinity // Priority uploads never rejected
+    }
+  },
+  
+  // Comparison and validation results
+  validation: {
+    numericFields: {
+      age: {
+        value: 25,
+        min: 0,
+        max: 150,
+        valid: true
+      },
+      invalidAge: {
+        value: NaN, // Invalid input
+        min: 0,
+        max: 150,
+        valid: false
+      },
+      unlimitedCredits: {
+        value: Infinity, // Premium account
+        min: 0,
+        max: Infinity,
+        valid: true
+      }
+    },
+    ranges: {
+      inRange: {
+        value: 50,
+        min: 0,
+        max: 100,
+        valid: true
+      },
+      belowRange: {
+        value: -Infinity,
+        min: 0,
+        max: 100,
+        valid: false
+      },
+      aboveRange: {
+        value: Infinity,
+        min: 0,
+        max: 100,
+        valid: false
+      },
+      notANumber: {
+        value: NaN,
+        min: 0,
+        max: 100,
+        valid: false
+      }
+    }
+  },
+  
+  // Performance thresholds
+  performance: {
+    responseTime: {
+      excellent: 100, // ms
+      good: 300,
+      acceptable: 1000,
+      poor: 3000,
+      timeout: 30000,
+      infinite: Infinity // Never timeout for certain operations
+    },
+    throughput: {
+      minimum: 100, // requests/second
+      target: 1000,
+      maximum: 10000,
+      unlimited: Infinity // No throughput limit
+    },
+    resourceUsage: {
+      cpuPercent: {
+        low: 20,
+        medium: 50,
+        high: 80,
+        critical: 95,
+        invalid: NaN // Monitoring failure
+      },
+      memoryPercent: {
+        low: 30,
+        medium: 60,
+        high: 85,
+        critical: 95,
+        unlimited: Infinity // Some processes have no memory limit
+      }
+    }
+  },
+  
+  // Mathematical constants and special values
+  math: {
+    constants: {
+      pi: 3.141592653589793,
+      e: 2.718281828459045,
+      infinity: Infinity,
+      negativeInfinity: -Infinity,
+      notANumber: NaN
+    },
+    operations: {
+      divideByZero: Infinity, // 1/0
+      negDivideByZero: -Infinity, // -1/0
+      zeroOverZero: NaN, // 0/0
+      sqrtNegative: NaN, // sqrt(-1)
+      logZero: -Infinity, // log(0)
+      logNegative: NaN // log(-1)
+    }
+  }
+}

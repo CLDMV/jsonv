@@ -1,0 +1,127 @@
+{
+	"name": "@cldmv/jsonv",
+	"version": "1.0.0",
+	"description": "Modern JSON parser extending JSON5 with ES2015-2025 features, year-based API",
+	"type": "module",
+	"main": "./dist/cjs/index.cjs",
+	"module": "./dist/index.mjs",
+	"types": "./dist/types/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.mts",
+			"json-dev": {
+				"types": "./src/index.mts",
+				"import": "./src/index.mjs",
+				"require": "./src/cjs/index.cjs"
+			},
+			"import": "./dist/index.mjs",
+			"require": "./dist/cjs/index.cjs"
+		},
+		"./parser": {
+			"types": "./dist/types/parser.d.mts",
+			"json-dev": {
+				"types": "./src/parser.mts",
+				"import": "./src/parser.mts"
+			},
+			"import": "./dist/parser.mjs"
+		},
+		"./*": {
+			"json-dev": {
+				"types": "./src/years/*.mts",
+				"import": "./src/years/*.mjs",
+				"require": "./src/cjs/years/*.cjs"
+			},
+			"import": {
+				"types": "./dist/types/years/*.d.mts",
+				"default": "./dist/years/*.mjs"
+			},
+			"require": {
+				"types": "./dist/types/cjs/years/*.d.cts",
+				"default": "./dist/cjs/years/*.cjs"
+			}
+		},
+		"./test/*": {
+			"import": {
+				"types": "./dist/types/years/*.d.mts",
+				"default": "./test-dynamic.mjs"
+			}
+		}
+	},
+	"scripts": {
+		"build": "npm run clean && npm run build:ts && npm run build:types && npm run generate:years && npm run build:cjs && npm run build:plugin",
+		"clean": "node -e \"const{rmSync}=require('fs');rmSync('dist',{recursive:true,force:true});console.log('✓ Cleaned dist/')\"",
+		"generate:years": "node scripts/generate-years.mjs",
+		"build:ts": "tsc --project .configs/tsconfig.build.json",
+		"build:cjs": "node scripts/build-cjs.mjs",
+		"build:plugin": "node scripts/build-plugin.mjs",
+		"build:types": "tsc --project .configs/tsconfig.types.json",
+		"test": "vitest run --config .configs/vitest.config.mjs",
+		"test:watch": "vitest --config .configs/vitest.config.mjs",
+		"test:node": "node --test tests/**/*.test.mjs",
+		"lint": "eslint --config .configs/eslint.config.v9.mjs src tests",
+		"lint:v8": "set ESLINT_USE_FLAT_CONFIG=true&& eslint --config .configs/eslint.config.mjs src tests",
+		"format": "prettier --config .configs/.prettierrc --write \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
+		"format:check": "prettier --config .configs/.prettierrc --check \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
+		"dev": "NODE_OPTIONS='--conditions=json-dev' node"
+	},
+	"keywords": [
+		"json",
+		"json5",
+		"parser",
+		"serializer",
+		"config",
+		"es2015",
+		"es2020",
+		"es2021",
+		"bigint",
+		"numeric-separators"
+	],
+	"author": {
+		"name": "Shinrai",
+		"company": "CLDMV",
+		"email": "git+npm@cldmv.net",
+		"url": "https://cldmv.net"
+	},
+	"contributors": [
+		{
+			"name": "CLDMV",
+			"url": "https://github.com/CLDMV"
+		}
+	],
+	"license": "Apache-2.0",
+	"funding": {
+		"type": "github",
+		"url": "https://github.com/sponsors/shinrai"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/CLDMV/jsonv.git"
+	},
+	"bugs": {
+		"url": "https://github.com/CLDMV/jsonv/issues"
+	},
+	"homepage": "https://github.com/CLDMV/jsonv#readme",
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"files": [
+		"README.md",
+		"LICENSE",
+		"types/",
+		"dist/"
+	],
+	"devDependencies": {
+		"@eslint/css": "^0.14.1",
+		"@eslint/json": "^0.14.0",
+		"@eslint/markdown": "^7.5.1",
+		"@html-eslint/eslint-plugin": "^0.53.0",
+		"@html-eslint/parser": "^0.53.0",
+		"@types/node": "^20.19.29",
+		"@vitest/coverage-v8": "^4.0.17",
+		"eslint": "^9.39.2",
+		"prettier": "^3.8.0",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.53.0",
+		"vitest": "^4.0.17"
+	}
+}

@@ -1,0 +1,157 @@
+// Test file for single-quoted strings (JSON5/ES2011 feature)
+// Demonstrates single quotes throughout configuration including paths, SQL, and messages
+// Includes realistic bloat with various string content
+
+{
+  // Application paths with single quotes
+  paths: {
+    root: '/var/www/application',
+    public: '/var/www/application/public',
+    storage: '/var/www/application/storage',
+    logs: '/var/www/application/storage/logs',
+    cache: '/var/www/application/storage/cache',
+    uploads: '/var/www/application/storage/uploads',
+    temp: '/tmp/application',
+    backups: '/backups/application',
+    config: '/etc/application/config',
+    ssl: '/etc/ssl/application'
+  },
+  
+  // Database connection strings with single quotes
+  database: {
+    connectionString: 'postgresql://user:password@localhost:5432/production_db?sslmode=require',
+    readReplicaString: 'postgresql://user:password@replica.example.com:5432/production_db?sslmode=require',
+    backupString: 'postgresql://user:password@backup.example.com:5432/production_db?sslmode=require'
+  },
+  
+  // SQL queries stored in configuration (single-quoted)
+  queries: {
+    getUserById: 'SELECT id, username, email, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
+    getUserByEmail: 'SELECT id, username, email, created_at FROM users WHERE email = $1 AND deleted_at IS NULL',
+    createUser: 'INSERT INTO users (username, email, password_hash, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+    updateUser: 'UPDATE users SET username = $1, email = $2, updated_at = NOW() WHERE id = $3',
+    deleteUser: 'UPDATE users SET deleted_at = NOW() WHERE id = $1',
+    getUserPermissions: 'SELECT p.name FROM permissions p JOIN user_permissions up ON p.id = up.permission_id WHERE up.user_id = $1',
+    getActiveUsers: 'SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL AND last_login_at > NOW() - INTERVAL \'30 days\'',
+    getUserActivity: 'SELECT action, created_at FROM user_activity WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100'
+  },
+  
+  // Error messages and user-facing text
+  messages: {
+    errors: {
+      notFound: 'The requested resource could not be found',
+      unauthorized: 'You are not authorized to access this resource',
+      forbidden: 'Access to this resource is forbidden',
+      badRequest: 'The request contains invalid data',
+      serverError: 'An internal server error occurred. Please try again later',
+      timeout: 'The request timed out. Please try again',
+      tooManyRequests: 'Too many requests. Please slow down',
+      maintenance: 'The service is currently under maintenance. Please try again later'
+    },
+    success: {
+      created: 'Resource created successfully',
+      updated: 'Resource updated successfully',
+      deleted: 'Resource deleted successfully',
+      sent: 'Message sent successfully',
+      saved: 'Changes saved successfully'
+    },
+    validation: {
+      required: 'This field is required',
+      invalidEmail: 'Please enter a valid email address',
+      passwordTooShort: 'Password must be at least 12 characters long',
+      passwordMismatch: 'Passwords do not match',
+      invalidFormat: 'Invalid format. Please check your input',
+      outOfRange: 'Value is out of acceptable range'
+    }
+  },
+  
+  // Email templates with single-quoted content
+  emailTemplates: {
+    welcome: {
+      subject: 'Welcome to Our Platform!',
+      body: 'Dear {{name}},\n\nWelcome to our platform! We\'re excited to have you on board.\n\nTo get started, please verify your email by clicking the link below:\n{{verificationLink}}\n\nBest regards,\nThe Team',
+      html: '<html><body><h1>Welcome!</h1><p>Dear {{name}},</p><p>Welcome to our platform!</p><a href="{{verificationLink}}">Verify Email</a></body></html>'
+    },
+    passwordReset: {
+      subject: 'Password Reset Request',
+      body: 'Dear {{name}},\n\nYou requested a password reset. Click the link below to reset your password:\n{{resetLink}}\n\nThis link expires in 1 hour.\n\nIf you didn\'t request this, please ignore this email.\n\nBest regards,\nThe Team',
+      html: '<html><body><h1>Password Reset</h1><p>Click <a href="{{resetLink}}">here</a> to reset your password.</p></body></html>'
+    },
+    notification: {
+      subject: 'New Notification: {{title}}',
+      body: 'Dear {{name}},\n\nYou have a new notification:\n\n{{message}}\n\nView details: {{detailsLink}}\n\nBest regards,\nThe Team',
+      html: '<html><body><h1>New Notification</h1><p>{{message}}</p><a href="{{detailsLink}}">View Details</a></body></html>'
+    }
+  },
+  
+  // API endpoint documentation strings
+  apiEndpoints: {
+    users: {
+      list: 'GET /api/v1/users - List all users with pagination',
+      get: 'GET /api/v1/users/:id - Get user by ID',
+      create: 'POST /api/v1/users - Create new user',
+      update: 'PUT /api/v1/users/:id - Update user by ID',
+      delete: 'DELETE /api/v1/users/:id - Delete user by ID',
+      permissions: 'GET /api/v1/users/:id/permissions - Get user permissions'
+    },
+    auth: {
+      login: 'POST /api/v1/auth/login - Authenticate user',
+      logout: 'POST /api/v1/auth/logout - Invalidate session',
+      refresh: 'POST /api/v1/auth/refresh - Refresh access token',
+      register: 'POST /api/v1/auth/register - Register new account',
+      verify: 'GET /api/v1/auth/verify/:token - Verify email address',
+      resetPassword: 'POST /api/v1/auth/reset-password - Request password reset'
+    }
+  },
+  
+  // Regular expressions as strings (single-quoted)
+  patterns: {
+    email: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+    phone: '^\\+?[1-9]\\d{1,14}$',
+    url: '^https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)$',
+    username: '^[a-zA-Z0-9_-]{3,16}$',
+    password: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{12,}$',
+    hexColor: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+    ipv4: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$',
+    uuid: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  },
+  
+  // Shell commands and scripts
+  scripts: {
+    deploy: 'npm run build && docker build -t app:latest . && docker push registry.example.com/app:latest',
+    backup: 'pg_dump -h localhost -U postgres -d production_db | gzip > /backups/db-$(date +%Y%m%d).sql.gz',
+    restore: 'gunzip < /backups/db-latest.sql.gz | psql -h localhost -U postgres -d production_db',
+    cleanLogs: 'find /var/log/app -name "*.log" -mtime +30 -delete',
+    clearCache: 'redis-cli -h localhost -p 6379 FLUSHDB',
+    healthCheck: 'curl -f http://localhost:8080/health || exit 1'
+  },
+  
+  // Environment-specific URLs and domains
+  environments: {
+    development: {
+      apiUrl: 'http://localhost:3000/api/v1',
+      webUrl: 'http://localhost:8080',
+      wsUrl: 'ws://localhost:3000/ws'
+    },
+    staging: {
+      apiUrl: 'https://staging-api.example.com/api/v1',
+      webUrl: 'https://staging.example.com',
+      wsUrl: 'wss://staging-api.example.com/ws'
+    },
+    production: {
+      apiUrl: 'https://api.example.com/api/v1',
+      webUrl: 'https://www.example.com',
+      wsUrl: 'wss://api.example.com/ws'
+    }
+  },
+  
+  // Documentation links
+  documentation: {
+    apiDocs: 'https://docs.example.com/api',
+    userGuide: 'https://docs.example.com/user-guide',
+    developerGuide: 'https://docs.example.com/developers',
+    changelog: 'https://docs.example.com/changelog',
+    support: 'https://support.example.com',
+    status: 'https://status.example.com'
+  }
+}

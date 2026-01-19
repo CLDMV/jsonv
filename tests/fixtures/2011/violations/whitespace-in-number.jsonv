@@ -1,0 +1,4 @@
+// Invalid: whitespace inside numeric token
+{
+  value: 1 234
+}

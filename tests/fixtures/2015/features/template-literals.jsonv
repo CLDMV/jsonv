@@ -1,0 +1,638 @@
+// Test file for template literals (ES2015 feature)
+// Demonstrates backtick strings as multi-line string literals (no interpolation)
+// Includes realistic bloat: SQL queries, HTML templates, code snippets, documentation
+
+{
+  // SQL queries using template literals
+  sqlQueries: {
+    getUsersWithActivity: `
+      SELECT 
+        u.id,
+        u.username,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.created_at,
+        u.last_login_at,
+        COUNT(DISTINCT a.id) as activity_count,
+        COUNT(DISTINCT o.id) as order_count,
+        SUM(o.total) as total_spent,
+        AVG(r.rating) as average_rating
+      FROM users u
+      LEFT JOIN activity_log a ON u.id = a.user_id
+        AND a.created_at > NOW() - INTERVAL '30 days'
+      LEFT JOIN orders o ON u.id = o.user_id
+        AND o.status = 'completed'
+      LEFT JOIN reviews r ON u.id = r.user_id
+      WHERE u.deleted_at IS NULL
+        AND u.active = true
+      GROUP BY u.id, u.username, u.email, u.first_name, u.last_name, 
+               u.created_at, u.last_login_at
+      HAVING COUNT(DISTINCT a.id) > 0
+      ORDER BY activity_count DESC, total_spent DESC
+      LIMIT 100
+      OFFSET 0
+    `,
+    
+    getProductInventoryReport: `
+      WITH inventory_summary AS (
+        SELECT 
+          p.id,
+          p.sku,
+          p.name,
+          p.category,
+          i.quantity as current_quantity,
+          i.warehouse_location,
+          COALESCE(r.reserved_quantity, 0) as reserved,
+          COALESCE(s.sold_30days, 0) as sold_last_30_days,
+          COALESCE(s.sold_90days, 0) as sold_last_90_days
+        FROM products p
+        INNER JOIN inventory i ON p.id = i.product_id
+        LEFT JOIN (
+          SELECT 
+            product_id,
+            SUM(quantity) as reserved_quantity
+          FROM reservations
+          WHERE status = 'pending'
+            AND expires_at > NOW()
+          GROUP BY product_id
+        ) r ON p.id = r.product_id
+        LEFT JOIN (
+          SELECT
+            product_id,
+            SUM(CASE WHEN created_at > NOW() - INTERVAL '30 days' 
+                THEN quantity ELSE 0 END) as sold_30days,
+            SUM(CASE WHEN created_at > NOW() - INTERVAL '90 days' 
+                THEN quantity ELSE 0 END) as sold_90days
+          FROM order_items
+          GROUP BY product_id
+        ) s ON p.id = s.product_id
+        WHERE p.active = true
+      )
+      SELECT 
+        *,
+        (current_quantity - reserved) as available,
+        CASE 
+          WHEN (current_quantity - reserved) <= 0 THEN 'OUT_OF_STOCK'
+          WHEN (current_quantity - reserved) < 10 THEN 'LOW_STOCK'
+          WHEN (current_quantity - reserved) < 50 THEN 'MODERATE_STOCK'
+          ELSE 'IN_STOCK'
+        END as stock_status,
+        CASE
+          WHEN sold_last_30_days = 0 THEN NULL
+          ELSE ROUND((current_quantity - reserved)::numeric / 
+                     (sold_last_30_days / 30.0), 2)
+        END as days_of_stock
+      FROM inventory_summary
+      ORDER BY stock_status, days_of_stock NULLS LAST
+    `
+  },
+  
+  // HTML email templates
+  htmlTemplates: {
+    welcomeEmail: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Our Platform</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+                         'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+          }
+          .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .content p {
+            margin: 0 0 20px 0;
+          }
+          .button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 20px 0;
+          }
+          .button:hover {
+            background: #5568d3;
+          }
+          .features {
+            margin: 30px 0;
+            padding: 0;
+            list-style: none;
+          }
+          .features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+          }
+          .features li:last-child {
+            border-bottom: none;
+          }
+          .footer {
+            background: #f9f9f9;
+            padding: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+          }
+          .footer a {
+            color: #667eea;
+            text-decoration: none;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Welcome to Our Platform!</h1>
+          </div>
+          <div class="content">
+            <p>Hi there,</p>
+            <p>Thank you for joining our platform. We're excited to have you on board and can't wait to see what you'll accomplish!</p>
+            <p>To get started, please verify your email address by clicking the button below:</p>
+            <p style="text-align: center;">
+              <a href="#" class="button">Verify Email Address</a>
+            </p>
+            <h3>What's Next?</h3>
+            <ul class="features">
+              <li>✨ Complete your profile to personalize your experience</li>
+              <li>🚀 Explore our features and tools</li>
+              <li>📚 Check out our documentation and tutorials</li>
+              <li>💬 Join our community and connect with others</li>
+            </ul>
+            <p>If you have any questions, our support team is here to help 24/7.</p>
+            <p>Best regards,<br>The Team</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2026 Our Platform. All rights reserved.</p>
+            <p>
+              <a href="#">Unsubscribe</a> | 
+              <a href="#">Privacy Policy</a> | 
+              <a href="#">Terms of Service</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    
+    invoiceTemplate: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Invoice</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          .invoice-box { max-width: 800px; margin: auto; padding: 30px; 
+                         border: 1px solid #eee; box-shadow: 0 0 10px rgba(0,0,0,0.15); }
+          .invoice-box table { width: 100%; line-height: inherit; text-align: left; }
+          .invoice-box table td { padding: 5px; vertical-align: top; }
+          .invoice-box table tr td:nth-child(2) { text-align: right; }
+          .invoice-box table tr.top table td { padding-bottom: 20px; }
+          .invoice-box table tr.top table td.title { font-size: 45px; 
+                                                      line-height: 45px; color: #333; }
+          .invoice-box table tr.information table td { padding-bottom: 40px; }
+          .invoice-box table tr.heading td { background: #eee; border-bottom: 1px solid #ddd;
+                                             font-weight: bold; }
+          .invoice-box table tr.details td { padding-bottom: 20px; }
+          .invoice-box table tr.item td { border-bottom: 1px solid #eee; }
+          .invoice-box table tr.item.last td { border-bottom: none; }
+          .invoice-box table tr.total td:nth-child(2) { border-top: 2px solid #eee; 
+                                                         font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-box">
+          <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td class="title">INVOICE</td>
+                    <td>
+                      Invoice #: INV-12345<br>
+                      Created: January 14, 2026<br>
+                      Due: February 14, 2026
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr class="information">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td>
+                      Our Company Inc.<br>
+                      123 Business St<br>
+                      City, State 12345
+                    </td>
+                    <td>
+                      Customer Name<br>
+                      customer@example.com<br>
+                      456 Client Ave
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr class="heading">
+              <td>Item</td>
+              <td>Price</td>
+            </tr>
+            <tr class="item">
+              <td>Product 1</td>
+              <td>$100.00</td>
+            </tr>
+            <tr class="item last">
+              <td>Product 2</td>
+              <td>$50.00</td>
+            </tr>
+            <tr class="total">
+              <td></td>
+              <td>Total: $150.00</td>
+            </tr>
+          </table>
+        </div>
+      </body>
+      </html>
+    `
+  },
+  
+  // Code snippets and documentation
+  documentation: {
+    apiQuickStart: `
+      # API Quick Start Guide
+      
+      ## Installation
+      
+      Install the client library:
+      
+      \`\`\`bash
+      npm install @example/api-client
+      \`\`\`
+      
+      ## Authentication
+      
+      First, obtain an API key from your dashboard. Then initialize the client:
+      
+      \`\`\`javascript
+      const ApiClient = require('@example/api-client');
+      
+      const client = new ApiClient({
+        apiKey: 'your-api-key-here',
+        environment: 'production'
+      });
+      \`\`\`
+      
+      ## Making Requests
+      
+      ### Get User Information
+      
+      \`\`\`javascript
+      const user = await client.users.get('user-123');
+      console.log(user);
+      \`\`\`
+      
+      ### Create a New Resource
+      
+      \`\`\`javascript
+      const newItem = await client.items.create({
+        name: 'My Item',
+        description: 'A description of my item',
+        price: 29.99,
+        category: 'electronics'
+      });
+      \`\`\`
+      
+      ### List Resources with Pagination
+      
+      \`\`\`javascript
+      const items = await client.items.list({
+        page: 1,
+        limit: 50,
+        sort: 'created_at',
+        order: 'desc'
+      });
+      \`\`\`
+      
+      ## Error Handling
+      
+      All API methods throw typed errors that you can catch:
+      
+      \`\`\`javascript
+      try {
+        await client.items.get('invalid-id');
+      } catch (error) {
+        if (error.code === 'NOT_FOUND') {
+          console.log('Item not found');
+        } else if (error.code === 'UNAUTHORIZED') {
+          console.log('Invalid API key');
+        } else {
+          console.error('Unexpected error:', error);
+        }
+      }
+      \`\`\`
+      
+      ## Rate Limiting
+      
+      The API is rate-limited to 1000 requests per hour per API key.
+      Check the response headers for rate limit information:
+      
+      - \`X-RateLimit-Limit\`: Total requests allowed
+      - \`X-RateLimit-Remaining\`: Requests remaining
+      - \`X-RateLimit-Reset\`: Timestamp when limit resets
+      
+      ## Webhooks
+      
+      Set up webhooks to receive real-time notifications:
+      
+      \`\`\`javascript
+      await client.webhooks.create({
+        url: 'https://your-app.com/webhook',
+        events: ['item.created', 'item.updated', 'item.deleted'],
+        secret: 'your-webhook-secret'
+      });
+      \`\`\`
+      
+      Verify webhook signatures:
+      
+      \`\`\`javascript
+      const crypto = require('crypto');
+      
+      function verifyWebhook(payload, signature, secret) {
+        const hmac = crypto.createHmac('sha256', secret);
+        hmac.update(payload);
+        const expectedSignature = hmac.digest('hex');
+        return crypto.timingSafeEqual(
+          Buffer.from(signature),
+          Buffer.from(expectedSignature)
+        );
+      }
+      \`\`\`
+      
+      ## Support
+      
+      - Documentation: https://docs.example.com
+      - API Reference: https://api.example.com/docs
+      - Support: support@example.com
+    `,
+    
+    deploymentGuide: `
+      # Deployment Guide
+      
+      This guide covers deploying the application to production.
+      
+      ## Prerequisites
+      
+      - Docker installed
+      - Kubernetes cluster access
+      - Container registry credentials
+      - SSL certificates
+      
+      ## Building the Docker Image
+      
+      Build and tag the image:
+      
+      \`\`\`bash
+      docker build -t registry.example.com/app:latest .
+      docker tag registry.example.com/app:latest registry.example.com/app:v1.2.3
+      \`\`\`
+      
+      Push to registry:
+      
+      \`\`\`bash
+      docker push registry.example.com/app:latest
+      docker push registry.example.com/app:v1.2.3
+      \`\`\`
+      
+      ## Kubernetes Deployment
+      
+      Apply configurations:
+      
+      \`\`\`bash
+      kubectl apply -f k8s/namespace.yaml
+      kubectl apply -f k8s/secrets.yaml
+      kubectl apply -f k8s/configmap.yaml
+      kubectl apply -f k8s/deployment.yaml
+      kubectl apply -f k8s/service.yaml
+      kubectl apply -f k8s/ingress.yaml
+      \`\`\`
+      
+      ## Database Migration
+      
+      Run migrations before deploying:
+      
+      \`\`\`bash
+      kubectl run migration --rm -i --restart=Never \\
+        --image=registry.example.com/app:v1.2.3 \\
+        -- npm run migrate:up
+      \`\`\`
+      
+      ## Health Checks
+      
+      Verify deployment:
+      
+      \`\`\`bash
+      kubectl get pods -n production
+      kubectl logs -f deployment/app -n production
+      curl https://api.example.com/health
+      \`\`\`
+      
+      ## Rollback
+      
+      If issues occur, rollback:
+      
+      \`\`\`bash
+      kubectl rollout undo deployment/app -n production
+      kubectl rollout status deployment/app -n production
+      \`\`\`
+    `
+  },
+  
+  // Configuration file templates
+  configTemplates: {
+    dockerCompose: `
+      version: '3.8'
+      
+      services:
+        web:
+          image: nginx:alpine
+          ports:
+            - "80:80"
+            - "443:443"
+          volumes:
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./ssl:/etc/nginx/ssl:ro
+            - ./public:/usr/share/nginx/html:ro
+          depends_on:
+            - api
+          networks:
+            - frontend
+          restart: unless-stopped
+        
+        api:
+          build:
+            context: .
+            dockerfile: Dockerfile
+          ports:
+            - "3000:3000"
+          environment:
+            NODE_ENV: production
+            DATABASE_URL: postgresql://user:pass@db:5432/app
+            REDIS_URL: redis://cache:6379
+            JWT_SECRET: your-secret-here
+          depends_on:
+            - db
+            - cache
+          networks:
+            - frontend
+            - backend
+          restart: unless-stopped
+        
+        db:
+          image: postgres:14-alpine
+          volumes:
+            - postgres_data:/var/lib/postgresql/data
+          environment:
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: pass
+            POSTGRES_DB: app
+          networks:
+            - backend
+          restart: unless-stopped
+        
+        cache:
+          image: redis:alpine
+          volumes:
+            - redis_data:/data
+          networks:
+            - backend
+          restart: unless-stopped
+      
+      networks:
+        frontend:
+        backend:
+      
+      volumes:
+        postgres_data:
+        redis_data:
+    `,
+    
+    nginxConfig: `
+      user nginx;
+      worker_processes auto;
+      error_log /var/log/nginx/error.log warn;
+      pid /var/run/nginx.pid;
+      
+      events {
+        worker_connections 1024;
+        use epoll;
+      }
+      
+      http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types text/plain text/css text/xml text/javascript
+                   application/json application/javascript application/xml+rss;
+        
+        upstream api_backend {
+          least_conn;
+          server api1:3000 max_fails=3 fail_timeout=30s;
+          server api2:3000 max_fails=3 fail_timeout=30s;
+          server api3:3000 max_fails=3 fail_timeout=30s;
+        }
+        
+        server {
+          listen 80;
+          listen [::]:80;
+          server_name example.com www.example.com;
+          return 301 https://$host$request_uri;
+        }
+        
+        server {
+          listen 443 ssl http2;
+          listen [::]:443 ssl http2;
+          server_name example.com www.example.com;
+          
+          ssl_certificate /etc/nginx/ssl/cert.pem;
+          ssl_certificate_key /etc/nginx/ssl/key.pem;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_ciphers HIGH:!aNULL:!MD5;
+          ssl_prefer_server_ciphers on;
+          
+          root /usr/share/nginx/html;
+          index index.html;
+          
+          location /api/ {
+            proxy_pass http://api_backend/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+          }
+          
+          location /static/ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+          }
+          
+          location / {
+            try_files $uri $uri/ /index.html;
+          }
+        }
+      }
+    `
+  }
+}

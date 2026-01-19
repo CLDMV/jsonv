@@ -1,0 +1,318 @@
+// Test file for BigInt with octal literals (ES2020 feature)
+// Demonstrates BigInt + octal (0o and 0) syntax
+// Includes realistic bloat: large file permissions, modes, Unix values
+
+{
+  // Extended Unix file permissions (64-bit with BigInt)
+  permissions: {
+    extendedModes: {
+      // Standard Unix modes as BigInt octal
+      ownerReadWrite: 0o600n,
+      ownerAll: 0o700n,
+      groupRead: 0o040n,
+      worldRead: 0o444n,
+      worldReadWrite: 0o666n,
+      executable: 0o755n,
+      restricted: 0o700n,
+      
+      // Special permission bits
+      setuid: 0o4000n,
+      setgid: 0o2000n,
+      sticky: 0o1000n,
+      setuidExecutable: 0o4755n,
+      setgidExecutable: 0o2755n,
+      stickyDirectory: 0o1777n,
+      
+      // Legacy octal syntax with BigInt
+      legacyOwnerReadWrite: 0600n,
+      legacyExecutable: 0755n,
+      legacyRestricted: 0700n
+    },
+    
+    // Large inode numbers as octal BigInt
+    inodes: {
+      root: 0o2n,
+      home: 0o1234567n,
+      var: 0o2345670n,
+      usr: 0o3456701n,
+      opt: 0o4567012n,
+      tmp: 0o5670123n,
+      boot: 0o6701234n,
+      dev: 0o7012345n,
+      
+      // Very large inode numbers
+      largeFile1: 0o77777777777n,
+      largeFile2: 0o777777777777n,
+      largeFile3: 0o7777777777777n
+    }
+  },
+  
+  // Umask values as BigInt
+  umask: {
+    defaults: {
+      strict: 0o077n,
+      standard: 0o022n,
+      relaxed: 0o002n,
+      public: 0o000n
+    },
+    
+    // Service-specific umask values
+    services: {
+      webServer: 0o022n,
+      database: 0o077n,
+      backup: 0o077n,
+      cache: 0o022n,
+      mail: 0o022n,
+      ftp: 0o022n
+    }
+  },
+  
+  // Device major/minor numbers as octal BigInt
+  devices: {
+    block: {
+      sda: 0o10000n, // Major 8, minor 0
+      sda1: 0o10001n, // Major 8, minor 1
+      sdb: 0o10020n, // Major 8, minor 16
+      sdc: 0o10040n, // Major 8, minor 32
+      nvme0n1: 0o103000n // Major 259, minor 0
+    },
+    
+    character: {
+      tty: 0o5000n, // Major 5, minor 0
+      console: 0o5001n, // Major 5, minor 1
+      null: 0o1003n, // Major 1, minor 3
+      zero: 0o1005n, // Major 1, minor 5
+      random: 0o1010n, // Major 1, minor 8
+      urandom: 0o1011n // Major 1, minor 9
+    }
+  },
+  
+  // Process IDs and identifiers as octal BigInt
+  processes: {
+    systemProcesses: {
+      init: 0o1n,
+      kthreadd: 0o2n,
+      ksoftirqd: 0o3n,
+      kworker: 0o4n,
+      kswapd: 0o5n,
+      systemd: 0o1n,
+      
+      // Large PIDs
+      userProcess1: 0o123456n,
+      userProcess2: 0o234567n,
+      userProcess3: 0o345670n
+    },
+    
+    // Process group IDs
+    groups: {
+      group1: 0o10000n,
+      group2: 0o20000n,
+      group3: 0o30000n,
+      group4: 0o40000n
+    }
+  },
+  
+  // File system block numbers as octal BigInt
+  filesystem: {
+    blocks: {
+      superblock: 0o0n,
+      inodeBitmap: 0o1n,
+      blockBitmap: 0o2n,
+      inodeTable: 0o3n,
+      dataStart: 0o100n,
+      
+      // Large block numbers
+      block1000: 0o1750n, // Octal 1750 = decimal 1000
+      block10000: 0o23420n, // Octal 23420 = decimal 10000
+      block100000: 0o303240n, // Octal 303240 = decimal 100000
+      block1000000: 0o3641100n // Octal 3641100 = decimal 1000000
+    },
+    
+    // Disk sizes in blocks (octal BigInt)
+    diskSizes: {
+      kilobyte: 0o2000n, // 1024 blocks
+      megabyte: 0o4000000n, // 1024*1024 blocks
+      gigabyte: 0o10000000000n, // 1024*1024*1024 blocks
+      terabyte: 0o20000000000000n // 1024^4 blocks
+    }
+  },
+  
+  // Network port numbers as octal BigInt
+  network: {
+    ports: {
+      echo: 0o7n, // 7
+      ssh: 0o26n, // 22
+      telnet: 0o27n, // 23
+      smtp: 0o31n, // 25
+      dns: 0o65n, // 53
+      http: 0o120n, // 80
+      pop3: 0o156n, // 110
+      ntp: 0o173n, // 123
+      imap: 0o221n, // 143
+      https: 0o673n, // 443
+      smtps: 0o755n, // 493
+      submission: 0o713n, // 587
+      imaps: 0o1271n, // 993
+      pop3s: 0o1175n, // 995
+      mysql: 0o6362n, // 3306
+      postgresql: 0o12444n, // 5432
+      redis: 0o14353n, // 6379
+      http_alt: 0o17600n, // 8080
+      https_alt: 0o20373n // 8443
+    },
+    
+    // Large port numbers for custom services
+    customPorts: {
+      service1: 0o40000n,
+      service2: 0o50000n,
+      service3: 0o60000n,
+      service4: 0o70000n
+    }
+  },
+  
+  // Memory addresses as octal BigInt
+  memory: {
+    addresses: {
+      baseAddress: 0o0n,
+      kernelStart: 0o37777600000n,
+      kernelEnd: 0o37777777777n,
+      userStart: 0o0n,
+      userEnd: 0o17777777777n,
+      
+      // Code segments
+      textSegment: 0o400000n,
+      dataSegment: 0o600000n,
+      bssSegment: 0o700000n,
+      heapStart: 0o1000000n,
+      stackBase: 0o17777777000n
+    },
+    
+    // Memory sizes
+    sizes: {
+      page4k: 0o10000n, // 4096 bytes
+      page2m: 0o4000000n, // 2MB
+      page1g: 0o10000000000n // 1GB
+    }
+  },
+  
+  // User and group IDs as octal BigInt
+  userIds: {
+    users: {
+      root: 0o0n,
+      daemon: 0o1n,
+      bin: 0o2n,
+      sys: 0o3n,
+      sync: 0o4n,
+      nobody: 0o177777n, // 65535
+      
+      // Regular users
+      user1: 0o2000n, // 1024
+      user2: 0o2001n,
+      user3: 0o2002n,
+      user4: 0o2003n
+    },
+    
+    groups: {
+      root: 0o0n,
+      daemon: 0o1n,
+      bin: 0o2n,
+      sys: 0o3n,
+      adm: 0o4n,
+      tty: 0o5n,
+      disk: 0o6n,
+      wheel: 0o12n, // 10
+      users: 0o144n, // 100
+      nogroup: 0o177777n // 65535
+    }
+  },
+  
+  // Signal numbers as octal BigInt
+  signals: {
+    SIGHUP: 0o1n,
+    SIGINT: 0o2n,
+    SIGQUIT: 0o3n,
+    SIGILL: 0o4n,
+    SIGTRAP: 0o5n,
+    SIGABRT: 0o6n,
+    SIGFPE: 0o10n, // 8
+    SIGKILL: 0o11n, // 9
+    SIGSEGV: 0o13n, // 11
+    SIGPIPE: 0o15n, // 13
+    SIGALRM: 0o16n, // 14
+    SIGTERM: 0o17n, // 15
+    SIGUSR1: 0o12n, // 10
+    SIGUSR2: 0o14n, // 12
+    SIGCHLD: 0o21n, // 17
+    SIGCONT: 0o22n, // 18
+    SIGSTOP: 0o23n, // 19
+    SIGTSTP: 0o24n // 20
+  },
+  
+  // System call numbers as octal BigInt
+  syscalls: {
+    read: 0o0n,
+    write: 0o1n,
+    open: 0o2n,
+    close: 0o3n,
+    stat: 0o4n,
+    fstat: 0o5n,
+    lstat: 0o6n,
+    poll: 0o7n,
+    lseek: 0o10n, // 8
+    mmap: 0o11n, // 9
+    mprotect: 0o12n, // 10
+    munmap: 0o13n, // 11
+    brk: 0o14n, // 12
+    fork: 0o71n, // 57
+    execve: 0o73n, // 59
+    exit: 0o74n, // 60
+    wait4: 0o75n // 61
+  },
+  
+  // Terminal control flags as octal BigInt
+  terminal: {
+    inputFlags: {
+      IGNBRK: 0o1n,
+      BRKINT: 0o2n,
+      IGNPAR: 0o4n,
+      PARMRK: 0o10n,
+      INPCK: 0o20n,
+      ISTRIP: 0o40n,
+      INLCR: 0o100n,
+      IGNCR: 0o200n,
+      ICRNL: 0o400n
+    },
+    
+    outputFlags: {
+      OPOST: 0o1n,
+      ONLCR: 0o4n,
+      OCRNL: 0o10n,
+      ONOCR: 0o20n,
+      ONLRET: 0o40n
+    },
+    
+    controlFlags: {
+      CSIZE: 0o60n,
+      CS5: 0o0n,
+      CS6: 0o20n,
+      CS7: 0o40n,
+      CS8: 0o60n,
+      CSTOPB: 0o100n,
+      CREAD: 0o200n,
+      PARENB: 0o400n,
+      PARODD: 0o1000n
+    },
+    
+    localFlags: {
+      ISIG: 0o1n,
+      ICANON: 0o2n,
+      ECHO: 0o10n,
+      ECHOE: 0o20n,
+      ECHOK: 0o40n,
+      ECHONL: 0o100n,
+      NOFLSH: 0o200n,
+      TOSTOP: 0o400n,
+      IEXTEN: 0o100000n
+    }
+  }
+}

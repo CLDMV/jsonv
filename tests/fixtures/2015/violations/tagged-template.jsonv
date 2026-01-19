@@ -1,0 +1,4 @@
+// Invalid: tagged template literal (function execution)
+{
+  value: myTag`template string`
+}

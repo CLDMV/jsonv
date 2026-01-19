@@ -1,0 +1,167 @@
+// Test file for single-line comments (JSON5/ES2011 feature)
+// This file demonstrates single-line comments throughout a configuration structure
+// with realistic config bloat to meet 100-200 line requirement
+
+{
+  // Database configuration section
+  database: {
+    // Primary database connection
+    host: 'localhost',
+    port: 5432, // PostgreSQL default port
+    name: 'production_db',
+    // Authentication credentials
+    username: 'admin',
+    password: 'secure_password_here', // TODO: Move to env vars
+    // Connection pool settings
+    pool: {
+      min: 2, // Minimum connections
+      max: 10, // Maximum connections
+      idleTimeoutMillis: 30000, // 30 seconds
+      connectionTimeoutMillis: 2000 // 2 seconds
+    },
+    // SSL configuration
+    ssl: {
+      enabled: true, // Always use SSL in production
+      rejectUnauthorized: true,
+      ca: '/path/to/ca-certificate.crt', // CA certificate path
+      key: '/path/to/client-key.key', // Client key
+      cert: '/path/to/client-cert.crt' // Client certificate
+    }
+  },
+  
+  // Server configuration section
+  server: {
+    // HTTP server settings
+    port: 8080, // Main application port
+    host: '0.0.0.0', // Listen on all interfaces
+    // HTTPS configuration
+    https: {
+      enabled: true,
+      port: 8443, // HTTPS port
+      cert: '/etc/ssl/certs/server.crt', // Server certificate
+      key: '/etc/ssl/private/server.key', // Private key
+      // Cipher suite configuration
+      ciphers: 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384' // Strong ciphers only
+    },
+    // CORS settings
+    cors: {
+      enabled: true, // Enable CORS
+      origins: ['https://example.com', 'https://www.example.com'], // Allowed origins
+      methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+      credentials: true // Allow credentials
+    },
+    // Compression settings
+    compression: {
+      enabled: true, // Enable gzip compression
+      level: 6, // Compression level (1-9)
+      threshold: 1024 // Minimum size in bytes
+    }
+  },
+  
+  // API configuration
+  api: {
+    // API version and base path
+    version: 'v1', // Current API version
+    basePath: '/api/v1', // Base path for all endpoints
+    // Rate limiting
+    rateLimit: {
+      enabled: true, // Enable rate limiting
+      maxRequests: 100, // Max requests per window
+      windowMs: 900000, // 15 minutes in milliseconds
+      message: 'Too many requests, please try again later' // Error message
+    },
+    // Authentication settings
+    auth: {
+      // JWT configuration
+      jwt: {
+        enabled: true, // Use JWT authentication
+        secret: 'your-secret-key-here', // JWT secret (use env var)
+        expiresIn: '1h', // Token expiration time
+        algorithm: 'HS256' // Signing algorithm
+      },
+      // OAuth2 settings
+      oauth2: {
+        enabled: false, // OAuth2 disabled for now
+        providers: ['google', 'github'], // Supported providers
+        callbackUrl: 'https://example.com/auth/callback' // OAuth callback URL
+      }
+    },
+    // API endpoints documentation URLs
+    docs: {
+      swagger: '/api/docs', // Swagger UI path
+      openapi: '/api/openapi.json', // OpenAPI spec path
+      enabled: true // Enable API documentation
+    }
+  },
+  
+  // Logging configuration
+  logging: {
+    // Log level settings
+    level: 'info', // Default log level (debug, info, warn, error)
+    // Console logging
+    console: {
+      enabled: true, // Log to console
+      colorize: true, // Use colors
+      timestamp: true // Include timestamps
+    },
+    // File logging
+    file: {
+      enabled: true, // Log to files
+      path: '/var/log/app', // Log directory
+      filename: 'app.log', // Log filename
+      maxSize: '10m', // Max file size
+      maxFiles: 5, // Max number of rotated files
+      compress: true // Compress rotated logs
+    },
+    // Error logging (separate file for errors)
+    errorFile: {
+      enabled: true, // Separate error log
+      path: '/var/log/app', // Error log directory
+      filename: 'error.log' // Error log filename
+    }
+  },
+  
+  // Cache configuration
+  cache: {
+    // Redis cache settings
+    redis: {
+      enabled: true, // Use Redis for caching
+      host: 'localhost', // Redis host
+      port: 6379, // Redis port
+      password: '', // Redis password (if required)
+      db: 0, // Redis database number
+      ttl: 3600 // Default TTL in seconds (1 hour)
+    },
+    // Memory cache fallback
+    memory: {
+      enabled: true, // Enable in-memory cache
+      maxSize: 100, // Maximum cache entries
+      ttl: 300 // TTL in seconds (5 minutes)
+    }
+  },
+  
+  // Email configuration
+  email: {
+    // SMTP settings
+    smtp: {
+      host: 'smtp.example.com', // SMTP server host
+      port: 587, // SMTP port (587 for TLS)
+      secure: false, // Use TLS (not SSL)
+      auth: {
+        user: 'noreply@example.com', // SMTP username
+        pass: 'email_password' // SMTP password
+      }
+    },
+    // Default sender
+    from: {
+      name: 'Example App', // Sender name
+      email: 'noreply@example.com' // Sender email
+    },
+    // Email templates
+    templates: {
+      welcome: '/templates/emails/welcome.html', // Welcome email template
+      resetPassword: '/templates/emails/reset-password.html', // Password reset template
+      notification: '/templates/emails/notification.html' // Notification template
+    }
+  }
+}

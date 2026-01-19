@@ -1,0 +1,281 @@
+// Test file for octal literals (ES2015 feature)
+// Demonstrates both 0o (new) and 0 (old) octal syntax
+// Includes realistic bloat: file permissions, chmod values, umask settings
+
+{
+  // File permissions using octal literals
+  filePermissions: {
+    // Standard Unix permission modes (new syntax)
+    modes: {
+      ownerReadWrite: 0o600, // rw-------
+      ownerAll: 0o700, // rwx------
+      groupRead: 0o040, // ---r-----
+      groupReadWrite: 0o060, // ---rw----
+      groupAll: 0o070, // ---rwx---
+      otherRead: 0o004, // ------r--
+      otherReadWrite: 0o006, // ------rw-
+      otherAll: 0o007, // ------rwx
+      worldRead: 0o444, // r--r--r--
+      worldReadWrite: 0o666, // rw-rw-rw-
+      executable: 0o755, // rwxr-xr-x
+      restricted: 0o700, // rwx------
+      publicRead: 0o644, // rw-r--r--
+      publicExecute: 0o755 // rwxr-xr-x
+    },
+    
+    // Old octal syntax (also valid)
+    legacyModes: {
+      ownerReadWrite: 0600, // rw-------
+      ownerAll: 0700, // rwx------
+      groupRead: 040, // ---r-----
+      groupReadWrite: 060, // ---rw----
+      groupAll: 070, // ---rwx---
+      otherRead: 04, // ------r--
+      otherReadWrite: 06, // ------rw-
+      otherAll: 07, // ------rwx
+      worldRead: 0444, // r--r--r--
+      worldReadWrite: 0666, // rw-rw-rw-
+      executable: 0755, // rwxr-xr-x
+      restricted: 0700, // rwx------
+      publicRead: 0644, // rw-r--r--
+      publicExecute: 0755 // rwxr-xr-x
+    },
+    
+    // Special permission bits
+    special: {
+      setuid: 0o4000, // Set user ID on execution
+      setgid: 0o2000, // Set group ID on execution
+      sticky: 0o1000, // Sticky bit
+      setuidExecutable: 0o4755, // rwsr-xr-x
+      setgidExecutable: 0o2755, // rwxr-sr-x
+      stickyDirectory: 0o1777, // rwxrwxrwt
+      setuidSetgid: 0o6755 // rwsr-sr-x
+    }
+  },
+  
+  // Directory permissions
+  directories: {
+    modes: {
+      privateDir: 0o700, // drwx------
+      sharedDir: 0o755, // drwxr-xr-x
+      publicDir: 0o777, // drwxrwxrwx
+      restrictedDir: 0o750, // drwxr-x---
+      tempDir: 0o1777, // drwxrwxrwt (sticky bit)
+      webRoot: 0o755, // drwxr-xr-x
+      uploadDir: 0o775, // drwxrwxr-x
+      logDir: 0o755 // drwxr-xr-x
+    },
+    
+    // Common directory structures
+    structures: {
+      home: {
+        base: 0o755,
+        user: 0o700,
+        public: 0o755,
+        private: 0o700
+      },
+      var: {
+        base: 0o755,
+        log: 0o755,
+        tmp: 0o1777,
+        cache: 0o755,
+        www: 0o755
+      },
+      etc: {
+        base: 0o755,
+        config: 0o644,
+        secrets: 0o600,
+        scripts: 0o755
+      }
+    }
+  },
+  
+  // umask values (using octal)
+  umaskSettings: {
+    // Common umask values
+    default: 0o022, // Default: creates files as 644, dirs as 755
+    strict: 0o077, // Strict: creates files as 600, dirs as 700
+    relaxed: 0o002, // Relaxed: creates files as 664, dirs as 775
+    group: 0o002, // Group writable: 664/775
+    private: 0o077, // Private: 600/700
+    public: 0o000, // Public: 666/777 (not recommended)
+    
+    // User-specific umask
+    users: {
+      root: 0o022,
+      admin: 0o022,
+      developer: 0o002,
+      webserver: 0o022,
+      database: 0o077,
+      backup: 0o077
+    },
+    
+    // Service-specific umask
+    services: {
+      apache: 0o022,
+      nginx: 0o022,
+      mysql: 0o077,
+      postgresql: 0o077,
+      redis: 0o077,
+      mongodb: 0o077
+    }
+  },
+  
+  // Application file permissions
+  application: {
+    files: {
+      // Configuration files
+      config: {
+        public: 0o644, // rw-r--r--
+        private: 0o600, // rw-------
+        secrets: 0o400 // r--------
+      },
+      // Executable files
+      executables: {
+        scripts: 0o755, // rwxr-xr-x
+        binaries: 0o755, // rwxr-xr-x
+        restricted: 0o750, // rwxr-x---
+        adminOnly: 0o700 // rwx------
+      },
+      // Log files
+      logs: {
+        application: 0o644, // rw-r--r--
+        error: 0o644, // rw-r--r--
+        access: 0o644, // rw-r--r--
+        debug: 0o600 // rw-------
+      },
+      // Data files
+      data: {
+        readable: 0o644, // rw-r--r--
+        writable: 0o666, // rw-rw-rw-
+        private: 0o600, // rw-------
+        database: 0o600 // rw-------
+      },
+      // Cache files
+      cache: {
+        shared: 0o644, // rw-r--r--
+        private: 0o600, // rw-------
+        temporary: 0o666 // rw-rw-rw-
+      },
+      // Upload files
+      uploads: {
+        images: 0o644, // rw-r--r--
+        documents: 0o640, // rw-r-----
+        private: 0o600, // rw-------
+        quarantine: 0o400 // r--------
+      }
+    }
+  },
+  
+  // System configuration
+  system: {
+    // Device file permissions
+    devices: {
+      blockDevices: 0o660, // brw-rw----
+      characterDevices: 0o666, // crw-rw-rw-
+      terminals: 0o620, // crw--w----
+      printers: 0o660, // crw-rw----
+      disks: 0o640 // brw-r-----
+    },
+    
+    // Socket and pipe permissions
+    ipc: {
+      sockets: 0o666, // srw-rw-rw-
+      namedPipes: 0o644, // prw-r--r--
+      unixSockets: 0o777, // srwxrwxrwx
+      domainSockets: 0o660 // srw-rw----
+    },
+    
+    // Process default modes
+    processes: {
+      defaultFile: 0o644, // rw-r--r-- (with umask 0o022)
+      defaultDir: 0o755, // rwxr-xr-x (with umask 0o022)
+      restrictedFile: 0o600, // rw------- (with umask 0o077)
+      restrictedDir: 0o700 // rwx------ (with umask 0o077)
+    }
+  },
+  
+  // Backup permissions
+  backup: {
+    files: {
+      fullBackup: 0o600, // rw-------
+      incremental: 0o640, // rw-r-----
+      archive: 0o444, // r--r--r--
+      encrypted: 0o400 // r--------
+    },
+    directories: {
+      backupRoot: 0o700, // drwx------
+      daily: 0o750, // drwxr-x---
+      weekly: 0o750, // drwxr-x---
+      monthly: 0o750, // drwxr-x---
+      archive: 0o755 // drwxr-xr-x
+    }
+  },
+  
+  // Web server permissions
+  webServer: {
+    apache: {
+      configFiles: 0o644, // rw-r--r--
+      htaccess: 0o644, // rw-r--r--
+      documentRoot: 0o755, // drwxr-xr-x
+      uploadDir: 0o755, // drwxr-xr-x
+      cgiScripts: 0o755, // rwxr-xr-x
+      logFiles: 0o644 // rw-r--r--
+    },
+    nginx: {
+      configFiles: 0o644, // rw-r--r--
+      documentRoot: 0o755, // drwxr-xr-x
+      uploadDir: 0o755, // drwxr-xr-x
+      logFiles: 0o644, // rw-r--r--
+      cacheDir: 0o755 // drwxr-xr-x
+    }
+  },
+  
+  // Database permissions
+  database: {
+    postgresql: {
+      dataDir: 0o700, // drwx------
+      configFile: 0o600, // rw-------
+      logFile: 0o600, // rw-------
+      socket: 0o777 // srwxrwxrwx
+    },
+    mysql: {
+      dataDir: 0o750, // drwxr-x---
+      configFile: 0o644, // rw-r--r--
+      logFile: 0o640, // rw-r-----
+      socket: 0o777 // srwxrwxrwx
+    },
+    mongodb: {
+      dataDir: 0o755, // drwxr-xr-x
+      configFile: 0o644, // rw-r--r--
+      logFile: 0o644, // rw-r--r--
+      socket: 0o755 // srwxr-xr-x
+    }
+  },
+  
+  // Security-sensitive files
+  security: {
+    ssh: {
+      privateKey: 0o600, // -rw-------
+      publicKey: 0o644, // -rw-r--r--
+      authorizedKeys: 0o600, // -rw-------
+      knownHosts: 0o644, // -rw-r--r--
+      config: 0o600, // -rw-------
+      sshDir: 0o700 // drwx------
+    },
+    ssl: {
+      privateKey: 0o600, // -rw-------
+      certificate: 0o644, // -rw-r--r--
+      csr: 0o644, // -rw-r--r--
+      ca: 0o644, // -rw-r--r--
+      sslDir: 0o755 // drwxr-xr-x
+    },
+    secrets: {
+      apiKeys: 0o400, // -r--------
+      passwords: 0o400, // -r--------
+      tokens: 0o400, // -r--------
+      certificates: 0o400, // -r--------
+      secretsDir: 0o700 // drwx------
+    }
+  }
+}

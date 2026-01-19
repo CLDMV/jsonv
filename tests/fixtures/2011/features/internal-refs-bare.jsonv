@@ -1,0 +1,300 @@
+// Test file for internal references using bare identifiers (jsonv extension - ES2011)
+// Demonstrates property value references within the same file
+// Includes realistic server configuration with port/host references
+
+{
+  // Base configuration values
+  baseConfig: {
+    hostname: 'localhost',
+    httpPort: 8080,
+    httpsPort: 8443,
+    domain: 'example.com',
+    protocol: 'https',
+    apiVersion: 'v1',
+    defaultTimeout: 30000,
+    maxConnections: 1000
+  },
+  
+  // Server configuration using base values
+  server: {
+    // Reference base values using bare identifiers
+    host: baseConfig.hostname,
+    ports: {
+      http: baseConfig.httpPort,
+      https: baseConfig.httpsPort,
+      admin: 9090
+    },
+    timeout: baseConfig.defaultTimeout,
+    maxConnections: baseConfig.maxConnections
+  },
+  
+  // Database configuration with cross-references
+  database: {
+    primary: {
+      host: 'db-primary.example.com',
+      port: 5432,
+      name: 'production_db',
+      user: 'app_user',
+      maxPool: 20,
+      minPool: 5,
+      timeout: baseConfig.defaultTimeout
+    },
+    // Replica references primary configuration
+    replica: {
+      host: 'db-replica.example.com',
+      port: database.primary.port, // Reference primary port
+      name: database.primary.name, // Same database name
+      user: database.primary.user, // Same user
+      maxPool: 50, // Higher for replicas
+      minPool: 10,
+      timeout: database.primary.timeout
+    }
+  },
+  
+  // API endpoints using base config
+  api: {
+    baseUrl: baseConfig.protocol,
+    domain: baseConfig.domain,
+    version: baseConfig.apiVersion,
+    endpoints: {
+      users: '/api/users',
+      auth: '/api/auth',
+      products: '/api/products',
+      orders: '/api/orders'
+    }
+  },
+  
+  // Cache configuration referencing database settings
+  cache: {
+    redis: {
+      host: baseConfig.hostname,
+      port: 6379,
+      db: 0,
+      maxRetries: 3,
+      retryDelay: 1000,
+      timeout: baseConfig.defaultTimeout
+    },
+    ttl: {
+      default: 3600,
+      short: 300,
+      long: 86400,
+      session: 1800
+    }
+  },
+  
+  // Service URLs constructed from base config
+  services: {
+    webServer: {
+      protocol: baseConfig.protocol,
+      host: baseConfig.domain,
+      port: baseConfig.httpsPort,
+      timeout: baseConfig.defaultTimeout
+    },
+    apiServer: {
+      protocol: services.webServer.protocol,
+      host: services.webServer.host,
+      port: 3000,
+      timeout: services.webServer.timeout
+    },
+    authService: {
+      protocol: services.webServer.protocol,
+      host: baseConfig.domain,
+      port: 3001,
+      timeout: baseConfig.defaultTimeout
+    }
+  },
+  
+  // Monitoring configuration using service settings
+  monitoring: {
+    healthChecks: {
+      web: {
+        host: services.webServer.host,
+        port: services.webServer.port,
+        path: '/health',
+        interval: 30000,
+        timeout: 5000
+      },
+      api: {
+        host: services.apiServer.host,
+        port: services.apiServer.port,
+        path: '/health',
+        interval: 30000,
+        timeout: 5000
+      },
+      database: {
+        host: database.primary.host,
+        port: database.primary.port,
+        interval: 60000,
+        timeout: 10000
+      },
+      cache: {
+        host: cache.redis.host,
+        port: cache.redis.port,
+        interval: 30000,
+        timeout: 5000
+      }
+    }
+  },
+  
+  // Load balancer configuration
+  loadBalancer: {
+    algorithm: 'round-robin',
+    timeout: baseConfig.defaultTimeout,
+    maxConnections: baseConfig.maxConnections,
+    backends: [
+      {
+        name: 'backend-1',
+        host: 'backend-1.example.com',
+        port: baseConfig.httpPort,
+        weight: 1,
+        maxConnections: loadBalancer.maxConnections
+      },
+      {
+        name: 'backend-2',
+        host: 'backend-2.example.com',
+        port: baseConfig.httpPort,
+        weight: 1,
+        maxConnections: loadBalancer.maxConnections
+      },
+      {
+        name: 'backend-3',
+        host: 'backend-3.example.com',
+        port: baseConfig.httpPort,
+        weight: 2,
+        maxConnections: loadBalancer.maxConnections
+      }
+    ]
+  },
+  
+  // Logging configuration referencing services
+  logging: {
+    level: 'info',
+    targets: {
+      console: {
+        enabled: true,
+        level: logging.level,
+        colorize: true
+      },
+      file: {
+        enabled: true,
+        level: logging.level,
+        path: '/var/log/app/app.log',
+        maxSize: '10m',
+        maxFiles: 5
+      },
+      remote: {
+        enabled: true,
+        level: 'warn',
+        host: 'logs.example.com',
+        port: 514,
+        protocol: 'tcp',
+        timeout: baseConfig.defaultTimeout
+      }
+    }
+  },
+  
+  // Backup configuration using database settings
+  backup: {
+    database: {
+      enabled: true,
+      host: database.primary.host,
+      port: database.primary.port,
+      name: database.primary.name,
+      user: 'backup_user',
+      schedule: '0 2 * * *', // 2 AM daily
+      retention: 30, // days
+      destination: '/backups/database'
+    },
+    files: {
+      enabled: true,
+      schedule: '0 3 * * *', // 3 AM daily
+      retention: 7, // days
+      destination: '/backups/files',
+      timeout: 3600000 // 1 hour
+    }
+  },
+  
+  // Security settings referencing ports and timeouts
+  security: {
+    cors: {
+      enabled: true,
+      origins: [
+        baseConfig.protocol,
+        baseConfig.domain
+      ],
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      credentials: true
+    },
+    rateLimit: {
+      enabled: true,
+      windowMs: 900000, // 15 minutes
+      maxRequests: 100,
+      message: 'Too many requests',
+      headers: true
+    },
+    jwt: {
+      secret: 'your-secret-key',
+      expiresIn: 3600, // 1 hour
+      algorithm: 'HS256'
+    },
+    session: {
+      timeout: cache.ttl.session,
+      rolling: true,
+      cookie: {
+        secure: true,
+        httpOnly: true,
+        maxAge: cache.ttl.session
+      }
+    }
+  },
+  
+  // Email configuration using service settings
+  email: {
+    smtp: {
+      host: 'smtp.example.com',
+      port: 587,
+      secure: false,
+      timeout: baseConfig.defaultTimeout,
+      auth: {
+        user: 'noreply@example.com',
+        pass: 'smtp_password'
+      }
+    },
+    from: {
+      name: 'Example App',
+      email: 'noreply@example.com'
+    },
+    templates: {
+      welcome: {
+        subject: 'Welcome to Example App',
+        template: 'welcome.html'
+      },
+      resetPassword: {
+        subject: 'Reset Your Password',
+        template: 'reset-password.html'
+      }
+    }
+  },
+  
+  // Notification service using various referenced values
+  notifications: {
+    channels: {
+      email: {
+        enabled: true,
+        host: email.smtp.host,
+        port: email.smtp.port,
+        timeout: email.smtp.timeout
+      },
+      push: {
+        enabled: true,
+        timeout: baseConfig.defaultTimeout,
+        maxRetries: 3
+      },
+      sms: {
+        enabled: false,
+        timeout: baseConfig.defaultTimeout,
+        maxRetries: 3
+      }
+    }
+  }
+}

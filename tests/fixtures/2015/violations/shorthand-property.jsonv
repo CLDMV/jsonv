@@ -1,0 +1,5 @@
+// Invalid: shorthand property (ES2015 but requires runtime context)
+{
+  port: 8080,
+  config: { port }
+}

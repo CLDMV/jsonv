@@ -1,0 +1,378 @@
+// ES2011/JSON5 Comprehensive Test File
+// This file demonstrates ALL JSON5/ES2011 features in a single configuration
+// Minimum 200-300 lines with realistic bloat
+
+{
+  /* 
+   * Application Configuration
+   * Demonstrates: multi-line comments, unquoted keys, trailing commas
+   */
+  app: {
+    name: 'Production Application',
+    version: '3.5.2', // Single-line comment
+    environment: 'production',
+    debug: false,
+    // Features array with trailing comma
+    features: [
+      'authentication',
+      'authorization',
+      'caching',
+      'monitoring',
+    ], // Trailing comma
+  }, // Trailing comma
+  
+  // Base configuration with unquoted keys and internal references
+  base: {
+    hostname: 'localhost',
+    httpPort: 0x1F90, // Hex literal: 8080
+    httpsPort: 0x20FB, // Hex literal: 8443
+    domain: 'example.com',
+    protocol: 'https',
+    timeout: +30000, // Explicit positive sign
+    maxConnections: +1000,
+    retryLimit: Infinity, // Special value
+    invalidValue: NaN, // Special value
+  },
+  
+  /* Database Configuration Section */
+  database: {
+    primary: {
+      type: 'postgresql',
+      host: 'db-primary.example.com',
+      port: base.httpPort, // Internal reference
+      database: 'production_db',
+      username: 'app_user',
+      password: 'secure_password', // Single-quoted string possible
+      /* Connection pool settings */
+      pool: {
+        max: 20,
+        min: 5,
+        idle: 10000,
+        acquire: +30000, // Explicit positive
+        timeout: base.timeout, // Internal reference
+      },
+      // SSL configuration
+      ssl: {
+        enabled: true,
+        cert: '/etc/ssl/certs/client.crt',
+        key: '/etc/ssl/private/client.key',
+        ca: '/etc/ssl/certs/ca.crt',
+      },
+    },
+    replica: {
+      type: 'postgresql',
+      host: 'db-replica.example.com',
+      port: database.primary.port, // Nested internal reference
+      database: database.primary.database,
+      username: database.primary.username,
+      password: database.primary.password,
+      pool: {
+        max: 50,
+        min: 10,
+        idle: 10000,
+        acquire: 30000,
+        timeout: database.primary.pool.timeout,
+      },
+    },
+  },
+  
+  // Server configuration with hex ports
+  servers: {
+    web: {
+      host: base.hostname, // Internal reference
+      httpPort: 0x50, // Hex: 80
+      httpsPort: 0x1BB, // Hex: 443
+      maxConnections: base.maxConnections,
+      timeout: base.timeout,
+      adminPort: 0x2382, // Hex: 9090
+    },
+    api: {
+      host: servers.web.host,
+      port: 0xBB8, // Hex: 3000
+      version: app.version,
+      timeout: servers.web.timeout,
+      rateLimit: {
+        anonymous: 100,
+        authenticated: 1000,
+        premium: 10000,
+        admin: Infinity, // No limit
+      },
+    },
+  },
+  
+  /* Cache Configuration with Redis */
+  cache: {
+    redis: {
+      host: base.hostname,
+      port: 0x18EB, // Hex: 6379
+      db: 0,
+      password: '',
+      timeout: base.timeout,
+      retryAttempts: +3,
+      retryDelay: +1000,
+    },
+    ttl: {
+      default: 3600,
+      short: 300,
+      long: 86400,
+      permanent: Infinity,
+    },
+  },
+  
+  // Color theme with hex values
+  theme: {
+    colors: {
+      primary: 0x2196F3,
+      secondary: 0xF50057,
+      success: 0x4CAF50,
+      error: 0xF44336,
+      warning: 0xFF9800,
+      info: 0x2196F3,
+      background: 0xFFFFFF,
+      text: 0x212121,
+    },
+    flags: {
+      darkMode: 0x01,
+      animations: 0x02,
+      notifications: 0x04,
+      analytics: 0x08,
+    },
+  },
+  
+  // Decimal variations and special values
+  metrics: {
+    performance: {
+      responseTime: {
+        p50: 45.5,
+        p75: +68.2,
+        p90: 95.,
+        p95: +128.7,
+        p99: 245.3,
+      },
+      throughput: {
+        requestsPerSec: 1250.0,
+        bytesPerSec: +5242880.,
+        unlimited: Infinity,
+      },
+      errors: {
+        rate: .012, // Leading decimal
+        threshold: +.05,
+        sensorFailure: NaN, // Invalid reading
+      },
+    },
+    resource: {
+      cpuPercent: .67,
+      memoryPercent: +.82,
+      diskPercent: .45,
+      unlimited: Infinity,
+    },
+  },
+  
+  /* Multi-line string content */
+  queries: {
+    getUserData: '\
+      SELECT \
+        u.id, \
+        u.username, \
+        u.email, \
+        u.created_at, \
+        COUNT(o.id) as order_count \
+      FROM users u \
+      LEFT JOIN orders o ON u.id = o.user_id \
+      WHERE u.deleted_at IS NULL \
+      GROUP BY u.id, u.username, u.email, u.created_at \
+      ORDER BY u.created_at DESC \
+      LIMIT 100',
+    
+    getProducts: '\
+      SELECT \
+        p.id, \
+        p.name, \
+        p.sku, \
+        p.price, \
+        i.quantity \
+      FROM products p \
+      INNER JOIN inventory i ON p.id = i.product_id \
+      WHERE p.active = true \
+      ORDER BY p.name',
+  },
+  
+  // Email template with multi-line HTML
+  emailTemplate: '\
+    <!DOCTYPE html>\
+    <html>\
+    <head>\
+      <title>Welcome Email</title>\
+    </head>\
+    <body>\
+      <h1>Welcome to Our Platform!</h1>\
+      <p>Thank you for joining us.</p>\
+      <a href="{{verificationLink}}">Verify Email</a>\
+    </body>\
+    </html>',
+  
+  // Monitoring with internal references
+  monitoring: {
+    prometheus: {
+      enabled: true,
+      port: 0x2372, // Hex: 9090
+      path: '/metrics',
+    },
+    healthChecks: {
+      web: {
+        host: servers.web.host,
+        port: servers.web.httpPort,
+        path: '/health',
+        interval: 30000,
+        timeout: +5000,
+      },
+      api: {
+        host: servers.api.host,
+        port: servers.api.port,
+        path: '/health',
+        interval: 30000,
+        timeout: 5000,
+      },
+      database: {
+        host: database.primary.host,
+        port: database.primary.port,
+        interval: 60000,
+        timeout: 10000,
+      },
+      cache: {
+        host: cache.redis.host,
+        port: cache.redis.port,
+        interval: 30000,
+        timeout: base.timeout,
+      },
+    },
+    alerts: {
+      cpuThreshold: .80, // 80%
+      memoryThreshold: +.85, // 85%
+      errorRateThreshold: .05, // 5%
+      responseTimeThreshold: +1000, // 1 second
+    },
+  },
+  
+  /* Security Configuration */
+  security: {
+    cors: {
+      enabled: true,
+      origins: [
+        'https://example.com',
+        'https://www.example.com',
+      ],
+      methods: [
+        'GET',
+        'POST',
+        'PUT',
+        'DELETE',
+      ],
+      credentials: true,
+    },
+    rateLimit: {
+      enabled: true,
+      windowMs: 900000,
+      maxRequests: 100,
+      blockDuration: Infinity, // Permanent block
+    },
+    jwt: {
+      secret: 'jwt-secret-key',
+      expiresIn: 3600,
+      algorithm: 'HS256',
+      maxAge: cache.ttl.default,
+    },
+  },
+  
+  // Feature flags with hex bit flags
+  featureFlags: {
+    newUI: 0x01,
+    betaFeatures: 0x02,
+    experimentalAPI: 0x04,
+    analytics: 0x08,
+    realTimeUpdates: 0x10,
+    offlineMode: 0x20,
+    darkMode: 0x40,
+    notifications: 0x80,
+    enabledFlags: 0xC9, // Multiple flags enabled
+  },
+  
+  // Nested configuration with all feature types
+  services: {
+    payment: {
+      provider: 'stripe',
+      publicKey: 'pk_live_abc123',
+      secretKey: 'sk_live_secret123',
+      timeout: base.timeout,
+      retryAttempts: +3,
+      retryDelay: +1000,
+      maxRetryDelay: +30000,
+      currencies: [
+        'USD',
+        'EUR',
+        'GBP',
+      ],
+      testMode: false,
+    },
+    email: {
+      provider: 'sendgrid',
+      apiKey: 'sendgrid_api_key',
+      from: 'noreply@example.com',
+      timeout: services.payment.timeout,
+      templates: {
+        welcome: 'welcome-template',
+        reset: 'reset-password-template',
+        notification: 'notification-template',
+      },
+    },
+  },
+  
+  // Backup configuration
+  backup: {
+    enabled: true,
+    schedule: '0 2 * * *',
+    retention: +30,
+    destination: '/backups/app',
+    compress: true,
+    targets: [
+      'database',
+      'files',
+      'logs',
+    ],
+    database: {
+      host: database.primary.host,
+      port: database.primary.port,
+      name: database.primary.database,
+    },
+  },
+  
+  // Logging configuration with all features
+  logging: {
+    level: 'info',
+    format: 'json',
+    colorize: false,
+    timestamp: true,
+    maxFiles: +10,
+    maxSize: 0xA00000, // Hex: 10MB
+    targets: {
+      console: {
+        enabled: true,
+        level: logging.level,
+      },
+      file: {
+        enabled: true,
+        path: '/var/log/app/app.log',
+        level: logging.level,
+        maxSize: logging.maxSize,
+        maxFiles: logging.maxFiles,
+      },
+      remote: {
+        enabled: false,
+        host: 'logs.example.com',
+        port: 0x202, // Hex: 514
+        protocol: 'tcp',
+        timeout: base.timeout,
+      },
+    },
+  },
+}

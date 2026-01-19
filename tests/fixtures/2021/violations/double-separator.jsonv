@@ -1,0 +1,4 @@
+// Invalid: double underscore separator
+{
+  value: 1__000
+}

@@ -1,0 +1,5 @@
+// Invalid: computed property name (requires runtime evaluation)
+{
+  key: 'dynamicKey',
+  [key]: 'value'
+}

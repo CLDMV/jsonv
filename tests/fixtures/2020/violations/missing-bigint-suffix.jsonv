@@ -1,0 +1,5 @@
+// Invalid: BigInt without 'n' suffix (just a large number)
+{
+  // This should fail if parser enforces BigInt for numbers > MAX_SAFE_INTEGER
+  largeId: 9007199254740993
+}

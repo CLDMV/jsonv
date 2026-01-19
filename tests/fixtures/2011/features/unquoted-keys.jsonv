@@ -1,0 +1,205 @@
+// Test file for unquoted object keys (JSON5/ES2011 feature)
+// Demonstrates various identifier forms as unquoted keys
+// Includes realistic configuration with bloat
+
+{
+  // Standard camelCase identifiers
+  applicationName: 'Production System',
+  applicationVersion: '4.2.0',
+  deploymentEnvironment: 'production',
+  isMaintenanceMode: false,
+  
+  // Underscore-prefixed (common for "private" properties)
+  _internal: true,
+  _version: 2,
+  _schema: 'v4',
+  
+  // Dollar sign prefix (valid identifier)
+  $root: '/var/www',
+  $temp: '/tmp',
+  $config: '/etc/app',
+  
+  // Numbers in identifiers (not at start)
+  server1: 'prod-server-1.example.com',
+  server2: 'prod-server-2.example.com',
+  db1Primary: 'db1-primary.example.com',
+  db2Replica: 'db2-replica.example.com',
+  cache01: 'cache-01.example.com',
+  cache02: 'cache-02.example.com',
+  
+  // Reserved words as keys (allowed in JSON5/ES5 property names)
+  default: {
+    timeout: 30000,
+    retries: 3,
+    backoff: 'exponential'
+  },
+  
+  for: {
+    duration: '1h',
+    interval: '5m'
+  },
+  
+  if: {
+    condition: 'enabled',
+    action: 'process'
+  },
+  
+  while: {
+    maxIterations: 1000,
+    checkInterval: 100
+  },
+  
+  return: {
+    format: 'json',
+    compress: true
+  },
+  
+  // Mixed case and underscores
+  API_KEY: 'prod-api-key-12345',
+  API_SECRET: 'secret-value-here',
+  BASE_URL: 'https://api.example.com',
+  MAX_RETRY_COUNT: 5,
+  MIN_POOL_SIZE: 10,
+  MAX_POOL_SIZE: 100,
+  
+  // Snake_case identifiers
+  database_host: 'localhost',
+  database_port: 5432,
+  database_name: 'production',
+  connection_timeout: 5000,
+  query_timeout: 30000,
+  idle_timeout: 60000,
+  
+  // Nested objects with unquoted keys
+  webServer: {
+    listenPort: 8080,
+    listenHost: '0.0.0.0',
+    maxConnections: 1000,
+    keepAliveTimeout: 65000,
+    requestTimeout: 120000,
+    
+    ssl: {
+      enabled: true,
+      certPath: '/etc/ssl/certs/server.crt',
+      keyPath: '/etc/ssl/private/server.key',
+      cipherSuite: 'ECDHE-RSA-AES256-GCM-SHA384',
+      minVersion: 'TLSv1.2',
+      maxVersion: 'TLSv1.3'
+    },
+    
+    compression: {
+      enabled: true,
+      level: 6,
+      minSize: 1024,
+      types: ['text/html', 'text/css', 'application/javascript', 'application/json']
+    }
+  },
+  
+  // Authentication configuration
+  authentication: {
+    tokenExpiry: 3600,
+    refreshTokenExpiry: 604800,
+    passwordMinLength: 12,
+    passwordRequireUppercase: true,
+    passwordRequireLowercase: true,
+    passwordRequireDigits: true,
+    passwordRequireSpecialChars: true,
+    maxLoginAttempts: 5,
+    lockoutDuration: 900,
+    
+    oauth: {
+      googleClientId: 'google-client-id',
+      googleClientSecret: 'google-client-secret',
+      githubClientId: 'github-client-id',
+      githubClientSecret: 'github-client-secret',
+      callbackURL: 'https://example.com/auth/callback'
+    }
+  },
+  
+  // Cache configuration with unquoted keys
+  cacheSettings: {
+    redisHost: 'localhost',
+    redisPort: 6379,
+    redisDB: 0,
+    redisKeyPrefix: 'app:',
+    defaultTTL: 3600,
+    maxMemory: '2gb',
+    evictionPolicy: 'allkeys-lru',
+    
+    strategies: {
+      userSessions: {
+        ttl: 1800,
+        namespace: 'sessions'
+      },
+      apiResponses: {
+        ttl: 300,
+        namespace: 'api'
+      },
+      staticContent: {
+        ttl: 86400,
+        namespace: 'static'
+      }
+    }
+  },
+  
+  // Monitoring and metrics
+  monitoring: {
+    prometheusEnabled: true,
+    prometheusPort: 9090,
+    prometheusPath: '/metrics',
+    healthCheckPath: '/health',
+    livenessCheckPath: '/healthz',
+    readinessCheckPath: '/ready',
+    
+    alerts: {
+      highCPUThreshold: 80,
+      highMemoryThreshold: 85,
+      diskSpaceThreshold: 90,
+      errorRateThreshold: 5,
+      responseTimeThreshold: 2000
+    },
+    
+    logs: {
+      level: 'info',
+      format: 'json',
+      outputPath: '/var/log/app',
+      maxFileSize: 104857600,
+      maxFiles: 10,
+      compressRotated: true
+    }
+  },
+  
+  // Feature flags
+  featureFlags: {
+    enableNewUI: true,
+    enableBetaFeatures: false,
+    enableExperimentalAPI: false,
+    enableAdvancedAnalytics: true,
+    enableRealTimeUpdates: true,
+    enableOfflineMode: false,
+    enableDarkMode: true,
+    enableNotifications: true
+  },
+  
+  // External service integrations
+  externalServices: {
+    emailProvider: 'sendgrid',
+    emailAPIKey: 'sendgrid-api-key',
+    emailFromAddress: 'noreply@example.com',
+    emailFromName: 'Example App',
+    
+    smsProvider: 'twilio',
+    smsAccountSID: 'twilio-account-sid',
+    smsAuthToken: 'twilio-auth-token',
+    smsFromNumber: '+1234567890',
+    
+    storageProvider: 's3',
+    storageBucket: 'app-production-assets',
+    storageRegion: 'us-east-1',
+    storageEndpoint: 'https://s3.amazonaws.com',
+    
+    analyticsProvider: 'google-analytics',
+    analyticsTrackingID: 'GA-XXXXXXXX',
+    analyticsEnabled: true
+  }
+}

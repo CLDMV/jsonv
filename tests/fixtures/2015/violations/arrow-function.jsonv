@@ -1,0 +1,4 @@
+// Invalid: arrow function (executable code not allowed)
+{
+  handler: () => console.log('hello')
+}

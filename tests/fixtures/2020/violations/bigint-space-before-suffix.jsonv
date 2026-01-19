@@ -1,0 +1,4 @@
+// Invalid: space between number and 'n' suffix
+{
+  value: 123 n
+}

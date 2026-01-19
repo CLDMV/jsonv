@@ -1,0 +1,94 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Package manager lock files (optional - uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Build output
+spec/
+dist/
+build/
+out/
+types/
+*.tsbuildinfo
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Agent and AI assistant files
+.copilot/
+.cursor/
+.aider*
+.agent/
+.ai/
+*.agent.md
+*.ai.md
+.github/copilot/
+.github/copilot-instructions.md
+.vscode-copilot/
+
+# Cline MCP server cache and state
+.cline/
+cline-*.json
+
+# Memory and context files
+.memory/
+.context/
+*.memory.json
+*.context.json
+
+# Optional: Compiled JavaScript from TypeScript (if you want to keep them in src, adjust accordingly)
+# src/**/*.js
+# src/**/*.js.map

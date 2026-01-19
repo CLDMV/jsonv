@@ -1,0 +1,361 @@
+// ES2015 Comprehensive Test File
+// Demonstrates ALL ES2015 features + JSON5 base in a single configuration
+// Minimum 200-300 lines with realistic bloat
+
+{
+  /* Application metadata with JSON5 features */
+  app: {
+    name: 'ES2015 Feature Platform',
+    version: '2.0.0',
+    features: [
+      'binary-literals',
+      'octal-literals',
+      'template-literals',
+      'template-interpolation',
+    ], // Trailing comma
+  },
+  
+  // Base configuration for internal references
+  base: {
+    domain: 'example.com',
+    protocol: 'https',
+    apiVersion: 'v2',
+    httpPort: 0b0001010000000000, // Binary: 80
+    httpsPort: 0o673, // Octal (new syntax): 443
+    adminPort: 0o21612, // Octal (new syntax): 9098
+    dbPort: 05432, // Octal (old syntax): 5432
+    cachePort: 0b1100011101011, // Binary: 6379
+  },
+  
+  /* File permissions using octal literals */
+  permissions: {
+    files: {
+      config: 0o644, // rw-r--r--
+      secrets: 0o600, // rw-------
+      executable: 0o755, // rwxr-xr-x
+      readonly: 0o444, // r--r--r--
+    },
+    directories: {
+      public: 0o755, // drwxr-xr-x
+      private: 0o700, // drwx------
+      temp: 0o1777, // drwxrwxrwt
+    },
+    // Old octal syntax
+    legacy: {
+      config: 0644,
+      secrets: 0600,
+      executable: 0755,
+    },
+  },
+  
+  // Binary flags for features
+  flags: {
+    features: 0b11110101, // Multiple features enabled
+    permissions: {
+      read: 0b00000001,
+      write: 0b00000010,
+      execute: 0b00000100,
+      admin: 0b00001000,
+      all: 0b00001111,
+    },
+    status: {
+      active: 0b0001,
+      verified: 0b0010,
+      premium: 0b0100,
+      admin: 0b1000,
+    },
+  },
+  
+  /* URL construction using template interpolation */
+  urls: {
+    homepage: `${base.protocol}://${base.domain}`,
+    api: `${base.protocol}://${base.domain}/api/${base.apiVersion}`,
+    admin: `${base.protocol}://admin.${base.domain}`,
+    cdn: `${base.protocol}://cdn.${base.domain}`,
+    
+    // API endpoints with interpolation
+    endpoints: {
+      users: `${base.protocol}://${base.domain}/api/${base.apiVersion}/users`,
+      auth: `${base.protocol}://${base.domain}/api/${base.apiVersion}/auth`,
+      products: `${base.protocol}://${base.domain}/api/${base.apiVersion}/products`,
+    },
+  },
+  
+  // Connection strings with template interpolation
+  connections: {
+    database: `postgresql://user:pass@db.${base.domain}:${base.dbPort}/production`,
+    cache: `redis://cache.${base.domain}:${base.cachePort}/0`,
+    replica: `postgresql://user:pass@replica.${base.domain}:${base.dbPort}/production`,
+  },
+  
+  /* Network configuration with binary masks */
+  network: {
+    subnetMasks: {
+      class_c: 0b11111111111111111111111100000000, // 255.255.255.0
+      class_d: 0b11111111111111111111111111000000, // 255.255.255.192
+    },
+    tcpFlags: {
+      SYN: 0b00000010,
+      ACK: 0b00010000,
+      FIN: 0b00000001,
+      SYN_ACK: 0b00010010,
+    },
+    ports: {
+      http: 0o120, // Octal: 80
+      https: 0o673, // Octal: 443
+      ssh: 0b00010110, // Binary: 22
+      mysql: 0o6362, // Octal: 3306
+    },
+  },
+  
+  // RGB colors in binary
+  colors: {
+    primary: {
+      red: 0b11111111,
+      green: 0b00000000,
+      blue: 0b00000000,
+    },
+    secondary: {
+      red: 0b00000000,
+      green: 0b11111111,
+      blue: 0b00000000,
+    },
+  },
+  
+  /* Template literal SQL queries */
+  queries: {
+    getUsers: `
+      SELECT 
+        u.id,
+        u.username,
+        u.email,
+        COUNT(o.id) as order_count
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id
+      WHERE u.deleted_at IS NULL
+      GROUP BY u.id, u.username, u.email
+      ORDER BY u.created_at DESC
+      LIMIT 100
+    `,
+    
+    getInventory: `
+      SELECT 
+        p.id,
+        p.sku,
+        p.name,
+        i.quantity,
+        i.warehouse_location
+      FROM products p
+      INNER JOIN inventory i ON p.id = i.product_id
+      WHERE p.active = true
+      ORDER BY p.name
+    `,
+  },
+  
+  /* HTML email template using template literals */
+  emailTemplate: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Welcome Email</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #667eea; color: white; padding: 20px; }
+        .content { padding: 20px; }
+        .button { background: #667eea; color: white; padding: 10px 20px; 
+                  text-decoration: none; border-radius: 5px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Welcome!</h1>
+        </div>
+        <div class="content">
+          <p>Thank you for joining our platform.</p>
+          <a href="#" class="button">Get Started</a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `,
+  
+  // Configuration with all feature types
+  config: {
+    paths: {
+      base: '/var/www/app',
+      logs: `${config.paths.base}/logs`,
+      cache: `${config.paths.base}/cache`,
+      uploads: `${config.paths.base}/uploads`,
+    },
+    
+    // File modes with octal
+    fileModes: {
+      config: 0o644,
+      secrets: 0o400,
+      logs: 0o644,
+      cache: 0o755,
+    },
+    
+    // Feature flags with binary
+    features: {
+      authentication: 0b00000001,
+      caching: 0b00000010,
+      logging: 0b00000100,
+      monitoring: 0b00001000,
+      enabled: 0b00001111, // All enabled
+    },
+  },
+  
+  /* Server configuration mixing all features */
+  servers: {
+    web: {
+      host: base.domain,
+      httpPort: base.httpPort, // Binary literal reference
+      httpsPort: base.httpsPort, // Octal literal reference
+      url: `${base.protocol}://${base.domain}:${base.httpsPort}`,
+      permissions: 0o755, // Octal
+      flags: 0b11110000, // Binary
+    },
+    api: {
+      host: base.domain,
+      port: 0b101110111000, // Binary: 3000
+      url: `${base.protocol}://api.${base.domain}`,
+      mode: 0o644, // Octal
+    },
+  },
+  
+  // Hardware registers with binary
+  hardware: {
+    control: {
+      enable: 0b00000001,
+      reset: 0b00000010,
+      clock: 0b00000100,
+      interrupt: 0b00001000,
+    },
+    status: {
+      ready: 0b00000001,
+      busy: 0b00000010,
+      error: 0b00000100,
+    },
+  },
+  
+  /* Documentation using template literals */
+  documentation: {
+    quickStart: `
+      # Quick Start Guide
+      
+      ## Installation
+      
+      Install the package:
+      
+      \`\`\`bash
+      npm install @example/package
+      \`\`\`
+      
+      ## Usage
+      
+      \`\`\`javascript
+      const pkg = require('@example/package');
+      pkg.init({ apiKey: 'your-key' });
+      \`\`\`
+      
+      ## Configuration
+      
+      Set your environment variables:
+      - API_KEY: Your API key
+      - API_URL: API endpoint
+      - DEBUG: Enable debug mode
+    `,
+    
+    apiReference: `
+      # API Reference
+      
+      ## Authentication
+      
+      All requests require authentication:
+      
+      \`\`\`
+      Authorization: Bearer YOUR_TOKEN
+      \`\`\`
+      
+      ## Endpoints
+      
+      - GET /api/v2/users - List users
+      - POST /api/v2/users - Create user
+      - GET /api/v2/users/:id - Get user
+      - PUT /api/v2/users/:id - Update user
+      - DELETE /api/v2/users/:id - Delete user
+    `,
+  },
+  
+  // Monitoring with interpolated URLs
+  monitoring: {
+    healthChecks: {
+      web: `${base.protocol}://${base.domain}/health`,
+      api: `${base.protocol}://api.${base.domain}/health`,
+      db: `postgresql://db.${base.domain}:${base.dbPort}/health`,
+    },
+    metrics: {
+      prometheus: `${base.protocol}://${base.domain}/metrics`,
+      grafana: `${base.protocol}://grafana.${base.domain}`,
+    },
+  },
+  
+  /* Security configuration */
+  security: {
+    cors: {
+      enabled: true,
+      origins: [
+        `${base.protocol}://${base.domain}`,
+        `${base.protocol}://www.${base.domain}`,
+      ],
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    },
+    
+    // File permissions with octal
+    filePermissions: {
+      sslCert: 0o644,
+      sslKey: 0o600,
+      config: 0o644,
+      secrets: 0o400,
+    },
+    
+    // Access control with binary flags
+    accessLevels: {
+      guest: 0b0001,
+      user: 0b0011,
+      moderator: 0b0111,
+      admin: 0b1111,
+    },
+  },
+  
+  // Backup configuration
+  backup: {
+    enabled: true,
+    destinations: {
+      local: `${config.paths.base}/backups`,
+      remote: `s3://backup.${base.domain}/backups`,
+    },
+    permissions: 0o700, // Octal
+    schedule: '0 2 * * *',
+  },
+  
+  /* Logging with all features */
+  logging: {
+    level: 'info',
+    files: {
+      application: `${config.paths.base}/logs/app.log`,
+      error: `${config.paths.base}/logs/error.log`,
+      access: `${config.paths.base}/logs/access.log`,
+    },
+    permissions: 0o644, // Octal
+    rotation: {
+      enabled: true,
+      maxSize: 0b1010000000000000000000000, // Binary: 10MB
+      maxFiles: 0o12, // Octal: 10
+    },
+  },
+}

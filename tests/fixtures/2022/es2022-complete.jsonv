@@ -1,0 +1,88 @@
+// ES2022 Comprehensive Test File
+// ES2022 adds no new jsonv literal syntax, inherits all ES2021 features
+// Demonstrates: Numeric separators + BigInt + ES2015 + JSON5
+
+{
+  // Full-stack application configuration with all supported features
+  application: {
+    name: 'Enterprise Platform 2022',
+    version: '4.0.0',
+    buildId: 2_022_001_450_234n,
+    
+    // Readable numbers with separators
+    limits: {
+      maxUsers: 10_000_000,
+      maxConnections: 100_000,
+      requestsPerSecond: 50_000,
+      maxPayloadBytes: 104_857_600 // 100 MB
+    }
+  },
+  
+  // Database with BigInt IDs and separators
+  database: {
+    sequences: {
+      users: 9_223_372_036_854_775_807n, // max int64
+      orders: 18_446_744_073_709_551_615n, // max uint64
+      transactions: 0xFF_FF_FF_FF_FF_FF_FF_FFn
+    },
+    
+    connections: {
+      poolSize: 100,
+      maxIdle: 10_000,
+      timeout: 30_000
+    }
+  },
+  
+  /* Financial data with all numeric formats */
+  financial: {
+    // Decimal with separators
+    revenue: {
+      monthly: 125_000_000.50, // $125M
+      yearly: 1_500_000_000.75, // $1.5B
+      lifetime: 15_000_000_000.00 // $15B
+    },
+    
+    // Hex color-coded accounts
+    accounts: {
+      checking: 0x1A_2B_3C_4D,
+      savings: 0x2B_3C_4D_5E,
+      investment: 0x3C_4D_5E_6F
+    },
+    
+    // Binary flags
+    permissions: 0b1111_1111_1111_1111n,
+    
+    // Octal legacy codes
+    codes: {
+      standard: 0o755,
+      restricted: 0o600
+    }
+  },
+  
+  // Comprehensive numeric literal showcase
+  numbers: {
+    // Decimal with separators
+    decimal: 1_234_567_890,
+    decimalBigInt: 9_007_199_254_740_992n,
+    
+    // Hexadecimal with separators
+    hex: 0xFF_AA_BB_CC,
+    hexBigInt: 0xDE_AD_BE_EF_CA_FE_BA_BEn,
+    
+    // Binary with separators
+    binary: 0b1111_0000_1010_0101,
+    binaryBigInt: 0b1111_1111_1111_1111_0000_0000_0000_0000n,
+    
+    // Octal with separators
+    octal: 0o755_644,
+    octalBigInt: 0o777_666_555_444n
+  },
+  
+  // Cloud infrastructure
+  cloud: {
+    regions: ['us-east-1', 'eu-west-1', 'ap-south-1'],
+    instances: 1_500,
+    storage: 5_497_558_138_880n, // 5 TB in bytes
+    bandwidth: 10_995_116_277_760n // 10 TB
+  }
+}

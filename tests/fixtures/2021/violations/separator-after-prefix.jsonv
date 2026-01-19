@@ -1,0 +1,6 @@
+// Invalid: separator adjacent to prefix
+{
+  hex: 0x_FFFF,
+  binary: 0b_1010,
+  octal: 0o_755
+}

@@ -1,0 +1,323 @@
+// Test file for multi-line strings with backslash continuation (JSON5/ES2011 feature)
+// Demonstrates multi-line string content: SQL queries, HTML templates, documentation
+// Includes realistic bloat with various multi-line string use cases
+
+{
+  // SQL queries as multi-line strings
+  queries: {
+    getUsersWithOrders: '\
+      SELECT \
+        u.id, \
+        u.username, \
+        u.email, \
+        u.created_at, \
+        COUNT(o.id) as order_count, \
+        SUM(o.total) as total_spent \
+      FROM users u \
+      LEFT JOIN orders o ON u.id = o.user_id \
+      WHERE u.deleted_at IS NULL \
+        AND u.active = true \
+        AND o.status = \'completed\' \
+      GROUP BY u.id, u.username, u.email, u.created_at \
+      HAVING COUNT(o.id) > 0 \
+      ORDER BY total_spent DESC \
+      LIMIT 100',
+    
+    getProductInventory: '\
+      SELECT \
+        p.id, \
+        p.sku, \
+        p.name, \
+        p.category, \
+        i.quantity, \
+        i.warehouse_location, \
+        i.last_updated, \
+        COALESCE(r.reserved_quantity, 0) as reserved, \
+        (i.quantity - COALESCE(r.reserved_quantity, 0)) as available \
+      FROM products p \
+      INNER JOIN inventory i ON p.id = i.product_id \
+      LEFT JOIN ( \
+        SELECT product_id, SUM(quantity) as reserved_quantity \
+        FROM reservations \
+        WHERE status = \'pending\' \
+          AND expires_at > NOW() \
+        GROUP BY product_id \
+      ) r ON p.id = r.product_id \
+      WHERE p.active = true \
+      ORDER BY p.category, p.name',
+    
+    getOrderDetails: '\
+      SELECT \
+        o.id as order_id, \
+        o.order_number, \
+        o.status, \
+        o.total, \
+        o.created_at, \
+        u.username, \
+        u.email, \
+        oi.product_id, \
+        oi.quantity, \
+        oi.unit_price, \
+        oi.subtotal, \
+        p.name as product_name, \
+        p.sku \
+      FROM orders o \
+      INNER JOIN users u ON o.user_id = u.id \
+      INNER JOIN order_items oi ON o.id = oi.order_id \
+      INNER JOIN products p ON oi.product_id = p.id \
+      WHERE o.id = $1'
+  },
+  
+  // HTML email templates
+  emailTemplates: {
+    welcomeEmail: '\
+      <!DOCTYPE html>\
+      <html lang="en">\
+      <head>\
+        <meta charset="UTF-8">\
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+        <title>Welcome to Our Platform</title>\
+        <style>\
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }\
+          .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }\
+          .content { padding: 20px; background: #f9f9f9; }\
+          .button { display: inline-block; padding: 10px 20px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }\
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }\
+        </style>\
+      </head>\
+      <body>\
+        <div class="container">\
+          <div class="header">\
+            <h1>Welcome to Our Platform!</h1>\
+          </div>\
+          <div class="content">\
+            <p>Dear {{username}},</p>\
+            <p>Thank you for joining our platform. We\'re excited to have you on board!</p>\
+            <p>To get started, please verify your email address by clicking the button below:</p>\
+            <p style="text-align: center;">\
+              <a href="{{verificationLink}}" class="button">Verify Email Address</a>\
+            </p>\
+            <p>If you didn\'t create this account, please ignore this email.</p>\
+          </div>\
+          <div class="footer">\
+            <p>&copy; 2024 Our Platform. All rights reserved.</p>\
+          </div>\
+        </div>\
+      </body>\
+      </html>',
+    
+    orderConfirmation: '\
+      <!DOCTYPE html>\
+      <html>\
+      <head>\
+        <meta charset="UTF-8">\
+        <title>Order Confirmation</title>\
+      </head>\
+      <body style="font-family: Arial, sans-serif;">\
+        <div style="max-width: 600px; margin: 0 auto;">\
+          <h1 style="color: #2196F3;">Order Confirmation</h1>\
+          <p>Hello {{customerName}},</p>\
+          <p>Thank you for your order! Your order #{{orderNumber}} has been confirmed.</p>\
+          <table style="width: 100%; border-collapse: collapse;">\
+            <thead>\
+              <tr style="background: #f0f0f0;">\
+                <th style="padding: 10px; text-align: left;">Item</th>\
+                <th style="padding: 10px; text-align: right;">Qty</th>\
+                <th style="padding: 10px; text-align: right;">Price</th>\
+              </tr>\
+            </thead>\
+            <tbody>\
+              {{orderItems}}\
+            </tbody>\
+            <tfoot>\
+              <tr>\
+                <td colspan="2" style="padding: 10px; text-align: right;"><strong>Total:</strong></td>\
+                <td style="padding: 10px; text-align: right;"><strong>{{total}}</strong></td>\
+              </tr>\
+            </tfoot>\
+          </table>\
+          <p>Estimated delivery: {{deliveryDate}}</p>\
+        </div>\
+      </body>\
+      </html>'
+  },
+  
+  // Documentation strings
+  documentation: {
+    apiOverview: '\
+      # API Documentation\
+      \
+      ## Overview\
+      \
+      This API provides access to our platform\'s core functionality including:\
+      - User management and authentication\
+      - Product catalog and inventory\
+      - Order processing and fulfillment\
+      - Analytics and reporting\
+      \
+      ## Authentication\
+      \
+      All API requests require authentication using JWT tokens.\
+      Include the token in the Authorization header:\
+      \
+      ```\
+      Authorization: Bearer YOUR_JWT_TOKEN\
+      ```\
+      \
+      ## Rate Limiting\
+      \
+      API requests are rate-limited based on your account tier:\
+      - Free: 100 requests/hour\
+      - Basic: 1,000 requests/hour\
+      - Premium: 10,000 requests/hour\
+      - Enterprise: Unlimited\
+      \
+      ## Error Handling\
+      \
+      The API returns standard HTTP status codes:\
+      - 200: Success\
+      - 400: Bad Request\
+      - 401: Unauthorized\
+      - 403: Forbidden\
+      - 404: Not Found\
+      - 429: Too Many Requests\
+      - 500: Internal Server Error',
+    
+    userGuide: '\
+      # User Guide\
+      \
+      Welcome to the platform! This guide will help you get started.\
+      \
+      ## Getting Started\
+      \
+      1. Create an account\
+      2. Verify your email\
+      3. Complete your profile\
+      4. Start using the platform\
+      \
+      ## Key Features\
+      \
+      ### Dashboard\
+      The dashboard provides an overview of your account activity,\
+      including recent orders, saved items, and recommendations.\
+      \
+      ### Product Search\
+      Use the search bar to find products by name, category, or SKU.\
+      Advanced filters help narrow down results.\
+      \
+      ### Shopping Cart\
+      Add items to your cart and checkout when ready.\
+      Your cart is saved across sessions.\
+      \
+      ### Order Tracking\
+      Track your orders in real-time from placement to delivery.\
+      \
+      ## Support\
+      \
+      Need help? Contact our support team:\
+      - Email: support@example.com\
+      - Phone: 1-800-123-4567\
+      - Chat: Available 24/7'
+  },
+  
+  // Configuration file templates
+  configTemplates: {
+    nginxConfig: '\
+      server {\
+          listen 80;\
+          listen [::]:80;\
+          server_name example.com www.example.com;\
+          \
+          # Redirect HTTP to HTTPS\
+          return 301 https://$server_name$request_uri;\
+      }\
+      \
+      server {\
+          listen 443 ssl http2;\
+          listen [::]:443 ssl http2;\
+          server_name example.com www.example.com;\
+          \
+          # SSL configuration\
+          ssl_certificate /etc/ssl/certs/example.com.crt;\
+          ssl_certificate_key /etc/ssl/private/example.com.key;\
+          ssl_protocols TLSv1.2 TLSv1.3;\
+          ssl_ciphers HIGH:!aNULL:!MD5;\
+          \
+          # Root and index\
+          root /var/www/example.com/public;\
+          index index.html index.htm;\
+          \
+          # Logging\
+          access_log /var/log/nginx/example.com.access.log;\
+          error_log /var/log/nginx/example.com.error.log;\
+          \
+          # API proxy\
+          location /api/ {\
+              proxy_pass http://localhost:3000/;\
+              proxy_http_version 1.1;\
+              proxy_set_header Upgrade $http_upgrade;\
+              proxy_set_header Connection "upgrade";\
+              proxy_set_header Host $host;\
+              proxy_set_header X-Real-IP $remote_addr;\
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\
+              proxy_set_header X-Forwarded-Proto $scheme;\
+          }\
+          \
+          # Static files\
+          location /static/ {\
+              expires 1y;\
+              add_header Cache-Control "public, immutable";\
+          }\
+      }',
+    
+    dockerCompose: '\
+      version: "3.8"\
+      \
+      services:\
+        web:\
+          image: nginx:alpine\
+          ports:\
+            - "80:80"\
+            - "443:443"\
+          volumes:\
+            - ./nginx.conf:/etc/nginx/nginx.conf\
+            - ./public:/var/www/html\
+          depends_on:\
+            - api\
+          restart: unless-stopped\
+        \
+        api:\
+          build: .\
+          ports:\
+            - "3000:3000"\
+          environment:\
+            - NODE_ENV=production\
+            - DATABASE_URL=postgresql://user:pass@db:5432/app\
+            - REDIS_URL=redis://cache:6379\
+          depends_on:\
+            - db\
+            - cache\
+          restart: unless-stopped\
+        \
+        db:\
+          image: postgres:14-alpine\
+          volumes:\
+            - postgres_data:/var/lib/postgresql/data\
+          environment:\
+            - POSTGRES_USER=user\
+            - POSTGRES_PASSWORD=pass\
+            - POSTGRES_DB=app\
+          restart: unless-stopped\
+        \
+        cache:\
+          image: redis:alpine\
+          volumes:\
+            - redis_data:/data\
+          restart: unless-stopped\
+      \
+      volumes:\
+        postgres_data:\
+        redis_data:'
+  }
+}

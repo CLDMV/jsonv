@@ -1,0 +1,4 @@
+// Invalid: separator at end of number
+{
+  value: 1000_
+}

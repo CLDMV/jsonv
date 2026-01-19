@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"allowJs": false,
+		"checkJs": false,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"declarationMap": true,
+		"rootDir": "../src",
+		"outDir": "../dist/types",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"target": "ES2022",
+		"skipLibCheck": true,
+		"stripInternal": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"strict": true
+	},
+	"include": ["../src/**/*.mts"],
+	"exclude": ["../node_modules", "../dist", "../types", "../tests"]
+}

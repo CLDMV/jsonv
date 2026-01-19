@@ -1,0 +1,284 @@
+// Test file for template interpolation with internal references (jsonv extension - ES2015)
+// Demonstrates ${...} interpolation using internal references only
+// Includes realistic bloat: URLs, connection strings, paths constructed from base values
+
+{
+  // Base configuration values
+  config: {
+    domain: 'example.com',
+    protocol: 'https',
+    apiVersion: 'v1',
+    port: 8080,
+    dbHost: 'db.example.com',
+    dbPort: 5432,
+    dbName: 'production',
+    cacheHost: 'cache.example.com',
+    cachePort: 6379
+  },
+  
+  // URL construction using template interpolation
+  urls: {
+    // Web URLs
+    homepage: `${config.protocol}://${config.domain}`,
+    api: `${config.protocol}://${config.domain}/api/${config.apiVersion}`,
+    docs: `${config.protocol}://${config.domain}/docs`,
+    admin: `${config.protocol}://admin.${config.domain}`,
+    cdn: `${config.protocol}://cdn.${config.domain}`,
+    
+    // API endpoints
+    endpoints: {
+      users: `${config.protocol}://${config.domain}/api/${config.apiVersion}/users`,
+      auth: `${config.protocol}://${config.domain}/api/${config.apiVersion}/auth`,
+      products: `${config.protocol}://${config.domain}/api/${config.apiVersion}/products`,
+      orders: `${config.protocol}://${config.domain}/api/${config.apiVersion}/orders`,
+      payments: `${config.protocol}://${config.domain}/api/${config.apiVersion}/payments`,
+      webhooks: `${config.protocol}://${config.domain}/api/${config.apiVersion}/webhooks`
+    },
+    
+    // Static asset URLs
+    assets: {
+      images: `${config.protocol}://cdn.${config.domain}/images`,
+      styles: `${config.protocol}://cdn.${config.domain}/css`,
+      scripts: `${config.protocol}://cdn.${config.domain}/js`,
+      fonts: `${config.protocol}://cdn.${config.domain}/fonts`,
+      uploads: `${config.protocol}://cdn.${config.domain}/uploads`
+    }
+  },
+  
+  // Connection strings using template interpolation
+  connections: {
+    // Database connections
+    database: {
+      primary: `postgresql://app_user:password@${config.dbHost}:${config.dbPort}/${config.dbName}?sslmode=require`,
+      replica: `postgresql://app_user:password@replica.${config.dbHost}:${config.dbPort}/${config.dbName}?sslmode=require`,
+      backup: `postgresql://backup_user:password@backup.${config.dbHost}:${config.dbPort}/${config.dbName}?sslmode=require`,
+      // Connection with all options
+      full: `postgresql://app_user:password@${config.dbHost}:${config.dbPort}/${config.dbName}?sslmode=require&application_name=app&connect_timeout=10`
+    },
+    
+    // Cache connections
+    cache: {
+      redis: `redis://${config.cacheHost}:${config.cachePort}/0`,
+      redisAuth: `redis://:password@${config.cacheHost}:${config.cachePort}/0`,
+      redisSentinel: `redis://${config.cacheHost}:${config.cachePort}?sentinels=${config.cacheHost}:26379&name=mymaster`
+    },
+    
+    // Message queue connections
+    messageQueue: {
+      rabbitmq: `amqp://guest:guest@mq.${config.domain}:5672/production`,
+      rabbitmqTLS: `amqps://app:password@mq.${config.domain}:5671/production`
+    }
+  },
+  
+  // File paths constructed from base directories
+  paths: {
+    base: '/var/www/application',
+    directories: {
+      public: `${paths.base}/public`,
+      storage: `${paths.base}/storage`,
+      logs: `${paths.base}/storage/logs`,
+      cache: `${paths.base}/storage/cache`,
+      uploads: `${paths.base}/storage/uploads`,
+      temp: `${paths.base}/storage/temp`,
+      sessions: `${paths.base}/storage/sessions`,
+      views: `${paths.base}/resources/views`,
+      assets: `${paths.base}/resources/assets`,
+      config: `${paths.base}/config`
+    },
+    
+    // Log file paths
+    logFiles: {
+      application: `${paths.base}/storage/logs/application.log`,
+      error: `${paths.base}/storage/logs/error.log`,
+      access: `${paths.base}/storage/logs/access.log`,
+      debug: `${paths.base}/storage/logs/debug.log`,
+      query: `${paths.base}/storage/logs/query.log`,
+      performance: `${paths.base}/storage/logs/performance.log`
+    },
+    
+    // Configuration file paths
+    configFiles: {
+      main: `${paths.base}/config/app.json`,
+      database: `${paths.base}/config/database.json`,
+      cache: `${paths.base}/config/cache.json`,
+      session: `${paths.base}/config/session.json`,
+      queue: `${paths.base}/config/queue.json`,
+      mail: `${paths.base}/config/mail.json`
+    }
+  },
+  
+  // Email configuration with interpolated values
+  email: {
+    smtp: {
+      host: 'smtp.example.com',
+      port: 587,
+      fromAddress: 'noreply@example.com',
+      fromName: 'Application'
+    },
+    templates: {
+      welcome: {
+        subject: `Welcome to ${config.domain}!`,
+        body: `Thank you for joining ${config.domain}. Verify your email at: ${config.protocol}://${config.domain}/verify`
+      },
+      resetPassword: {
+        subject: `Password Reset - ${config.domain}`,
+        body: `Reset your password at: ${config.protocol}://${config.domain}/reset-password`
+      },
+      orderConfirmation: {
+        subject: `Order Confirmation - ${config.domain}`,
+        body: `View your order at: ${config.protocol}://${config.domain}/orders`
+      }
+    }
+  },
+  
+  // API documentation with interpolated URLs
+  apiDocumentation: {
+    baseUrl: `${config.protocol}://${config.domain}/api/${config.apiVersion}`,
+    endpoints: {
+      authentication: {
+        login: `POST ${config.protocol}://${config.domain}/api/${config.apiVersion}/auth/login`,
+        logout: `POST ${config.protocol}://${config.domain}/api/${config.apiVersion}/auth/logout`,
+        refresh: `POST ${config.protocol}://${config.domain}/api/${config.apiVersion}/auth/refresh`,
+        register: `POST ${config.protocol}://${config.domain}/api/${config.apiVersion}/auth/register`
+      },
+      users: {
+        list: `GET ${config.protocol}://${config.domain}/api/${config.apiVersion}/users`,
+        get: `GET ${config.protocol}://${config.domain}/api/${config.apiVersion}/users/:id`,
+        create: `POST ${config.protocol}://${config.domain}/api/${config.apiVersion}/users`,
+        update: `PUT ${config.protocol}://${config.domain}/api/${config.apiVersion}/users/:id`,
+        delete: `DELETE ${config.protocol}://${config.domain}/api/${config.apiVersion}/users/:id`
+      }
+    }
+  },
+  
+  // Webhook configurations with interpolated URLs
+  webhooks: {
+    endpoints: {
+      orderCreated: `${config.protocol}://${config.domain}/webhooks/order-created`,
+      orderUpdated: `${config.protocol}://${config.domain}/webhooks/order-updated`,
+      paymentReceived: `${config.protocol}://${config.domain}/webhooks/payment-received`,
+      userRegistered: `${config.protocol}://${config.domain}/webhooks/user-registered`
+    },
+    signatures: {
+      algorithm: 'sha256',
+      header: 'X-Webhook-Signature',
+      secret: 'webhook-secret-key'
+    }
+  },
+  
+  // Monitoring and health check URLs
+  monitoring: {
+    healthChecks: {
+      web: `${config.protocol}://${config.domain}/health`,
+      api: `${config.protocol}://${config.domain}/api/health`,
+      database: `postgresql://${config.dbHost}:${config.dbPort}/${config.dbName}`,
+      cache: `redis://${config.cacheHost}:${config.cachePort}/0`
+    },
+    metrics: {
+      prometheus: `${config.protocol}://${config.domain}/metrics`,
+      grafana: `${config.protocol}://grafana.${config.domain}`,
+      jaeger: `${config.protocol}://jaeger.${config.domain}`
+    }
+  },
+  
+  // OAuth provider configurations
+  oauth: {
+    providers: {
+      google: {
+        authorizeUrl: `https://accounts.google.com/o/oauth2/v2/auth`,
+        tokenUrl: `https://oauth2.googleapis.com/token`,
+        callbackUrl: `${config.protocol}://${config.domain}/auth/google/callback`,
+        scope: 'email profile'
+      },
+      github: {
+        authorizeUrl: `https://github.com/login/oauth/authorize`,
+        tokenUrl: `https://github.com/login/oauth/access_token`,
+        callbackUrl: `${config.protocol}://${config.domain}/auth/github/callback`,
+        scope: 'user:email'
+      },
+      facebook: {
+        authorizeUrl: `https://www.facebook.com/v12.0/dialog/oauth`,
+        tokenUrl: `https://graph.facebook.com/v12.0/oauth/access_token`,
+        callbackUrl: `${config.protocol}://${config.domain}/auth/facebook/callback`,
+        scope: 'email public_profile'
+      }
+    }
+  },
+  
+  // CDN and asset configurations
+  cdn: {
+    baseUrl: `${config.protocol}://cdn.${config.domain}`,
+    assets: {
+      css: `${config.protocol}://cdn.${config.domain}/css/main.css`,
+      js: `${config.protocol}://cdn.${config.domain}/js/app.js`,
+      logo: `${config.protocol}://cdn.${config.domain}/images/logo.png`,
+      favicon: `${config.protocol}://cdn.${config.domain}/images/favicon.ico`
+    },
+    versioned: {
+      css: `${config.protocol}://cdn.${config.domain}/css/main.v1.2.3.css`,
+      js: `${config.protocol}://cdn.${config.domain}/js/app.v1.2.3.js`
+    }
+  },
+  
+  // Service discovery and load balancing
+  services: {
+    webServers: [
+      `${config.protocol}://web1.${config.domain}:${config.port}`,
+      `${config.protocol}://web2.${config.domain}:${config.port}`,
+      `${config.protocol}://web3.${config.domain}:${config.port}`
+    ],
+    apiServers: [
+      `${config.protocol}://api1.${config.domain}:3000`,
+      `${config.protocol}://api2.${config.domain}:3000`,
+      `${config.protocol}://api3.${config.domain}:3000`
+    ],
+    databases: {
+      primary: `postgresql://${config.dbHost}:${config.dbPort}/${config.dbName}`,
+      replicas: [
+        `postgresql://replica1.${config.dbHost}:${config.dbPort}/${config.dbName}`,
+        `postgresql://replica2.${config.dbHost}:${config.dbPort}/${config.dbName}`,
+        `postgresql://replica3.${config.dbHost}:${config.dbPort}/${config.dbName}`
+      ]
+    }
+  },
+  
+  // Backup configurations with interpolated paths
+  backup: {
+    destinations: {
+      local: `${paths.base}/backups`,
+      database: `${paths.base}/backups/database`,
+      files: `${paths.base}/backups/files`,
+      logs: `${paths.base}/backups/logs`
+    },
+    scripts: {
+      databaseBackup: `pg_dump -h ${config.dbHost} -p ${config.dbPort} -U backup_user ${config.dbName} | gzip > ${paths.base}/backups/database/backup.sql.gz`,
+      restore: `gunzip < ${paths.base}/backups/database/backup.sql.gz | psql -h ${config.dbHost} -p ${config.dbPort} -U backup_user ${config.dbName}`
+    }
+  },
+  
+  // Notification service configurations
+  notifications: {
+    channels: {
+      email: {
+        enabled: true,
+        provider: 'sendgrid',
+        from: `noreply@${config.domain}`,
+        replyTo: `support@${config.domain}`
+      },
+      sms: {
+        enabled: true,
+        provider: 'twilio',
+        fromNumber: '+1234567890'
+      },
+      push: {
+        enabled: true,
+        provider: 'firebase',
+        serverKey: 'firebase-server-key'
+      },
+      webhook: {
+        enabled: true,
+        url: `${config.protocol}://${config.domain}/webhooks/notification`
+      }
+    }
+  }
+}

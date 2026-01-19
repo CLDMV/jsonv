@@ -1,0 +1,5 @@
+// Invalid: reference before definition
+{
+  a: b,
+  b: 42
+}

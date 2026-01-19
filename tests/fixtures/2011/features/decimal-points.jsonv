@@ -1,0 +1,228 @@
+// Test file for decimal point variations (JSON5/ES2011 feature)
+// Demonstrates leading/trailing decimal points and explicit positive sign
+// Includes realistic numerical configuration data
+
+{
+  // Financial data with various decimal representations
+  financials: {
+    revenue: {
+      q1: 1250000.0,
+      q2: +1340000.0,
+      q3: 1420000.,
+      q4: +1580000.,
+      total: +5590000.0
+    },
+    expenses: {
+      q1: 980000.0,
+      q2: +1020000.0,
+      q3: 1050000.,
+      q4: +1100000.,
+      total: +4150000.0
+    },
+    profit: {
+      q1: +270000.0,
+      q2: +320000.0,
+      q3: 370000.,
+      q4: +480000.,
+      total: +1440000.0
+    },
+    margins: {
+      q1: .216, // 21.6%
+      q2: +.239, // 23.9%
+      q3: .260, // 26.0%
+      q4: +.304, // 30.4%
+      average: +.257 // 25.7%
+    }
+  },
+  
+  // Product pricing with decimal variations
+  pricing: {
+    products: [
+      {
+        id: 'SKU-001',
+        name: 'Premium Widget',
+        cost: 45.50,
+        markup: +.40, // 40% markup
+        price: +63.70,
+        discount: .10, // 10% discount
+        salePrice: 57.33
+      },
+      {
+        id: 'SKU-002',
+        name: 'Standard Widget',
+        cost: 28.,
+        markup: +.35,
+        price: +37.80,
+        discount: .15,
+        salePrice: 32.13
+      },
+      {
+        id: 'SKU-003',
+        name: 'Economy Widget',
+        cost: 15.0,
+        markup: .30,
+        price: +19.50,
+        discount: .20,
+        salePrice: 15.60
+      }
+    ],
+    taxRates: {
+      federal: .07, // 7%
+      state: +.0425, // 4.25%
+      local: .015, // 1.5%
+      total: +.1275 // 12.75%
+    }
+  },
+  
+  // Scientific measurements with decimal points
+  measurements: {
+    physics: {
+      speedOfLight: +299792458.0, // m/s
+      gravitationalConstant: +.0000000000667430, // m³/kg·s²
+      plancksConstant: +.000000000000000000000000000000000662607015, // J·s
+      electronMass: .00000000000000000000000000000091093837015, // kg
+      protonMass: +.00000000000000000000000000167262192369 // kg
+    },
+    chemistry: {
+      avogadroNumber: +6.02214076e23, // mol⁻¹ (using scientific notation for large values)
+      gasConstant: 8.314462618, // J/(mol·K)
+      boltzmannConstant: +.00000000000000000000000138064852, // J/K
+      atomicMassUnit: .000000000000000000000000001660539066 // kg
+    },
+    astronomy: {
+      astronomicalUnit: +149597870700.0, // meters
+      lightYear: 9.4607304725808e15, // meters (scientific notation)
+      parsec: +3.0856775814913673e16, // meters (scientific notation)
+      solarMass: 1.9885e30, // kg (scientific notation)
+      earthMass: +5.97219e24 // kg (scientific notation)
+    }
+  },
+  
+  // Sensor data with decimal variations
+  sensors: {
+    temperature: {
+      sensor1: +23.5,
+      sensor2: 24.,
+      sensor3: +22.8,
+      sensor4: 23.2,
+      average: +23.375
+    },
+    humidity: {
+      sensor1: .45, // 45%
+      sensor2: +.48,
+      sensor3: .42,
+      sensor4: +.46,
+      average: .4525
+    },
+    pressure: {
+      sensor1: 1013.25, // hPa
+      sensor2: +1012.8,
+      sensor3: 1013.,
+      sensor4: +1013.5,
+      average: 1013.1375
+    },
+    luminosity: {
+      sensor1: 450.0, // lux
+      sensor2: +480.,
+      sensor3: 465.5,
+      sensor4: +472.3,
+      average: 466.95
+    }
+  },
+  
+  // Geographic coordinates with decimal points
+  locations: {
+    headquarters: {
+      name: 'Main Office',
+      latitude: +40.7128,
+      longitude: -74.0060,
+      elevation: 10.0 // meters
+    },
+    warehouse1: {
+      name: 'East Coast Warehouse',
+      latitude: +39.9526,
+      longitude: -75.1652,
+      elevation: +12.
+    },
+    warehouse2: {
+      name: 'West Coast Warehouse',
+      latitude: 34.0522,
+      longitude: -118.2437,
+      elevation: 71.
+    },
+    datacenter1: {
+      name: 'Primary Data Center',
+      latitude: +37.7749,
+      longitude: -122.4194,
+      elevation: +16.0
+    }
+  },
+  
+  // Performance metrics with decimal variations
+  performance: {
+    responseTime: {
+      p50: 45.5, // milliseconds
+      p75: +68.2,
+      p90: 95.,
+      p95: +128.7,
+      p99: 245.3
+    },
+    throughput: {
+      requestsPerSecond: 1250.0,
+      bytesPerSecond: +5242880.,
+      connectionsPerSecond: 450.
+    },
+    resourceUtilization: {
+      cpuPercent: .67, // 67%
+      memoryPercent: +.82,
+      diskPercent: .45,
+      networkPercent: +.38
+    },
+    errorRates: {
+      client4xx: .012, // 1.2%
+      server5xx: +.003, // 0.3%
+      timeout: .005, // 0.5%
+      total: +.020 // 2.0%
+    }
+  },
+  
+  // Statistical data with decimal points
+  statistics: {
+    userEngagement: {
+      averageSessionDuration: +420.5, // seconds
+      bounceRate: .35, // 35%
+      pageViewsPerSession: 4.2,
+      conversionRate: +.028 // 2.8%
+    },
+    growthMetrics: {
+      monthlyActiveUsers: 125000.,
+      growthRate: +.15, // 15% monthly growth
+      churnRate: .05, // 5% monthly churn
+      retentionRate: +.95 // 95% retention
+    },
+    revenueMetrics: {
+      averageRevenuePerUser: +24.50,
+      lifetimeValue: 294.,
+      customerAcquisitionCost: +18.75,
+      paybackPeriod: .76 // months
+    }
+  },
+  
+  // Engineering tolerances and specifications
+  engineering: {
+    tolerances: {
+      lengthTolerance: +.001, // ±0.001 mm
+      angleTolerance: .5, // ±0.5 degrees
+      weightTolerance: +.01, // ±0.01 kg
+      temperatureTolerance: 2. // ±2°C
+    },
+    specifications: {
+      nominalVoltage: +5.0, // volts
+      voltageRange: .5, // ±0.5V
+      nominalCurrent: 2., // amperes
+      currentRange: +.2, // ±0.2A
+      powerRating: 10.0, // watts
+      efficiency: .92 // 92%
+    }
+  }
+}
