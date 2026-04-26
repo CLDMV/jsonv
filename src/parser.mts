@@ -108,6 +108,9 @@ export class Parser {
 		this.tokens = this.lexer.tokenize();
 		this.current = 0;
 
+		// Skip leading comments before the root value
+		this.skipComments();
+
 		// Parse the root value
 		const body = this.parseValue();
 

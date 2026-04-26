@@ -254,7 +254,7 @@ export class Lexer {
 		}
 
 		const raw = this.input.slice(start, this.pos);
-		return this.createToken(TokenType.BLOCK_COMMENT, value, raw);
+		return this.createToken(TokenType.BLOCK_COMMENT, value, raw, { line: startLine, column: startCol, offset: start });
 	}
 
 	/**
@@ -394,6 +394,8 @@ export class Lexer {
 	 */
 	private scanTemplateLiteral(): Token {
 		const start = this.pos;
+		const startLine = this.line;
+		const startCol = this.column;
 		this.advance(); // opening backtick
 
 		let value = "";
@@ -407,14 +409,14 @@ export class Lexer {
 				this.advance(); // $
 				this.advance(); // {
 				this.templateDepth++; // Enter template interpolation mode
-				return this.createToken(TokenType.TEMPLATE_HEAD, value, raw);
+				return this.createToken(TokenType.TEMPLATE_HEAD, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
 			// Check for closing backtick
 			if (ch === "`") {
 				this.advance(); // closing backtick
 				const raw = this.input.slice(start, this.pos);
-				return this.createToken(TokenType.TEMPLATE_LITERAL, value, raw);
+				return this.createToken(TokenType.TEMPLATE_LITERAL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
 			// Handle escape sequences
@@ -439,6 +441,8 @@ export class Lexer {
 	 */
 	private scanTemplateMiddleOrTail(): Token {
 		const start = this.pos;
+		const startLine = this.line;
+		const startCol = this.column;
 		let value = "";
 
 		while (!this.isAtEnd()) {
@@ -449,7 +453,7 @@ export class Lexer {
 				const raw = this.input.slice(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
-				return this.createToken(TokenType.TEMPLATE_MIDDLE, value, raw);
+				return this.createToken(TokenType.TEMPLATE_MIDDLE, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
 			// Check for closing backtick
@@ -457,7 +461,7 @@ export class Lexer {
 				this.advance(); // closing backtick
 				const raw = this.input.slice(start, this.pos);
 				this.templateDepth--; // Exit template interpolation mode
-				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw);
+				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
 			// Handle escape sequences
@@ -1057,9 +1061,9 @@ export class Lexer {
 	/**
 	 * Create a token
 	 */
-	private createToken(type: TokenType, value: string | number | bigint | boolean | null, raw: string): Token {
+	private createToken(type: TokenType, value: string | number | bigint | boolean | null, raw: string, startOverride?: Position): Token {
 		const endPos = this.getCurrentPosition();
-		const startPos: Position = {
+		const startPos: Position = startOverride ?? {
 			line: endPos.line,
 			column: endPos.column - raw.length,
 			offset: endPos.offset - raw.length
