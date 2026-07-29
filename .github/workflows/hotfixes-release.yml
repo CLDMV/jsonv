@@ -1,0 +1,169 @@
+#
+# @Project: @cldmv/.github
+# @Filename: /examples/individual-repo-workflows/release-flow-v4/hotfixes-release.yml
+# @Date: 2026-05-22 00:00:00 -07:00 (1779778800)
+# @Author: Nate Corcoran <CLDMV>
+# @Email: <Shinrai@users.noreply.github.com>
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/hotfixes-release.yml
+#
+# v4 hotfix lane: maintain the ONE persistent `hotfixes → master` release PR.
+#
+# Mirror of next-release.yml but for the `hotfixes` integration branch
+# (CLDMV/.github docs/conventions/release-flow-v4.md §5.4, §6.2). Fires on
+# every push to `hotfixes` (hotfix/security PR squash-merges land here), and
+# resolves-or-creates the persistent `hotfixes → master` release PR. Patches
+# the current release independently of whatever is pending on `next`.
+#
+# Same model as the next lane: the version bump rides on `hotfixes` as a
+# `chore: bump version` commit, carried to master through the squash (§8.1).
+name: 🚑 Hotfixes Release (v4)
+
+on:
+    push:
+        branches: [hotfixes]
+    workflow_dispatch: # manual kick — e.g. to open/refresh the PR for content already on `hotfixes`
+
+permissions:
+    contents: write
+    pull-requests: write
+
+concurrency:
+    group: hotfixes-release-${{ github.repository }}
+    cancel-in-progress: false
+
+jobs:
+    plan:
+        # Loop guard: skip only the release machinery's own `chore: bump version`
+        # push (create/update-release-pr writes it back to `hotfixes`). Do NOT gate
+        # on github.actor — dependabot security PRs are auto-merged into `hotfixes`
+        # BY the bot, so gating the bot out meant the hotfixes→master release PR
+        # was never created (every push here is a bot merge). Reset force-pushes are
+        # harmless: the detect step below no-ops when in sync with master.
+        # workflow_dispatch bypasses the guard (event_name != 'push').
+        if: |
+            github.event_name != 'push' ||
+            !startsWith(github.event.head_commit.message, 'chore: bump version')
+        name: "🔍 Plan (detect changes + resolve PR)"
+        runs-on: ubuntu-latest
+        outputs:
+            has-changes: ${{ steps.detect.outputs.has-changes }}
+            pr-number: ${{ steps.resolve.outputs.pr-number }}
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Checkout hotfixes
+              uses: CLDMV/.github/.github/actions/common/steps/checkout-code@v4
+              with:
+                  ref: hotfixes
+                  fetch-depth: 0
+
+            - name: Detect master..hotfixes changes
+              id: detect
+              shell: bash
+              run: |
+                  git fetch origin master --quiet
+                  count=$(git rev-list --count origin/master..HEAD)
+                  echo "📊 commits on hotfixes not yet on master: $count"
+                  if [ "$count" -gt 0 ]; then
+                      echo "has-changes=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "has-changes=false" >> "$GITHUB_OUTPUT"
+                      echo "ℹ️ hotfixes is in sync with master — nothing to release."
+                  fi
+
+            - name: Resolve persistent hotfixes→master PR
+              id: resolve
+              if: steps.detect.outputs.has-changes == 'true'
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+              run: |
+                  pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head hotfixes --base master \
+                       --state open --json number --jq '.[0].number // ""')
+                  echo "pr-number=$pr" >> "$GITHUB_OUTPUT"
+                  if [ -n "$pr" ]; then
+                      echo "🔁 existing hotfix release PR: #$pr — will refresh"
+                  else
+                      echo "🆕 no hotfix release PR yet — will create"
+                  fi
+
+    create:
+        name: "🆕 Create hotfix release PR"
+        needs: plan
+        if: needs.plan.outputs.has-changes == 'true' && needs.plan.outputs.pr-number == ''
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            # Customize `package-name` + `build-command` to match this repo —
+            # see notes in next-release.yml.
+            - name: Create release PR
+              uses: CLDMV/.github/.github/actions/github/jobs/create-release-pr@v4
+              with:
+                  package-name: "@cldmv/jsonv"
+                  build-command: "npm run build"
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+    refresh:
+        name: "🔁 Refresh hotfix release PR #${{ needs.plan.outputs.pr-number }}"
+        needs: plan
+        if: needs.plan.outputs.has-changes == 'true' && needs.plan.outputs.pr-number != ''
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Refresh release PR
+              id: refresh
+              uses: CLDMV/.github/.github/actions/github/jobs/update-release-pr@v4
+              with:
+                  head-ref: hotfixes
+                  pr-number: ${{ needs.plan.outputs.pr-number }}
+                  package-name: "@cldmv/jsonv"
+                  build-command: "npm run build"
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+            # Optional: release-PR notifier. See next-release.yml for the
+            # rationale. Delete the step to opt out entirely; leave a webhook
+            # secret unset to opt out of that one channel.
+            - name: Notify on release-PR version bump
+              if: steps.refresh.outputs.version-changed == 'true'
+              uses: CLDMV/.github/.github/actions/community/jobs/release-notifier@v4
+              with:
+                  event_kind: release_pr
+                  pr_number: ${{ needs.plan.outputs.pr-number }}
+                  version: ${{ steps.refresh.outputs.new-version }}
+                  github_token: ${{ steps.app-token.outputs.token }}
+              env:
+                  DISCORD_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.DISCORD_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  DISCORD_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_PR_PRIVATE_WEBHOOK }}
+                  SLACK_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.SLACK_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  SLACK_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.SLACK_RELEASE_PR_PRIVATE_WEBHOOK }}
+                  GENERIC_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.GENERIC_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  GENERIC_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.GENERIC_RELEASE_PR_PRIVATE_WEBHOOK }}

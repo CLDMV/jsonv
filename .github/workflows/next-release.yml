@@ -1,0 +1,181 @@
+#
+# @Project: @cldmv/.github
+# @Filename: /examples/individual-repo-workflows/release-flow-v4/next-release.yml
+# @Date: 2026-05-22 00:00:00 -07:00 (1779778800)
+# @Author: Nate Corcoran <CLDMV>
+# @Email: <Shinrai@users.noreply.github.com>
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/next-release.yml
+#
+# v4 core: maintain the ONE persistent `next → master` release PR for this repo.
+#
+# Fires on every push to `next` (contributor PR squash-merges land here).
+# Resolves the existing release PR and refreshes it, or creates it the first
+# time `next` diverges from master. The release PR batches all accumulated
+# feature commits into a single release — that batching is v4's whole point
+# (see CLDMV/.github docs/conventions/release-flow-v4.md §5.3, §6.1).
+#
+# The version bump rides on `next` as a `chore: bump version` commit pushed
+# by the release-PR machinery; it's carried to master through the squash
+# (§8.1 — master accepts changes only via PR squash, and the publish flow
+# reads package.json as-is).
+name: 🚀 Next Release (v4)
+
+on:
+    push:
+        branches: [next]
+    workflow_dispatch: # manual kick — e.g. to open/refresh the PR for content already on `next`
+
+permissions:
+    contents: write
+    pull-requests: write
+
+# Serialize: each run re-resolves the current PR state, so queueing (not
+# cancelling) avoids a create/refresh race when pushes land back-to-back.
+concurrency:
+    group: next-release-${{ github.repository }}
+    cancel-in-progress: false
+
+jobs:
+    plan:
+        # Loop guard: skip only the release machinery's own `chore: bump version`
+        # push (create/update-release-pr writes it back to `next`). Do NOT gate on
+        # github.actor — dependabot security PRs are auto-merged BY the bot, and
+        # excluding the bot actor meant bot-merged PRs never refreshed the release
+        # PR (fatal on `hotfixes`, where every merge is a bot auto-merge). Reset
+        # force-pushes are harmless: the detect step below no-ops when in sync with
+        # master. workflow_dispatch bypasses the guard (event_name != 'push').
+        if: |
+            github.event_name != 'push' ||
+            !startsWith(github.event.head_commit.message, 'chore: bump version')
+        name: "🔍 Plan (detect changes + resolve PR)"
+        runs-on: ubuntu-latest
+        outputs:
+            has-changes: ${{ steps.detect.outputs.has-changes }}
+            pr-number: ${{ steps.resolve.outputs.pr-number }}
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Checkout next
+              uses: CLDMV/.github/.github/actions/common/steps/checkout-code@v4
+              with:
+                  ref: next
+                  fetch-depth: 0
+
+            - name: Detect master..next changes
+              id: detect
+              shell: bash
+              run: |
+                  git fetch origin master --quiet
+                  count=$(git rev-list --count origin/master..HEAD)
+                  echo "📊 commits on next not yet on master: $count"
+                  if [ "$count" -gt 0 ]; then
+                      echo "has-changes=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "has-changes=false" >> "$GITHUB_OUTPUT"
+                      echo "ℹ️ next is in sync with master — nothing to release."
+                  fi
+
+            - name: Resolve persistent next→master PR
+              id: resolve
+              if: steps.detect.outputs.has-changes == 'true'
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+              run: |
+                  # The persistent release PR is the open PR with head=next,
+                  # base=master. There is at most one (concurrency-serialized).
+                  pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head next --base master \
+                       --state open --json number --jq '.[0].number // ""')
+                  echo "pr-number=$pr" >> "$GITHUB_OUTPUT"
+                  if [ -n "$pr" ]; then
+                      echo "🔁 existing release PR: #$pr — will refresh"
+                  else
+                      echo "🆕 no release PR yet — will create"
+                  fi
+
+    create:
+        name: "🆕 Create release PR"
+        needs: plan
+        if: needs.plan.outputs.has-changes == 'true' && needs.plan.outputs.pr-number == ''
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            # Runs on the `next` ref → create-release-pr opens next → master and
+            # pushes the chore-bump commit to next. Customize:
+            #   - `package-name`  → your npm package (or any unique identifier)
+            #   - `build-command` → your build script, or a stub like
+            #                       `echo '✓ no build step'` for a meta package
+            - name: Create release PR
+              uses: CLDMV/.github/.github/actions/github/jobs/create-release-pr@v4
+              with:
+                  package-name: "@cldmv/jsonv"
+                  build-command: "npm run build"
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+    refresh:
+        name: "🔁 Refresh release PR #${{ needs.plan.outputs.pr-number }}"
+        needs: plan
+        if: needs.plan.outputs.has-changes == 'true' && needs.plan.outputs.pr-number != ''
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Refresh release PR
+              id: refresh
+              uses: CLDMV/.github/.github/actions/github/jobs/update-release-pr@v4
+              with:
+                  head-ref: next
+                  pr-number: ${{ needs.plan.outputs.pr-number }}
+                  package-name: "@cldmv/jsonv"
+                  build-command: "npm run build"
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+            # Optional: release-PR notifier. Fires only when the target
+            # version actually changes (PR open or version-bump shift), not
+            # on the changelog-only refreshes that run on every push. Each
+            # secret is independently opt-in: leave a webhook unset and that
+            # channel is silently skipped. Delete this step to opt out
+            # entirely.
+            - name: Notify on release-PR version bump
+              if: steps.refresh.outputs.version-changed == 'true'
+              uses: CLDMV/.github/.github/actions/community/jobs/release-notifier@v4
+              with:
+                  event_kind: release_pr
+                  pr_number: ${{ needs.plan.outputs.pr-number }}
+                  version: ${{ steps.refresh.outputs.new-version }}
+                  github_token: ${{ steps.app-token.outputs.token }}
+              env:
+                  DISCORD_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.DISCORD_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  DISCORD_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_PR_PRIVATE_WEBHOOK }}
+                  SLACK_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.SLACK_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  SLACK_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.SLACK_RELEASE_PR_PRIVATE_WEBHOOK }}
+                  GENERIC_RELEASE_PR_PUBLIC_WEBHOOK: ${{ secrets.GENERIC_RELEASE_PR_PUBLIC_WEBHOOK }}
+                  GENERIC_RELEASE_PR_PRIVATE_WEBHOOK: ${{ secrets.GENERIC_RELEASE_PR_PRIVATE_WEBHOOK }}
