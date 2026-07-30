@@ -1,0 +1,199 @@
+#
+# @Project: @cldmv/.github
+# @Filename: /examples/individual-repo-workflows/release-flow-v4/next-reset.yml
+# @Date: 2026-05-22 00:00:00 -07:00 (1779778800)
+# @Author: Nate Corcoran <CLDMV>
+# @Email: <Shinrai@users.noreply.github.com>
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/next-reset.yml
+#
+# v4 core: after a release lands on master, re-sync the integration branches
+# (CLDMV/.github docs/conventions/release-flow-v4.md §6.3, §7).
+#
+#   - `hotfixes` is ALWAYS force-reset to master HEAD after any release.
+#   - `next` depends on which lane released:
+#       * normal release (next → master, or a v3-style feat → master):
+#         force-reset `next` to master HEAD (§7.1).
+#       * hotfix release (hotfixes → master): MERGE master into `next`
+#         instead, so next's accumulated feature work is preserved (§7.2,
+#         option B). The merge is a no-op (204) when next has no extra work.
+#
+# The released lane is detected from the PR head ref behind the squash
+# commit's trailing "(#N)".
+#
+# wait-for-tags gate: a release also fires update-major-version-tags, which
+# rolls the major tags. Jobs resolve `uses: ...@vN` at job start, so without
+# this gate the sync job can run the PREVIOUS release's action code. The gate
+# polls the RELEASED major's tag — parsed from the `release: vX.Y.Z` commit
+# — until it matches the release commit.
+#
+# Self-healing: no-ops pre-cutover (neither integration branch exists), but
+# post-cutover it RECREATES a branch that went missing — e.g. branch-retention
+# deleting `next` as a merged PR head. force-reset-branch creates the ref
+# when it's absent.
+name: ♻️ Next/Hotfixes Reset (v4)
+
+on:
+    push:
+        branches: [master, main]
+
+permissions:
+    contents: write
+
+concurrency:
+    group: next-reset-${{ github.repository }}
+    cancel-in-progress: false
+
+jobs:
+    wait-for-tags:
+        # Only fire on a release commit (the squash-merge of a release PR).
+        if: startsWith(github.event.head_commit.message, 'release:')
+        name: "⏳ Wait for the released major tag to roll forward"
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - name: Poll the released major tag until it matches the release commit
+              shell: bash
+              env:
+                  TARGET_SHA: ${{ github.sha }}
+                  REPO: ${{ github.repository }}
+                  COMMIT_MSG: ${{ github.event.head_commit.message }}
+              run: |
+                  echo "🔍 Release commit: $TARGET_SHA"
+                  # Parse the released MAJOR from the `release: vX.Y.Z` subject
+                  # and poll THAT tag (e.g. @v4 for v4.x). update-major-version-
+                  # tags rolls @v<major> to the release commit; a hardcoded @v3
+                  # would never match on a major bump (which creates @v4).
+                  major=$(printf '%s' "$COMMIT_MSG" | grep -oiE 'release:[^0-9]*v?[0-9]+' | grep -oE '[0-9]+$' | head -1)
+                  if [ -z "$major" ]; then
+                      echo "⚠️ Could not parse a major version from the commit subject — skipping the gate."
+                      exit 0
+                  fi
+                  tag="v${major}"
+                  echo "⏳ Gating on @${tag}…"
+                  max_attempts=24   # 24 * 5s = 120s
+                  for attempt in $(seq 1 $max_attempts); do
+                      sha=$(git ls-remote "https://github.com/${REPO}.git" "refs/tags/${tag}^{}" 2>/dev/null | awk '{print $1}')
+                      [ -z "$sha" ] && sha=$(git ls-remote "https://github.com/${REPO}.git" "refs/tags/${tag}" 2>/dev/null | awk '{print $1}')
+                      echo "Attempt $attempt/$max_attempts: @${tag} → ${sha:-<not found>}"
+                      if [ "$sha" = "$TARGET_SHA" ]; then
+                          echo "✅ @${tag} matches the release commit — safe to proceed"
+                          exit 0
+                      fi
+                      [ "$attempt" -lt "$max_attempts" ] && sleep 5
+                  done
+                  echo "⚠️ Timed out waiting for @${tag} — proceeding anyway."
+
+    sync-branches:
+        name: "♻️ Sync next + hotfixes to master"
+        needs: wait-for-tags
+        if: startsWith(github.event.head_commit.message, 'release:')
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+                  # Pushing/merging master's tree (which includes
+                  # .github/workflows/**) requires contents + workflows write.
+                  permission_contents: "true"
+                  permission_workflows: "true"
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Checkout master
+              uses: CLDMV/.github/.github/actions/common/steps/checkout-code@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Determine released lane
+              id: lane
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  COMMIT_MSG: ${{ github.event.head_commit.message }}
+              run: |
+                  # The squash commit ends with "(#N)" — the merged PR number.
+                  prnum=$(printf '%s' "$COMMIT_MSG" | grep -oE '#[0-9]+' | tail -1 | tr -d '#')
+                  head=""
+                  if [ -n "$prnum" ]; then
+                      head=$(gh pr view "$prnum" --repo "$GITHUB_REPOSITORY" \
+                             --json headRefName --jq '.headRefName' 2>/dev/null || echo "")
+                  fi
+                  echo "released PR #${prnum:-?} head ref: ${head:-<unknown>}"
+                  if [ "$head" = "hotfixes" ]; then
+                      echo "lane=hotfix" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "lane=other" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Guard — is this repo on v4? (do next/hotfixes exist?)
+              id: guard
+              shell: bash
+              run: |
+                  next_exists=false; hotfixes_exists=false
+                  if git ls-remote --exit-code --heads origin next >/dev/null 2>&1; then
+                      next_exists=true
+                      git fetch origin next:refs/remotes/origin/next --quiet || true
+                  fi
+                  if git ls-remote --exit-code --heads origin hotfixes >/dev/null 2>&1; then
+                      hotfixes_exists=true
+                      git fetch origin hotfixes:refs/remotes/origin/hotfixes --quiet || true
+                  fi
+                  # "v4 adopted" = at least one integration branch exists. Keeps
+                  # the reset a no-op on pre-cutover repos (neither exists) while
+                  # letting it RECREATE a branch that went missing post-cutover
+                  # (e.g. one was deleted as a merged PR head). force-reset-branch
+                  # creates if absent.
+                  v4_adopted=false
+                  { [ "$next_exists" = true ] || [ "$hotfixes_exists" = true ]; } && v4_adopted=true
+                  {
+                      echo "next-exists=$next_exists"
+                      echo "hotfixes-exists=$hotfixes_exists"
+                      echo "v4-adopted=$v4_adopted"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "ℹ️ next=$next_exists hotfixes=$hotfixes_exists v4-adopted=$v4_adopted lane=${{ steps.lane.outputs.lane }}"
+
+            # hotfixes always tracks master after a release — created if missing.
+            - name: Ensure hotfixes = master HEAD (reset; create if missing)
+              if: steps.guard.outputs.v4-adopted == 'true'
+              uses: CLDMV/.github/.github/actions/git/steps/force-reset-branch@v4
+              with:
+                  target-branch: hotfixes
+                  source-ref: master
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+            # Normal release → next is force-reset (its work just shipped), and
+            # recreated if it was deleted on merge.
+            - name: Ensure next = master HEAD (normal release; create if missing)
+              if: steps.guard.outputs.v4-adopted == 'true' && steps.lane.outputs.lane != 'hotfix'
+              uses: CLDMV/.github/.github/actions/git/steps/force-reset-branch@v4
+              with:
+                  target-branch: next
+                  source-ref: master
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+            # Hotfix release + next still exists → merge master into next to
+            # preserve its accumulated feature work (§7.2 option B).
+            - name: Merge master into next (hotfix release; next exists)
+              if: steps.guard.outputs.v4-adopted == 'true' && steps.lane.outputs.lane == 'hotfix' && steps.guard.outputs.next-exists == 'true'
+              uses: CLDMV/.github/.github/actions/github/steps/merge-master-into-branch@v4
+              with:
+                  target-branch: next
+                  source-ref: master
+                  github-token: ${{ steps.app-token.outputs.token }}
+
+            # Hotfix release but next is MISSING (deleted) → recreate it at master
+            # HEAD; there's no accumulated work to preserve.
+            - name: Recreate next at master HEAD (hotfix release; next missing)
+              if: steps.guard.outputs.v4-adopted == 'true' && steps.lane.outputs.lane == 'hotfix' && steps.guard.outputs.next-exists == 'false'
+              uses: CLDMV/.github/.github/actions/git/steps/force-reset-branch@v4
+              with:
+                  target-branch: next
+                  source-ref: master
+                  github-token: ${{ steps.app-token.outputs.token }}

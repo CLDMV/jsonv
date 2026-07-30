@@ -1,0 +1,64 @@
+#
+# @Project: @cldmv/.github
+# @Filename: /examples/individual-repo-workflows/release-flow-v4/pr-title-normalizer.yml
+# @Date: 2026-05-22 00:00:00 -07:00 (1779778800)
+# @Author: Nate Corcoran <CLDMV>
+# @Email: <Shinrai@users.noreply.github.com>
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/pr-title-normalizer.yml
+#
+# Normalize contributor PR titles to Conventional Commits format, derived
+# from the highest-priority commit in the PR. The release flow expects this
+# shape, so a v4 repo wants this enabled. (Also backportable to v3 repos —
+# it wires the normalize-pr-title action, shipped in v3.3.0; the action owns
+# all skip logic: bot authors, the long-running release PRs, titles already
+# starting with `release:`, and titles that already conform.)
+name: 🏷️ PR Title Normalizer
+
+# SECURITY NOTE: pull_request_target runs in the BASE repo's context with
+# WRITE permissions and access to secrets. SAFE for THIS workflow because it
+# is API-only — the normalize-pr-title action never checks out the PR head
+# and never executes PR content. DO NOT add a checkout step.
+#
+# Triggers on opened + synchronize only (NOT edited): a maintainer hand-
+# editing the title must not kick off a re-normalize loop.
+on:
+    pull_request_target:
+        types: [opened, synchronize]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+# Collapse a burst of pushes to one normalize run per PR; the newest push
+# carries the authoritative commit set, so cancelling an in-flight run is fine.
+concurrency:
+    group: pr-title-normalizer-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    normalize:
+        name: "✏️ Normalize title"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create App token (falls back to GITHUB_TOKEN)
+              id: app-token
+              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
+              with:
+                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+              env:
+                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+
+            - name: Normalize PR title
+              uses: CLDMV/.github/.github/actions/github/steps/normalize-pr-title@v4
+              with:
+                  pr-number: ${{ github.event.pull_request.number }}
+                  github-token: ${{ steps.app-token.outputs.token }}
+                  base-ref: ${{ github.event.pull_request.base.ref }}
+                  head-ref: ${{ github.event.pull_request.head.ref }}
+                  user-type: ${{ github.event.pull_request.user.type }}
+                  user-login: ${{ github.event.pull_request.user.login }}

@@ -1,0 +1,52 @@
+#
+# @Project: @cldmv/.github
+# @Filename: /examples/individual-repo-workflows/release-companions/master-commit-audit.yml
+# @Date: 2026-05-31 00:00:00 -07:00 (1780210800)
+# @Author: Nate Corcoran CLDMV
+# @Email: <Shinrai@users.noreply.github.com>
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/master-commit-audit.yml
+#
+# Post-merge safety net: when any commit lands on the default branch, verify
+# its subject matches the expected release-flow patterns. On miss, auto-file a
+# GitHub Issue (deduped by SHA) so the alert is persistent and assignable —
+# not just a red ❌ that dies in inbox.
+#
+# Catches: release-workflow title-generation regressions, branch-protection
+# bypasses, unexpected bot commits, direct emergency pushes.
+#
+# Thin caller: steps, the action ref, and the canonical commit-subject pattern
+# set all live in reusable-master-commit-audit.yml@v4 (the patterns come from
+# the audit-commit-subject action's default). Nothing here can drift.
+name: 🧾 Master Commit Audit
+
+on:
+    push:
+        branches: [master, main]
+
+permissions:
+    contents: read
+    issues: write
+
+jobs:
+    audit:
+        uses: CLDMV/.github/.github/workflows/reusable-master-commit-audit.yml@v4
+        with:
+            # allowed_patterns omitted → inherit the canonical default
+            # (release + chore + merge). Uncomment ONLY if this repo lands other
+            # commit shapes directly on the default branch:
+            # allowed_patterns: |
+            #     ^release: v\d+\.\d+\.\d+( - .+?)?( \(#\d+\))?$
+            #     ^chore(\([^)]+\))?: .+
+            #     ^Merge pull request #\d+ from .+
+            #     ^feat(\([^)]+\))?: .+
+            issue_labels: "type: ci,priority: high"
+            # issue_assignee: "shinrai"   # uncomment to auto-assign
+        # Optional bot App credentials — when set, the audit issue is filed by
+        # the consumer's bot App instead of github-actions[bot]. Remove both
+        # lines to fall back to GITHUB_TOKEN.
+        secrets:
+            BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+            BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
