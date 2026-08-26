@@ -8,39 +8,34 @@
 
 # Individual repo: .github/workflows/feature-pr.yml
 #
-# v4 ergonomics: auto-opens (and refreshes) a PR from a code-side branch to
-# the right integration branch on every push.
+# v4 ergonomics: auto-opens (and refreshes) a PR from a code-side branch to the
+# right integration branch on every push.
 #
 # Mapping (matches CLDMV/.github docs/conventions/branch-naming.md):
-#   feat/*, feature/*, fix/*, release/*, chore/*, refactor/*,
+#   feat/*, feature/*, fix/*, release/*, chore/*, deps/*, refactor/*,
 #   docs/*, ci/*, perf/*, test/*, style/*           → next
 #   hotfix/*                                         → hotfixes
 #
-# Reserved branches NOT auto-PR'd: dependabot/* and copilot/* (they manage
-# their own PRs); badges, gh-pages (bot-only); master/main (the target).
+# Reserved branches NOT auto-PR'd: dependabot/* and copilot/* (they manage their
+# own PRs); badges, gh-pages (bot-only); master/main (the target).
 #
-# On first push: creates the PR with a categorized changelog body (same
-# format the v4 release-PR machinery generates). On subsequent pushes:
-# refreshes the existing PR's body with the latest categorized commits.
-# Uses the shared get-commit-range + generate-comprehensive-changelog
-# actions for the format, so consumer PRs look identical to release PRs
-# in structure (Breaking Changes / Features / Bug Fixes / Other Changes /
-# Contributors).
-#
-# Skipped automatically: bot pushes (your bot App's login / github-actions[bot])
-# and any push whose head commit starts with 'chore: bump version'.
+# Thin caller: all job logic (target detection, changelog body, PR create/
+# refresh) lives in the reusable, pinned at @v4. Bumping the pin carries fixes
+# without editing this file. The `push` trigger and its branch-prefix list stay
+# here (GitHub requires the trigger local, and the list is per-repo config).
 name: 🔀 Feature PR (v4)
 
 on:
     push:
         branches:
             # CUSTOMIZE: prune this list to whichever branch prefixes your
-            # repo uses. Must align with the `case` statement below.
+            # repo uses. Must align with the `case` statement in the reusable.
             - 'feat/**'
             - 'feature/**'
             - 'fix/**'
             - 'release/**'
             - 'chore/**'
+            - 'deps/**'
             - 'refactor/**'
             - 'docs/**'
             - 'ci/**'
@@ -49,215 +44,24 @@ on:
             - 'style/**'
             - 'hotfix/**'
 
-permissions:
-    contents: read
-    pull-requests: write
-
-# Serialize per-branch so a flurry of pushes doesn't race the
-# "does a PR already exist?" check.
 concurrency:
     group: feature-pr-${{ github.repository }}-${{ github.ref }}
     cancel-in-progress: false
 
 jobs:
     open-pr:
-        # Loop guard: replace 'cldmv-bot[bot]' with your bot App's login.
-        if: |
-            github.actor != 'cldmv-bot[bot]' &&
-            github.actor != 'github-actions[bot]' &&
-            !startsWith(github.event.head_commit.message, 'chore: bump version')
-        runs-on: ubuntu-latest
-        steps:
-            - name: Determine target branch
-              id: target
-              shell: bash
-              run: |
-                  branch="${GITHUB_REF#refs/heads/}"
-                  echo "branch=$branch" >> "$GITHUB_OUTPUT"
-                  # CUSTOMIZE: adjust the case arms to match your branch
-                  # conventions. Anything not matched is silently skipped
-                  # (so master/main, badges, gh-pages, dependabot/*, etc.
-                  # are safe regardless of what fires the workflow).
-                  # The flow_label sorts first in the PR's label list
-                  # (the leading `!` precedes every letter alphabetically)
-                  # so a glance at any PR's badges reveals which lane it's in.
-                  # Lane (target) AND declared type both come from the branch
-                  # prefix — the v4 convention requires a typed prefix, so a
-                  # `docs/*` branch is a docs change, `fix/*` a fix, etc. The flow
-                  # label is `! <type> → <lane>` so it reflects what the PR actually
-                  # is, not a blanket "feature". (Previously every next-lane branch
-                  # got `! feature → next`, mislabelling docs/fix/chore PRs.)
-                  case "$branch" in
-                      hotfix/*)              target="hotfixes"; type="hotfix"   ;;
-                      feat/*|feature/*)      target="next";     type="feature"  ;;
-                      fix/*)                 target="next";     type="fix"       ;;
-                      docs/*)                target="next";     type="docs"      ;;
-                      chore/*)               target="next";     type="chore"     ;;
-                      refactor/*)            target="next";     type="refactor"  ;;
-                      ci/*)                  target="next";     type="ci"        ;;
-                      perf/*)                target="next";     type="perf"      ;;
-                      test/*)                target="next";     type="test"      ;;
-                      style/*)               target="next";     type="style"     ;;
-                      release/*)             target="next";     type="release"   ;;
-                      *)
-                          target=""; type=""; flow_label=""
-                          echo "::notice::Branch '$branch' does not match any auto-PR pattern; skipping."
-                          ;;
-                  esac
-                  # Leading `!` sorts the flow label first in the PR's badge list,
-                  # so a glance reveals both the change type and its lane.
-                  if [ -n "$target" ]; then
-                      flow_label="! ${type} → ${target}"
-                  fi
-                  echo "target=$target" >> "$GITHUB_OUTPUT"
-                  echo "flow_label=$flow_label" >> "$GITHUB_OUTPUT"
-
-            - name: Create App token
-              id: app-token
-              if: steps.target.outputs.target != ''
-              uses: CLDMV/.github/.github/actions/github/steps/create-app-token@v4
-              with:
-                  client_id: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
-                  private_key: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
-              env:
-                  BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
-                  BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
-
-            - name: Check for existing PR
-              id: existing
-              if: steps.target.outputs.target != ''
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
-              run: |
-                  pr=$(gh pr list --repo "$GITHUB_REPOSITORY" \
-                       --head "${{ steps.target.outputs.branch }}" \
-                       --base "${{ steps.target.outputs.target }}" \
-                       --state open \
-                       --json number --jq '.[0].number // ""')
-                  echo "number=$pr" >> "$GITHUB_OUTPUT"
-                  if [ -n "$pr" ]; then
-                      echo "::notice::Existing PR #$pr will be refreshed."
-                  fi
-
-            - name: Checkout (full history for git log)
-              if: steps.target.outputs.target != ''
-              uses: CLDMV/.github/.github/actions/common/steps/checkout-code@v4
-              with:
-                  fetch-depth: 0
-
-            - name: Fetch target branch ref
-              if: steps.target.outputs.target != ''
-              shell: bash
-              run: |
-                  git fetch --quiet origin "${{ steps.target.outputs.target }}"
-
-            - name: Get categorized commits (base..head)
-              id: commits
-              if: steps.target.outputs.target != ''
-              uses: CLDMV/.github/.github/actions/git/steps/get-commit-range@v4
-              with:
-                  base-ref: origin/${{ steps.target.outputs.target }}
-                  head-ref: HEAD
-
-            - name: Detect feature commits in range
-              id: feat
-              if: steps.target.outputs.target != ''
-              shell: bash
-              env:
-                  COMMITS: ${{ steps.commits.outputs.commits }}
-              run: |
-                  # `type: feature` is applied when the range contains a feature,
-                  # mirroring the changelog's own "Features" section: get-commit-
-                  # range tags `feat:` (and content-categorized add/new) commits
-                  # as category "feature". Reuses the already-computed commits.
-                  has_feature=false
-                  if printf '%s' "$COMMITS" | jq -e 'any(.[]; .category == "feature")' >/dev/null 2>&1; then
-                      has_feature=true
-                  fi
-                  echo "has_feature=$has_feature" >> "$GITHUB_OUTPUT"
-                  echo "📊 feature detected in range: $has_feature"
-
-            - name: Generate categorized changelog body
-              id: changelog
-              if: steps.target.outputs.target != ''
-              uses: CLDMV/.github/.github/actions/git/steps/generate-comprehensive-changelog@v4
-              with:
-                  commits: ${{ steps.commits.outputs.commits }}
-                  commit-range: ${{ steps.commits.outputs.commit-range }}
-              env:
-                  GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-
-            - name: Save body to file
-              if: steps.target.outputs.target != ''
-              shell: bash
-              env:
-                  BODY: ${{ steps.changelog.outputs.changelog-content }}
-              run: |
-                  printf '%s' "$BODY" > /tmp/pr-body.md
-
-            - name: Create PR (first push)
-              if: steps.target.outputs.target != '' && steps.existing.outputs.number == ''
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
-                  HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
-                  HEAD_BRANCH: ${{ steps.target.outputs.branch }}
-                  BASE_BRANCH: ${{ steps.target.outputs.target }}
-              run: |
-                  # Title = head commit's first line — preserves the
-                  # conventional-commit prefix the release-PR title-normalizer
-                  # and commit-type aggregator expect.
-                  title=$(printf '%s\n' "$HEAD_COMMIT_MSG" | head -1)
-                  pr_url=$(gh pr create \
-                      --repo "$GITHUB_REPOSITORY" \
-                      --base "$BASE_BRANCH" \
-                      --head "$HEAD_BRANCH" \
-                      --title "$title" \
-                      --body-file /tmp/pr-body.md)
-                  echo "::notice::Opened $pr_url"
-                  # Apply the flow label (sorts first in the PR's badge list).
-                  # `|| true` so a missing label in the repo (catalog not yet
-                  # synced) doesn't fail the workflow.
-                  if [ -n "${{ steps.target.outputs.flow_label }}" ]; then
-                      gh pr edit "$pr_url" --add-label "${{ steps.target.outputs.flow_label }}" || true
-                  fi
-                  # Apply `type: feature` when the range implements a feature.
-                  if [ "${{ steps.feat.outputs.has_feature }}" = "true" ]; then
-                      gh pr edit "$pr_url" --add-label "type: feature" || true
-                  fi
-                  {
-                      echo "### 🔀 Auto-opened PR"
-                      echo ""
-                      echo "$pr_url"
-                  } >> "$GITHUB_STEP_SUMMARY"
-
-            - name: Refresh existing PR body
-              if: steps.target.outputs.target != '' && steps.existing.outputs.number != ''
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
-                  PR_NUMBER: ${{ steps.existing.outputs.number }}
-              run: |
-                  gh pr edit "$PR_NUMBER" \
-                      --repo "$GITHUB_REPOSITORY" \
-                      --body-file /tmp/pr-body.md
-                  # Re-apply the flow label so a manual removal doesn't
-                  # strand the PR without its lane indicator.
-                  if [ -n "${{ steps.target.outputs.flow_label }}" ]; then
-                      gh pr edit "$PR_NUMBER" \
-                          --repo "$GITHUB_REPOSITORY" \
-                          --add-label "${{ steps.target.outputs.flow_label }}" || true
-                  fi
-                  # Apply `type: feature` when the range implements a feature.
-                  if [ "${{ steps.feat.outputs.has_feature }}" = "true" ]; then
-                      gh pr edit "$PR_NUMBER" \
-                          --repo "$GITHUB_REPOSITORY" \
-                          --add-label "type: feature" || true
-                  fi
-                  echo "::notice::Refreshed PR #${PR_NUMBER} body"
-                  {
-                      echo "### 🔀 Refreshed PR body"
-                      echo ""
-                      echo "PR #${PR_NUMBER}"
-                  } >> "$GITHUB_STEP_SUMMARY"
+        permissions:
+            contents: read
+            pull-requests: write
+        uses: CLDMV/.github/.github/workflows/workflow-feature-pr.yml@v4
+        secrets:
+            # Map your repo/org secrets to the expected names.
+            BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+            BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
+            # Optional: only needed if you also use reusable-lint-format.yml /
+            # reusable-coverage-badge.yml (or otherwise sign a commit locally as
+            # this identity). Passed through so this PR's changelog body
+            # recognizes that identity as a bot instead of listing it as a
+            # contributor.
+            BOT_NAME: ${{ secrets.CLDMV_BOT_NAME }}
+            BOT_EMAIL: ${{ secrets.CLDMV_BOT_EMAIL }}
