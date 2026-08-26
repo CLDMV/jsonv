@@ -131,6 +131,8 @@ jobs:
                   package-name: "@cldmv/jsonv"
                   build-command: "npm run build"
                   github-token: ${{ steps.app-token.outputs.token }}
+                  bot-name: ${{ secrets.CLDMV_BOT_NAME }}
+                  bot-email: ${{ secrets.CLDMV_BOT_EMAIL }}
 
     refresh:
         name: "🔁 Refresh release PR #${{ needs.plan.outputs.pr-number }}"
@@ -157,6 +159,8 @@ jobs:
                   package-name: "@cldmv/jsonv"
                   build-command: "npm run build"
                   github-token: ${{ steps.app-token.outputs.token }}
+                  bot-name: ${{ secrets.CLDMV_BOT_NAME }}
+                  bot-email: ${{ secrets.CLDMV_BOT_EMAIL }}
 
             # Optional: release-PR notifier. Fires only when the target
             # version actually changes (PR open or version-bump shift), not

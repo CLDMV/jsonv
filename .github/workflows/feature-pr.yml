@@ -185,6 +185,8 @@ jobs:
               with:
                   commits: ${{ steps.commits.outputs.commits }}
                   commit-range: ${{ steps.commits.outputs.commit-range }}
+                  bot-name: ${{ secrets.CLDMV_BOT_NAME }}
+                  bot-email: ${{ secrets.CLDMV_BOT_EMAIL }}
               env:
                   GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
