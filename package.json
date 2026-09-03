@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/jsonv",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"description": "Modern JSON parser extending JSON5 with ES2015-2025 features, year-based API",
 	"type": "module",
 	"main": "./dist/cjs/index.cjs",
