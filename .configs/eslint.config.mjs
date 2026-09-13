@@ -19,7 +19,7 @@ import css from "@eslint/css";
 import html from "@html-eslint/eslint-plugin";
 import htmlParser from "@html-eslint/parser";
 import { defineConfig } from "eslint/config";
-import jsonv from "../plugins/eslint-plugin-jsonv/dist/index.js";
+import jsonv from "@cldmv/eslint-plugin-jsonv";
 
 export default defineConfig([
 	// Global ignores - applies to all configurations

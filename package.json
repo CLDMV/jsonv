@@ -114,6 +114,7 @@
 		"dist/"
 	],
 	"devDependencies": {
+		"@cldmv/eslint-plugin-jsonv": "^1.0.3",
 		"@eslint/css": "^0.14.1",
 		"@eslint/json": "^0.14.0",
 		"@eslint/markdown": "^7.5.1",

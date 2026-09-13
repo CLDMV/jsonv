@@ -29,7 +29,7 @@ export function diagnose(text: string): DiagnoseResult {
 		} else {
 			value = parser.evaluate(parseResult.program);
 		}
-	} catch (error) {
+	} catch (_) {
 		valid = false;
 		value = undefined;
 	}
