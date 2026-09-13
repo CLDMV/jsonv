@@ -60,15 +60,15 @@ on:
         required: false
         default: true
       min_node_version:
-        description: "Minimum Node.js version for matrix testing (enables matrix when set)"
+        description: "Minimum Node.js version for matrix testing (default: 22.12.0 — the floor vitest 5 actually runs on)"
         type: string
         required: false
-        default: "20"
+        default: "22.12.0"
       max_node_major:
-        description: "Override max Node.js major version (default: 22)"
+        description: "Override max Node.js major version (default: 26)"
         type: string
         required: false
-        default: "22"
+        default: "26"
       use_gpg:
         description: "Enable GPG signing (if GPG secrets provided)"
         type: boolean
@@ -101,8 +101,8 @@ jobs:
       publish_to_github_packages: ${{ github.event.inputs.publish_to_github_packages != 'false' }}
       publish_command: ""
       github_packages_publish_command: ""
-      min_node_version: ${{ github.event.inputs.min_node_version || '20' }}
-      max_node_major: ${{ github.event.inputs.max_node_major || '22' }}
+      min_node_version: ${{ github.event.inputs.min_node_version || '22.12.0' }}
+      max_node_major: ${{ github.event.inputs.max_node_major || '26' }}
       test_command: "npm test" # Use defaults: NODE_ENV=development, NODE_OPTIONS=--conditions=development
       # test_command: "NODE_ENV=test npm test"  # Override NODE_ENV only
       test_environment: ${{ github.event.inputs.test_environment || 'development' }} # Alternative to setting in test_command
