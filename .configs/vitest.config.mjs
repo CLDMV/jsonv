@@ -12,15 +12,6 @@
  */
 
 import { defineConfig } from "vitest/config";
-import { DefaultReporter } from "vitest/reporters";
-
-export class CustomReporter extends DefaultReporter {
-	onPathsCollected(paths) {
-		super.onPathsCollected(paths);
-
-		this.renderSucceed = false;
-	}
-}
 
 export default defineConfig({
 	pool: "forks",
@@ -47,7 +38,6 @@ export default defineConfig({
 			NODE_ENV: "development"
 		},
 		testTimeout: 10000,
-		// reporters: [new CustomReporter()],
 		reporters: [["default", { summary: false }]],
 		logHeapUsage: true,
 		// pool: "forks",
