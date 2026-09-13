@@ -98,8 +98,8 @@ const nearest = resolveYear(2024); // 2021
 - See [tests/fixtures/README.md](tests/fixtures/README.md) for layout
 
 ## Tooling
-- ESLint plugin: `plugins/eslint-plugin-jsonv` (build via `npm run build:plugin`)
-- VS Code language support: `plugins/vscode-jsonv`
+- ESLint plugin: published separately as [`@cldmv/eslint-plugin-jsonv`](https://github.com/CLDMV/jsonv-eslint-plugin-jsonv) (this repo's lint config consumes the published package). For local co-development, clone that repo under the gitignored `plugins/eslint-plugin-jsonv/` path and run `npm run build:plugin` to link it against this repo's current build.
+- VS Code language support: published separately as [`jsonv-vscode`](https://github.com/CLDMV/jsonv-vscode); clone under the gitignored `plugins/vscode-jsonv/` for local co-development.
 
 ## Development
 ```bash
