@@ -54,15 +54,15 @@ on:
         required: false
         default: "lts/*"
       min_node_version:
-        description: "Minimum Node.js version for matrix testing (default: 20, oldest non-EOL)"
+        description: "Minimum Node.js version for matrix testing (default: 22.12.0 — the floor vitest 5 actually runs on)"
         type: string
         required: false
-        default: "20"
+        default: "22.12.0"
       max_node_major:
-        description: "Override max Node.js major version (default: 22)"
+        description: "Override max Node.js major version (default: 26)"
         type: string
         required: false
-        default: "22"
+        default: "26"
       lts_only_matrix:
         description: "Only include even-numbered (LTS) Node.js major versions in the test matrix"
         type: boolean
@@ -197,8 +197,8 @@ jobs:
         .gitignore
       debug: ${{ github.event.inputs.debug == 'true' }}
       node_version: ${{ github.event.inputs.node_version || 'lts/*' }}
-      min_node_version: ${{ github.event.inputs.min_node_version || '20' }}
-      max_node_major: ${{ github.event.inputs.max_node_major || '22' }}
+      min_node_version: ${{ github.event.inputs.min_node_version || '22.12.0' }}
+      max_node_major: ${{ github.event.inputs.max_node_major || '26' }}
       # LTS-only matrix (even majors: 20, 22, 24, …) on every event. Odd majors
       # (21, 23, …) are non-LTS interim releases, and the native-binding test
       # toolchain (vitest 4 / rolldown / vite 8) excludes them via `engines`

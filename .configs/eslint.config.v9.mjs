@@ -18,7 +18,7 @@ import css from "@eslint/css";
 import html from "@html-eslint/eslint-plugin";
 import htmlParser from "@html-eslint/parser";
 import tseslint from "typescript-eslint";
-import jsonv from "../plugins/eslint-plugin-jsonv/dist/index.mjs";
+import jsonv from "@cldmv/eslint-plugin-jsonv";
 
 export default [
 	// Global ignores - applies to all configurations

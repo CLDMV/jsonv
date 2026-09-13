@@ -19,6 +19,11 @@ out/
 types/
 *.tsbuildinfo
 
+# Local sibling-repo checkouts for co-developing the separately-published
+# jsonv-eslint-plugin-jsonv / jsonv-vscode repos alongside this one -- never
+# committed here; CI/lint use the published @cldmv/eslint-plugin-jsonv package.
+plugins/
+
 # TypeScript cache
 *.tsbuildinfo
 
