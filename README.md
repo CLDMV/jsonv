@@ -103,6 +103,7 @@ const nearest = resolveYear(2024); // 2021
 
 ## Tooling
 - ESLint plugin: published separately as [`@cldmv/eslint-plugin-jsonv`](https://github.com/CLDMV/jsonv-eslint-plugin-jsonv) (this repo's lint config consumes the published package). For local co-development, clone that repo under the gitignored `plugins/eslint-plugin-jsonv/` path and run `npm run build:plugin` to link it against this repo's current build.
+- Prettier plugin: published separately as [`@cldmv/prettier-plugin-jsonv`](https://github.com/CLDMV/jsonv-prettier-plugin-jsonv) for formatting `.jsonv` files.
 - VS Code language support: published separately as [`jsonv-vscode`](https://github.com/CLDMV/jsonv-vscode); clone under the gitignored `plugins/vscode-jsonv/` for local co-development.
 
 ## Development
