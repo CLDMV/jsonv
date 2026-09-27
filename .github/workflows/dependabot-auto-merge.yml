@@ -37,11 +37,13 @@ on:
         types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
     automerge:
+        permissions:
+            contents: write
+            pull-requests: write
         # Pre-filter at workflow level so this doesn't spin up for every PR.
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: CLDMV/.github/.github/workflows/reusable-dependabot-auto-merge.yml@v4

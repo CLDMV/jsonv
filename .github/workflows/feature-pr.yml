@@ -48,6 +48,9 @@ concurrency:
     group: feature-pr-${{ github.repository }}-${{ github.ref }}
     cancel-in-progress: false
 
+permissions:
+    contents: read
+
 jobs:
     open-pr:
         permissions:

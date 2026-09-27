@@ -31,6 +31,9 @@ concurrency:
     group: hotfixes-release-${{ github.repository }}
     cancel-in-progress: false
 
+permissions:
+    contents: read
+
 jobs:
     release:
         permissions:
@@ -39,7 +42,7 @@ jobs:
         uses: CLDMV/.github/.github/workflows/workflow-hotfixes-release.yml@v4
         with:
             package_name: "@cldmv/jsonv"
-            build_command: "npm run build"
+            build_command: "npm run build" # jsonv has no build:ci script — use the full build pipeline
         secrets:
             # Map your repo/org secrets to the expected names.
             BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}

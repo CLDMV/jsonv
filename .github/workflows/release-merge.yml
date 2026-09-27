@@ -1,0 +1,74 @@
+#
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/release-merge.yml
+# @Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+#
+
+# Individual repo: .github/workflows/release-merge.yml
+#
+# v4 core (optional): squash-merge the persistent `next → master` release PR on
+# YOUR APPROVAL, via the REST merge API with the PR body as the commit message.
+#
+# Why not just click "Squash and merge"? The mobile Default path can land a
+# title-only commit (dropping the curated changelog + coverage), and the web/
+# mobile squash UI auto-appends its own `Co-authored-by:` list (not deduped, not
+# bot-stripped). An explicit-message API merge avoids both — the release commit
+# is exactly the curated PR body. It also merges only once EVERY check (required
+# AND non-required, e.g. the coverage badge and the release-PR body refresh) has
+# finished and passed, so the body it captures is never stale.
+#
+# How you use it: approve the release PR as you normally do. The merge fires when
+# CI is green — if you approve before CI finishes, it re-evaluates once CI
+# actually finishes and merges once the last check passes. Nothing auto-merges
+# without your approval.
+#
+# Re-evaluation uses `workflow_run`, not `check_suite` — GitHub does not send
+# `check_suite: completed` for a suite created by GitHub Actions itself, which
+# is every check your own ci.yml produces; it only fires for a suite created
+# by a third-party App. See CLDMV/.github#318: an approval given before CI
+# finished left a release PR stuck fully green with nothing re-firing the
+# merge check, because check_suite silently never fired for that case at all.
+# `workflow_run` is GitHub's documented replacement for exactly this pattern.
+#
+# IMPORTANT: `workflows:` below must list the exact `name:` of THIS repo's own
+# ci.yml (matched by literal workflow name, not filename) — update it if you
+# renamed that workflow. If more than one top-level workflow in your repo can
+# plausibly be the last to finish (e.g. a separately-scheduled CodeQL run that
+# sometimes outlasts ci.yml), list all of them; a workflow that finishes and
+# isn't listed here won't re-arm the merge check, though the manual
+# workflow_dispatch fallback below always will.
+#
+# Thin caller: all logic lives in the reusable, pinned at @v4.
+# NOTE: pull_request_review / workflow_run events run the copy of this file on
+# the DEFAULT branch, so it takes effect once it ships to master with a release.
+name: 🚦 Release Merge (v4)
+
+on:
+    pull_request_review:
+        types: [submitted] # your approval arms it
+    workflow_run:
+        workflows: ["🧪 CI Tests & Build"] # ← match your ci.yml's `name:` — see #318
+        types: [completed]
+    workflow_dispatch: # manual re-evaluation
+
+# Serialize per repo: each run re-resolves the release PR + re-gates the head,
+# so queue (don't cancel) to avoid racing a merge that's already in flight.
+concurrency:
+    group: release-merge-${{ github.repository }}
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    merge:
+        permissions:
+            contents: write
+            pull-requests: write
+            checks: read
+            statuses: read
+        uses: CLDMV/.github/.github/workflows/workflow-release-merge.yml@v4
+        secrets:
+            # Map your repo/org secrets to the expected names.
+            BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}
+            BOT_APP_PRIVATE_KEY: ${{ secrets.CLDMV_BOT_APP_PRIVATE_KEY }}
