@@ -13,6 +13,7 @@ import {
 	isRawJSON as isRawJSONImpl
 } from "./stringify.mjs";
 import { diagnose as diagnoseImpl, info as infoImpl } from "./diagnose.mjs";
+import { JsonvSyntaxError } from "./errors.mjs";
 import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON } from "./api-types.mjs";
 
 /**
@@ -165,7 +166,7 @@ function stringifyWithOptions(value: any, options?: StringifyOptions): string {
 }
 
 // Named exports
-export { parseJSON as parse, parseWithOptions, stringify, stringifyWithOptions, isRawJSON, rawJSON, diagnose, info };
+export { parseJSON as parse, parseWithOptions, stringify, stringifyWithOptions, isRawJSON, rawJSON, diagnose, info, JsonvSyntaxError };
 
 // Default export
 export default JSONV;
