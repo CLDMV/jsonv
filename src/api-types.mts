@@ -17,9 +17,13 @@ export interface ParseOptions {
 
 	/**
 	 * Parsing mode compatibility
-	 * - 'jsonv': Full jsonv features for target year
-	 * - 'json5': JSON5-only features
-	 * - 'json': Strict JSON only
+	 * - 'jsonv': Full jsonv features for target year (default)
+	 * - 'json5': Exactly JSON5 1.0 (https://spec.json5.org/), no jsonv extensions
+	 * - 'json': Exactly RFC 8259 JSON
+	 *
+	 * In 'json5' and 'json' modes, a feature outside the mode is rejected with a
+	 * positioned `JsonvSyntaxError` whose `code` is `"FEATURE_NOT_ALLOWED_IN_MODE"`.
+	 * Any other value throws a `TypeError`.
 	 */
 	mode?: "jsonv" | "json5" | "json";
 

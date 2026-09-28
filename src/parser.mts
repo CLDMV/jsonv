@@ -37,7 +37,7 @@ import type {
 import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
 import type { Token, LexerError } from "./lexer/lexer-types.mjs";
-import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
+import { TokenType, getFeatureYear, resolveMode, FEATURE_NOT_ALLOWED_IN_MODE, MODE_LABELS } from "./lexer/lexer-types.mjs";
 import { JsonvSyntaxError, JsonvReferenceError, JsonvAggregateSyntaxError } from "./errors.mjs";
 
 // Re-exported so consumers importing from the "./parser" subpath (where both
@@ -214,10 +214,18 @@ export class Parser {
 	private valueStack: UnresolvedReference[] = []; // valueVisiting in insertion order
 	private followStack: UnresolvedReference[] = []; // followVisiting in insertion order
 	private refDepth: number = 0; // Nesting depth of resolveMarker calls on the JS call stack
+	private readonly jsonOnly: boolean; // mode === "json": RFC 8259 only
+	private readonly restricted: boolean; // mode !== "jsonv": no jsonv extensions
 
+	/**
+	 * @throws {TypeError} When `options.mode` is not `"jsonv"`, `"json5"` or `"json"`
+	 */
 	constructor(source: string, options: ParseOptions = {}) {
 		const requestedYear = options.year ?? new Date().getFullYear();
 		const targetYear = getFeatureYear(requestedYear) as 2011 | 2015 | 2020 | 2021;
+		const mode = resolveMode(options.mode);
+		this.jsonOnly = mode === "json";
+		this.restricted = mode !== "jsonv";
 
 		this.lexer = new Lexer(source, {
 			// The lexer maps this to its feature year itself; it also needs the
@@ -225,14 +233,14 @@ export class Parser {
 			// allows U+2028/U+2029 in strings, but 2019 maps to feature year 2015).
 			year: requestedYear,
 			preserveComments: options.preserveComments ?? false,
-			mode: options.mode ?? "jsonv",
+			mode,
 			strictOctal: options.strictOctal ?? false
 		});
 
 		// Set default options
 		this.options = {
 			reviver: options.reviver ?? ((key, value) => value),
-			mode: options.mode ?? "jsonv",
+			mode,
 			year: targetYear,
 			allowInternalReferences: options.allowInternalReferences ?? true,
 			preserveComments: options.preserveComments ?? false,
@@ -356,6 +364,9 @@ export class Parser {
 				return this.parseArray();
 
 			case TokenType.IDENTIFIER:
+				if (this.restricted) {
+					this.addModeError("Internal references", token);
+				}
 				return this.parseIdentifier();
 
 			case TokenType.TEMPLATE_LITERAL:
@@ -434,9 +445,15 @@ export class Parser {
 				value = null;
 				break;
 			case TokenType.INFINITY:
+				if (this.jsonOnly) {
+					this.addModeError("Infinity", token);
+				}
 				value = token.raw.startsWith("-") ? -Infinity : Infinity;
 				break;
 			case TokenType.NAN:
+				if (this.jsonOnly) {
+					this.addModeError("NaN", token);
+				}
 				value = NaN;
 				break;
 			default:
@@ -474,9 +491,12 @@ export class Parser {
 
 			// Handle trailing comma
 			if (this.check(TokenType.COMMA)) {
-				this.advance();
-				// Allow trailing comma before }
+				const comma = this.advance();
+				// Allow trailing comma before } (not in JSON mode)
 				if (this.check(TokenType.RBRACE)) {
+					if (this.jsonOnly) {
+						this.addModeError("Trailing commas", comma);
+					}
 					break;
 				}
 			} else if (!this.check(TokenType.RBRACE)) {
@@ -523,7 +543,10 @@ export class Parser {
 			// Text the lexer could not read; the lexer already reported it.
 			key = unreadable(this.advance());
 		} else if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
-			// Quoted key, or numeric key (JSON5 allows numbers as keys, including BigInt)
+			// Quoted key, or numeric key (a jsonv extension; JSON and JSON5 keys are strings or identifiers)
+			if (this.restricted && keyToken.type !== TokenType.STRING) {
+				this.addModeError("Numeric keys", keyToken);
+			}
 			key = this.parseLiteral();
 		} else if (
 			keyToken.type === TokenType.IDENTIFIER ||
@@ -534,10 +557,14 @@ export class Parser {
 			keyToken.type === TokenType.NAN
 		) {
 			// Unquoted key, including keywords (JSON5 allows reserved words as unquoted keys)
+			if (this.jsonOnly) {
+				this.addModeError("Unquoted keys", keyToken);
+			}
 			this.advance();
 			key = {
 				type: "Identifier",
-				name: keyToken.raw,
+				// An identifier's value is its name with any \uXXXX escapes decoded
+				name: keyToken.type === TokenType.IDENTIFIER ? (keyToken.value as string) : keyToken.raw,
 				loc: keyToken.loc
 			};
 		} else {
@@ -595,9 +622,12 @@ export class Parser {
 
 			// Handle trailing comma
 			if (this.check(TokenType.COMMA)) {
-				this.advance();
-				// Allow trailing comma before ]
+				const comma = this.advance();
+				// Allow trailing comma before ] (not in JSON mode)
 				if (this.check(TokenType.RBRACKET)) {
+					if (this.jsonOnly) {
+						this.addModeError("Trailing commas", comma);
+					}
 					break;
 				}
 			} else if (!this.check(TokenType.RBRACKET)) {
@@ -907,7 +937,7 @@ export class Parser {
 	/**
 	 * Add a parse error
 	 */
-	private addError(message: string, token: Token): void {
+	private addError(message: string, token: Token, code: string = "PARSE_ERROR"): void {
 		if (!this.options.tolerant && this.errors.length > 0) {
 			return; // Already have an error in fail-fast mode
 		}
@@ -924,13 +954,21 @@ export class Parser {
 		const error: ParseError = {
 			message,
 			loc: token.loc!,
-			code: "PARSE_ERROR",
+			code,
 			line: token.loc!.start.line,
 			column: token.loc!.start.column,
 			offset: token.loc!.start.offset
 		};
 
 		this.errors.push(error);
+	}
+
+	/**
+	 * Add a parse error for a feature the current mode does not allow, e.g.
+	 * "Trailing commas not allowed in JSON mode", with code `FEATURE_NOT_ALLOWED_IN_MODE`.
+	 */
+	private addModeError(feature: string, token: Token): void {
+		this.addError(`${feature} not allowed in ${MODE_LABELS[this.options.mode]} mode`, token, FEATURE_NOT_ALLOWED_IN_MODE);
 	}
 
 	/**
@@ -1442,6 +1480,14 @@ export class Parser {
 }
 
 /**
+ * Normalize the second argument of `parse()`: a reviver function (the
+ * `JSON.parse(text, reviver)` form) or a {@link ParseOptions} object.
+ */
+function toParseOptions(reviverOrOptions?: ((this: any, key: string, value: any) => any) | ParseOptions): ParseOptions {
+	return typeof reviverOrOptions === "function" ? { reviver: reviverOrOptions } : { ...reviverOrOptions };
+}
+
+/**
  * Convert a collected parse error to the {@link JsonvSyntaxError} a parse
  * throws for it, with the position appended to the message.
  */
@@ -1489,10 +1535,11 @@ function parseAndEvaluate(text: string, options: ParseOptions): any {
 
 /**
  * Public parse function
- * Compatible with JSON.parse(text, reviver) signature
+ * Compatible with JSON.parse(text, reviver) signature; also accepts a
+ * {@link ParseOptions} object in place of the reviver.
  */
-export function parse(text: string, reviver?: (this: any, key: string, value: any) => any): any {
-	return parseAndEvaluate(text, { reviver });
+export function parse(text: string, reviverOrOptions?: ((this: any, key: string, value: any) => any) | ParseOptions): any {
+	return parseAndEvaluate(text, toParseOptions(reviverOrOptions));
 }
 
 /**

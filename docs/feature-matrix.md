@@ -48,9 +48,9 @@ This document summarizes @cldmv/jsonv features by ECMAScript year and the core l
 | --- | --- | --- | --- | --- |
 | Unescaped LF, CR or CRLF | Rejected | Rejected | Rejected | Rejected |
 | Unescaped U+2028 or U+2029 | Rejected | Allowed | Allowed | Allowed |
-| Backslash + LF, CR, CRLF, U+2028 or U+2029 (line continuation) | Allowed | Allowed | Allowed | Accepted (see below) |
+| Backslash + LF, CR, CRLF, U+2028 or U+2029 (line continuation) | Allowed | Allowed | Allowed | Rejected |
 
-A line continuation adds nothing to the string's value. RFC 8259 has no line continuations, but `json` mode does not reject them yet; strict enforcement of the JSON grammar in `json` mode is tracked in [#52](https://github.com/CLDMV/jsonv/issues/52).
+A line continuation adds nothing to the string's value. RFC 8259 has no line continuations, so `json` mode rejects them with `code: "FEATURE_NOT_ALLOWED_IN_MODE"` (see [Compatibility modes](json5-compatibility.md#compatibility-modes)).
 
 The mode decides which grammar applies, and the year only matters in `jsonv` mode:
 
@@ -58,7 +58,7 @@ The mode decides which grammar applies, and the year only matters in `jsonv` mod
 - `json5` mode follows the JSON5 spec, which allows U+2028 and U+2029 in strings in every year.
 - `json` mode follows RFC 8259, which allows any character except `"`, `\` and U+0000 to U+001F, so U+2028 and U+2029 are allowed and LF and CR are not.
 
-The rule uses the requested year, so `parseWithOptions(text, { year: 2019 })` allows U+2028 and U+2029 even though 2019 otherwise shares the 2015 feature set. The `@cldmv/jsonv/2016` to `@cldmv/jsonv/2019` modules forward to the 2015 module, which parses as year 2015 and rejects them in `jsonv` mode; use the root `parseWithOptions` (from `@cldmv/jsonv`) with `year: 2019`, or a 2020+ module, for ES2019 string rules. The 2011 module parses in `json5` mode and allows them.
+The rule uses the requested year, so `parseWithOptions(text, { year: 2019 })` allows U+2028 and U+2029 even though 2019 otherwise shares the 2015 feature set. The `@cldmv/jsonv/2016` to `@cldmv/jsonv/2019` modules forward to the 2015 module, which parses as year 2015 and rejects them in `jsonv` mode; use the root `parseWithOptions` (from `@cldmv/jsonv`) with `year: 2019`, or a 2020+ module, for ES2019 string rules. The 2011 module parses in `jsonv` mode at year 2011 and rejects them; pass `{ mode: "json5" }` to its `parse()` to allow them.
 
 `stringify()` escapes U+2028 and U+2029 as `\u2028` and `\u2029` in every output mode, so its output parses under every year and mode.
 

@@ -26,12 +26,12 @@ It returns an `AstResult` in which every list is always present:
 
 ### Errors
 
-`parseToAst` does not throw for invalid input. Lexical errors (an unterminated string or template, an invalid escape, a stray character, a literal the target `year` does not allow) and parse errors are both collected into `errors`, as plain objects of the same shape:
+`parseToAst` does not throw for invalid input. Lexical errors (an unterminated string or template, an invalid escape, a stray character, a literal the target `year` does not allow, a token form the `mode` does not allow) and parse errors are both collected into `errors`, as plain objects of the same shape:
 
 | Field | Contents |
 |---|---|
 | `message` | Human-readable message, without position information. |
-| `code` | Machine-readable code: the lexer's specific code for lexical errors (`UNTERMINATED_STRING`, `INVALID_UNICODE_ESCAPE`, `INVALID_BIGINT`, ...), `PARSE_ERROR` for grammar errors. |
+| `code` | Machine-readable code: the lexer's specific code for lexical errors (`UNTERMINATED_STRING`, `INVALID_UNICODE_ESCAPE`, `INVALID_BIGINT`, ...), `PARSE_ERROR` for grammar errors, `FEATURE_NOT_ALLOWED_IN_MODE` for a feature the `mode` does not allow (token forms from the lexer; trailing commas, key forms and internal references from the parser; see [JSON5 compatibility](json5-compatibility.md#compatibility-modes)). |
 | `loc` | `{ start, end }` source location of the error. |
 | `line`, `column`, `offset` | `loc.start` flattened: 1-based line, 0-based column and offset. |
 

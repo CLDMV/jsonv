@@ -208,8 +208,10 @@ describe("plain-string line terminators (issue #60)", () => {
 
 		test("the year module APIs follow the same rule", () => {
 			const source = '{ s: "a\u2028b\u2029c" }';
-			// The 2011 module parses in json5 mode, where the JSON5 spec allows them.
-			expect(api2011.parse(source)).toEqual({ s: "a\u2028b\u2029c" });
+			// The 2011 module parses as jsonv at year 2011 (ES5 rules), which rejects
+			// them; json5 mode, where the JSON5 spec allows them, is one option away.
+			expect(() => api2011.parse(source)).toThrow(JsonvSyntaxError);
+			expect(api2011.parse(source, { mode: "json5" })).toEqual({ s: "a\u2028b\u2029c" });
 			expect(() => api2011.parseWithOptions(source, { mode: "jsonv" })).toThrow(JsonvSyntaxError);
 			expect(() => api2015.parse(source)).toThrow(JsonvSyntaxError);
 			expect(api2020.parse(source)).toEqual({ s: "a\u2028b\u2029c" });

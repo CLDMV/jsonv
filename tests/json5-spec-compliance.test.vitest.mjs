@@ -2,13 +2,17 @@
  * Comprehensive JSON5 spec compliance tests
  * Based on https://spec.json5.org/
  *
- * This test file verifies all features mentioned in the JSON5 specification
+ * This test file verifies all features mentioned in the JSON5 specification.
+ * Every example runs under both `mode: "jsonv"` (jsonv is a JSON5 superset)
+ * and `mode: "json5"` (exactly JSON5).
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV from "../src/index.mjs";
+import JSONV_API from "../src/index.mjs";
 
-describe("JSON5 Spec Compliance", () => {
+describe.each(["jsonv", "json5"])("JSON5 Spec Compliance (mode: %s)", (mode) => {
+	const JSONV = { parse: (text) => JSONV_API.parse(text, { mode }), stringify: JSONV_API.stringify };
+
 	describe("1.1 Summary of Features - Objects", () => {
 		test("Object keys may be ECMAScript 5.1 IdentifierName", () => {
 			const result = JSONV.parse("{ unquoted: true, $dollar: 1, _underscore: 2 }");
