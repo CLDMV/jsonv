@@ -95,13 +95,8 @@ const MATRIX = [
 	["BigInt key", "{ 1n: 2 }", lx("BigInt literals", 3), lx("BigInt literals", 3), ok({ 1: 2 })],
 	["escape \\1", '"\\1"', lx("Escape sequence '\\1'", 1), lx("Escape sequence '\\1'", 1), ok("1")],
 	["escape \\0 + digit", '"\\01"', lx("Escape sequence '\\0'", 1), lx("Escape sequence '\\01'", 1), ok("\u00001")],
-	[
-		"raw CR in string",
-		'"a\rb"',
-		lx("Unescaped control character U+000D in strings", 2),
-		lx("Unescaped line terminator U+000D in strings", 2),
-		ok("a\rb")
-	]
+	// Raw LF and CR end a string in every mode (UNTERMINATED_STRING), so they are not mode rows
+	["raw U+001F in string", '"a\u001fb"', lx("Unescaped control character U+001F in strings", 2), ok("a\u001fb"), ok("a\u001fb")]
 ];
 
 const MODE_COLUMNS = ["json", "json5", "jsonv"];

@@ -12,7 +12,8 @@
 - Leading/trailing decimal points (`.5`, `5.`)
 - Explicit `+` sign (`+1`, `+.5`, `+0x10`, `+Infinity`)
 - `Infinity`, `-Infinity`, `NaN` (also `+NaN`, `-NaN`)
-- Multiline strings via backslash continuation (before LF, CR, CRLF, U+2028 or U+2029)
+- Multiline strings via backslash continuation (a backslash before LF, CR, CRLF, U+2028 or U+2029)
+- Unescaped U+2028 and U+2029 in strings (in `mode: "json5"` in every year; in `mode: "jsonv"` from year 2019 on, as in ECMAScript; see [Line terminators in plain strings](feature-matrix.md#line-terminators-in-plain-strings))
 - ECMAScript 5.1 string escapes: `\'`, `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\v`, `\0`, `\xXX`, `\uXXXX`; any other character escapes to itself (`\A` is `A`)
 - JSON5 whitespace: tab, LF, VT, FF, CR, space, U+00A0, U+2028, U+2029, U+FEFF and the Unicode space separators
 
@@ -39,7 +40,8 @@
 | Leading `+` | ✗ | ✓ | ✓ |
 | `Infinity` / `NaN` | ✗ | ✓ | ✓ |
 | Escapes beyond JSON's (`\'`, `\v`, `\0`, `\x41`, `\A`, ...) and line continuations | ✗ | ✓ | ✓ |
-| Unescaped control characters (U+0000-U+001F) in strings | ✗ | ✓ except LF / CR | ✓ except LF |
+| Unescaped control characters (U+0000-U+001F) other than LF / CR in strings | ✗ | ✓ | ✓ |
+| Unescaped U+2028 / U+2029 in strings | ✓ | ✓ | ✓ (2019+) |
 | Whitespace beyond space, tab, LF, CR | ✗ | ✓ | ✓ |
 | `\1`-`\9` and `\0` followed by a digit | ✗ | ✗ | ✓ |
 | Numeric keys | ✗ | ✗ | ✓ |

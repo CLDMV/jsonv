@@ -44,10 +44,17 @@ export class Lexer {
 	private column: number = 0;
 	private tokens: Token[] = [];
 	private options: Required<LexerOptions>;
-	private templateDepth: number = 0; // Track nesting depth of template interpolations
+	/**
+	 * One entry per open template interpolation (innermost last), counting the
+	 * `{` opened inside that interpolation and not yet closed. A `}` ends the
+	 * interpolation only when its entry is 0, i.e. it balances the `${`; any
+	 * other `}` inside the interpolation is a plain RBRACE.
+	 */
+	private interpolationBraces: number[] = [];
 	private tokenStart: Position = { line: 1, column: 0, offset: 0 }; // Start of the token currently being scanned
 	private readonly jsonOnly: boolean; // mode === "json": RFC 8259 only
 	private readonly restricted: boolean; // mode !== "jsonv": no jsonv extensions
+	private allowUnescapedLineSeparators: boolean; // U+2028/U+2029 allowed unescaped in plain strings
 
 	/**
 	 * Create a new lexer instance
@@ -76,6 +83,13 @@ export class Lexer {
 			strictOctal: options.strictOctal ?? false,
 			mode
 		};
+
+		// U+2028 and U+2029 may appear unescaped in a plain string when the target
+		// grammar allows them: RFC 8259 JSON and the JSON5 spec always do, and
+		// ECMAScript does from ES2019 on (the JSON superset proposal). This uses the
+		// requested year, not the feature year, because 2019 has no feature year of
+		// its own (getFeatureYear(2019) is 2015).
+		this.allowUnescapedLineSeparators = mode === "json" || mode === "json5" || targetYear >= 2019;
 	}
 
 	/**
@@ -87,6 +101,7 @@ export class Lexer {
 		this.pos = 0;
 		this.line = 1;
 		this.column = 0;
+		this.interpolationBraces = [];
 
 		while (!this.isAtEnd()) {
 			this.skipWhitespace();
@@ -193,14 +208,22 @@ export class Lexer {
 
 		// Punctuation
 		if (ch === "{") {
+			const depth = this.interpolationBraces.length;
+			if (depth > 0) {
+				this.interpolationBraces[depth - 1]++; // a brace nested inside the interpolation
+			}
 			return this.createToken(TokenType.LBRACE, "{", this.advance());
 		}
 		if (ch === "}") {
-			// If we're inside a template interpolation, this closes it.
-			// Continue scanning the template instead of returning RBRACE: the
-			// closing } is the first character of the TemplateMiddle/TemplateTail.
-			if (this.templateDepth > 0) {
-				return this.scanTemplateMiddleOrTail();
+			const depth = this.interpolationBraces.length;
+			if (depth > 0) {
+				// The } that balances the `${` closes the interpolation. Continue
+				// scanning the template instead of returning RBRACE: the closing }
+				// is the first character of the TemplateMiddle/TemplateTail.
+				if (this.interpolationBraces[depth - 1] === 0) {
+					return this.scanTemplateMiddleOrTail();
+				}
+				this.interpolationBraces[depth - 1]--; // closes a brace nested inside the interpolation
 			}
 			return this.createToken(TokenType.RBRACE, "}", this.advance());
 		}
@@ -356,13 +379,17 @@ export class Lexer {
 				break;
 			}
 
-			// JSON5: allow line continuation with backslash
-			if (ch === "\n" && !escaped) {
+			// An unescaped line terminator ends the line before the string is closed,
+			// as in ECMAScript, JSON5 and JSON. The error points at the terminator
+			// (the CR of a CRLF pair). U+2028 and U+2029 are allowed where the target
+			// grammar allows them; see the constructor. A backslash followed by a line
+			// terminator is a line continuation and is handled by parseEscapeSequence.
+			if (this.isLineTerminator(ch) && !(this.allowUnescapedLineSeparators && (ch === "\u2028" || ch === "\u2029"))) {
 				throw this.createError("Unterminated string", "UNTERMINATED_STRING");
 			}
 
-			if (this.restricted) {
-				this.checkStringCharForMode(ch);
+			if (this.jsonOnly) {
+				this.checkJsonStringChar(ch);
 			}
 
 			value += this.advance();
@@ -378,17 +405,14 @@ export class Lexer {
 	}
 
 	/**
-	 * Reject an unescaped string character that the mode does not allow.
-	 * Called in `json` and `json5` modes only, on the character about to be consumed.
-	 *
-	 * - JSON (RFC 8259): control characters U+0000-U+001F must be escaped.
-	 * - JSON5: a string cannot contain a raw line terminator other than U+2028 / U+2029
-	 *   (raw LF is already rejected in every mode as an unterminated string).
+	 * Reject an unescaped control character (U+0000-U+001F) in a string in `json`
+	 * mode, where RFC 8259 requires them to be escaped. Called on the character
+	 * about to be consumed. (Raw LF and CR are rejected in every mode as an
+	 * unterminated string before this runs.)
 	 */
-	private checkStringCharForMode(ch: string): void {
-		if (this.jsonOnly ? ch.charCodeAt(0) < 0x20 : ch === "\r") {
-			const kind = this.jsonOnly ? "control character" : "line terminator";
-			throw this.modeError(`Unescaped ${kind} ${this.describeChar(ch)} in strings`, this.getCurrentPosition());
+	private checkJsonStringChar(ch: string): void {
+		if (ch.charCodeAt(0) < 0x20) {
+			throw this.modeError(`Unescaped control character ${this.describeChar(ch)} in strings`, this.getCurrentPosition());
 		}
 	}
 
@@ -464,8 +488,7 @@ export class Lexer {
 				return "";
 			case "\u2028":
 			case "\u2029":
-				// JSON5 / ECMAScript: U+2028 and U+2029 are line terminators, so a
-				// backslash before one is a line continuation too
+				// Line continuation: U+2028 and U+2029 are line terminators too
 				return "";
 			default:
 				// JSON5: invalid escape is just the character
@@ -527,7 +550,7 @@ export class Lexer {
 				const raw = this.input.slice(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
-				this.templateDepth++; // Enter template interpolation mode
+				this.interpolationBraces.push(0); // Enter template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_HEAD, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
@@ -587,7 +610,7 @@ export class Lexer {
 			if (ch === "`") {
 				this.advance(); // closing backtick
 				const raw = this.input.slice(start, this.pos);
-				this.templateDepth--; // Exit template interpolation mode
+				this.interpolationBraces.pop(); // Exit template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
