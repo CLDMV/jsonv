@@ -68,15 +68,19 @@ export interface Token {
 	 * - Null token: null
 	 * - Identifier: identifier name
 	 * - Comments: comment text (without delimiters)
-	 * - Template tokens: cooked (unescaped) text without the `` ` ``, `${` and `}` delimiters
+	 * - Template tokens: cooked (unescaped) text without the `` ` ``, `${` and `}` delimiters;
+	 *   a CRLF or lone CR line terminator cooks to LF, as in ECMAScript
 	 * - Others: usually the raw string
 	 */
 	value: string | number | bigint | boolean | null;
 
 	/**
-	 * Raw source text of the token (as it appears in input), always equal to
-	 * `input.slice(loc.start.offset, loc.end.offset)`. Template tokens include
-	 * their delimiters: `` `a${ `` (head), `}b${` (middle), `` }c` `` (tail).
+	 * Raw source text of the token. For non-template tokens it always equals
+	 * `input.slice(loc.start.offset, loc.end.offset)`. Template tokens include their
+	 * delimiters: `` `a${ `` (head), `}b${` (middle), `` }c` `` (tail), and their
+	 * `raw` is that slice with each CRLF pair and lone CR
+	 * replaced by LF (the ECMAScript template raw value, TRV). `loc` still covers the
+	 * original source, so the slice at `loc` is the exact source text.
 	 */
 	raw: string;
 

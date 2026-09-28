@@ -15,6 +15,20 @@ const pos = (line, column, offset) => ({ line, column, offset });
 /** Source text covered by a loc. */
 const sliceOf = (text, loc) => text.slice(loc.start.offset, loc.end.offset);
 
+const TEMPLATE_TOKEN_TYPES = new Set([
+	TokenType.TEMPLATE_LITERAL,
+	TokenType.TEMPLATE_HEAD,
+	TokenType.TEMPLATE_MIDDLE,
+	TokenType.TEMPLATE_TAIL
+]);
+
+/**
+ * Expected `raw` for a source slice: template raw text normalizes each CRLF and
+ * lone CR to LF, as the ECMAScript TRV does (issue #56); other tokens keep the
+ * slice verbatim.
+ */
+const expectedRaw = (slice, isTemplate) => (isTemplate ? slice.replace(/\r\n?/g, "\n") : slice);
+
 /**
  * Line/column of an offset, using the documented line-break rules:
  * `\n`, `\r\n` (one break), a lone `\r`, U+2028 and U+2029.
@@ -88,6 +102,8 @@ const cases = {
 	"multi-line template (LF)": "{\n  a: 1,\n  t: `line1\n${a}\nline3${\na\n}\n`\n}",
 	"multi-line template (CRLF)": "{\r\n  a: 1,\r\n  t: `line1\r\n${a}\r\nline3${\r\na\r\n}\r\n`\r\n}",
 	"multi-line template (lone CR, U+2028, U+2029)": "{ a: 1, t: `x\r${a} y${a} z` }",
+	"CRLF and lone CR mixed in every segment (issue #56)": "{\r\n  a: 1,\r\n  t: `\r\nx\r${a}\r\n\ry\r\n${\r\na\r\n}\rz\r\n`\r\n}",
+	"line continuations and escaped \\r under CRLF (issue #56)": "{\r\n  a: 1,\r\n  t: `x\\\r\ny\\r${a}\\\r\nz`,\r\n  s: 'p\\\r\nq'\r\n}",
 	"templates as array elements": "[`${1}`, `a${`b`}c`, `plain`]"
 };
 
@@ -150,7 +166,7 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 			for (const token of tokens) {
 				expect(token.loc.start).toEqual(positionAt(text, token.loc.start.offset));
 				expect(token.loc.end).toEqual(positionAt(text, token.loc.end.offset));
-				expect(token.raw).toBe(sliceOf(text, token.loc));
+				expect(token.raw).toBe(expectedRaw(sliceOf(text, token.loc), TEMPLATE_TOKEN_TYPES.has(token.type)));
 			}
 		});
 
@@ -171,7 +187,7 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 					expect(token?.type).toBe(expectedType);
 					expect(quasi.loc).toEqual(token.loc);
 					expect(quasi.value.raw).toBe(token.raw);
-					expect(quasi.value.raw).toBe(sliceOf(text, quasi.loc));
+					expect(quasi.value.raw).toBe(expectedRaw(sliceOf(text, quasi.loc), true));
 					expect(quasi.value.cooked).toBe(token.value);
 					expect(quasi.tail).toBe(i === quasis.length - 1);
 

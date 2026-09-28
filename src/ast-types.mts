@@ -57,6 +57,11 @@ export type Expression = Literal | ObjectExpression | ArrayExpression | Identifi
 export interface Literal extends ASTNode {
 	type: "Literal";
 	value: string | number | bigint | boolean | null;
+	/**
+	 * Source text of the literal. For a template without interpolation (backticks
+	 * included) each CRLF pair and lone CR is normalized to LF, as in ECMAScript;
+	 * every other literal's `raw` is the source slice at `loc`.
+	 */
 	raw: string;
 	bigint?: string; // For BigInt literals
 }
@@ -130,13 +135,21 @@ export interface TemplateLiteral extends ASTNode {
  * `value.cooked` is the segment's text without delimiters and with escapes
  * processed (`"a"`, `"b"`, `"c"`). A template without interpolation is a
  * `Literal`, not a `TemplateLiteral`.
+ *
+ * Line terminators follow ECMAScript: a CRLF pair or a lone CR in the segment is
+ * LF in both `cooked` and `raw`, while `loc` keeps the original source offsets.
+ * An escaped `\r` (backslash, `r`) is unaffected and cooks to CR.
  */
 export interface TemplateElement extends ASTNode {
 	type: "TemplateElement";
 	value: {
-		/** Source text of the segment including its delimiters; equals the source slice at `loc`. */
+		/**
+		 * Source text of the segment including its delimiters: the source slice at
+		 * `loc` with each CRLF pair and lone CR replaced by LF, as the ECMAScript
+		 * template raw value (TRV) is. For LF sources it equals the slice exactly.
+		 */
 		raw: string;
-		/** Segment text without delimiters, escapes processed. */
+		/** Segment text without delimiters, escapes processed, CRLF and lone CR cooked to LF. */
 		cooked: string;
 	};
 	tail: boolean; // true if this is the last element
