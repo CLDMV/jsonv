@@ -100,7 +100,7 @@ export default [
 
 	// Test files
 	{
-		files: ["**/test/**/*test.{js,mjs,ts}", "**/tests/**/*.test.{js,mjs,ts}"],
+		files: ["**/test/**/*test.{js,mjs,ts}", "**/tests/**/*.test.{js,mjs,ts}", "tests/**/*.test.vitest.mjs"],
 		languageOptions: {
 			globals: {
 				beforeAll: true,
