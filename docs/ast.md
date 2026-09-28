@@ -17,12 +17,44 @@ It returns an `AstResult` in which every list is always present:
 
 | Field | Type | Contents |
 |---|---|---|
-| `program` | `Program` | The root node. `program.body` is the document's value. |
+| `program` | `Program` | The root node. `program.body` is the document's value. Never `null`, even when there are errors (see below). |
 | `comments` | `Comment[]` | Every comment in source order. Collected by default; `preserveComments: false` yields `[]`. |
 | `tokens` | `Token[]` | Every non-comment token in source order, excluding the EOF token. |
-| `errors` | `ParseError[]` | Collected parse errors; `[]` when the input parsed cleanly. |
+| `errors` | `ParseError[]` | Collected lexical and parse errors in source order; `[]` when the input parsed cleanly. |
 
-`options` accepts the usual [parse options](../src/api-types.mts) (`year`, `mode`, `tolerant`, `strictBigInt`, `strictOctal`, ...). Parse errors are collected rather than thrown: only the first one unless `tolerant: true`, in which case the parser recovers and keeps going. Recovery resynchronizes at the next property or element boundary (the next `,` or closing `}` / `]` at the same nesting level, or the next template middle / tail inside an interpolation), so the tokens after an error are skipped rather than misread: in `{ a: 1,, b: 2 }` the extra `,` is one error and `b` is still parsed as a key. Only the first error at a given position is kept. `parseToAst` never throws for collected errors; `parseWithOptions` with `tolerant: true` throws them together as one `JsonvAggregateSyntaxError` (see the README's Errors section). Lexical errors (an unterminated string, an invalid escape, a year-gated literal) cannot produce a token stream, so they throw a `JsonvSyntaxError` carrying `line`, `column` and `offset`.
+`options` accepts the usual [parse options](../src/api-types.mts) (`year`, `mode`, `tolerant`, `strictBigInt`, `strictOctal`, ...).
+
+### Errors
+
+`parseToAst` does not throw for invalid input. Lexical errors (an unterminated string or template, an invalid escape, a stray character, a literal the target `year` does not allow) and parse errors are both collected into `errors`, as plain objects of the same shape:
+
+| Field | Contents |
+|---|---|
+| `message` | Human-readable message, without position information. |
+| `code` | Machine-readable code: the lexer's specific code for lexical errors (`UNTERMINATED_STRING`, `INVALID_UNICODE_ESCAPE`, `INVALID_BIGINT`, ...), `PARSE_ERROR` for grammar errors. |
+| `loc` | `{ start, end }` source location of the error. |
+| `line`, `column`, `offset` | `loc.start` flattened: 1-based line, 0-based column and offset. |
+
+```js
+parseToAst("{ t: `abc }", { year: 2015 }).errors;
+// [{ message: "Unterminated template literal", code: "UNTERMINATED_TEMPLATE",
+//    loc: { start: { line: 1, column: 11, offset: 11 }, end: { line: 1, column: 11, offset: 11 } },
+//    line: 1, column: 11, offset: 11 }]
+```
+
+Without `tolerant`, only the first error is collected. Lexing stops at the first lexical error, so `tokens` and `comments` hold only what was lexed before it, and a lexical error takes precedence over parse errors: it is the error `parseWithOptions` would throw for the same input.
+
+With `tolerant: true`, the lexer skips the unreadable text and keeps going, and the parser recovers from grammar errors, so every error is reported, in source order. Only the first error at a given position is kept. The parser resynchronizes at the next property or element boundary (the next `,` or closing `}` / `]` at the same nesting level, or the next template middle / tail inside an interpolation), so the tokens after an error are skipped rather than misread: in `{ a: 1,, b: 2 }` the extra `,` is one error and `b` is still parsed as a key. The lexer resynchronizes by skipping:
+
+- a bad string: the rest of the string, through its closing quote or up to the end of the line;
+- a bad template or template segment: the rest of the template, through its closing backtick;
+- a comment rejected by `mode: "json"`, or an unterminated block comment: the whole comment;
+- a bad number, or a word such as `-foo` or `_1`: the rest of the number or word;
+- any other unexpected character: that character alone.
+
+`program` is always a `Program`, never `null`. When there are errors it is the partial program recovered from the tokens that could be read. A value the lexer could not read is represented by a `Literal` whose `value` is `null` and whose `raw` is the unreadable source text; that text has no entry in `tokens`. Text that runs to the end of the input (an unterminated string or template) leaves any enclosing object or array unclosed, which `tolerant` mode also reports as parse errors.
+
+`parse` and `parseWithOptions` still throw: a lexical error as a `LexerError`, a parse error as a `JsonvSyntaxError` (`LexerError` extends `JsonvSyntaxError`). With `tolerant: true`, `parseWithOptions` throws every collected error together as one `JsonvAggregateSyntaxError` instead, and does not evaluate the document (see the README's Errors section). `Parser#parse()` also throws lexical errors.
 
 `parseToAst` never evaluates the document: internal references stay as `Identifier` / `MemberExpression` nodes and unresolved references are not reported.
 
@@ -36,14 +68,14 @@ import { Parser } from "@cldmv/jsonv/parser";
 const { program, tokens, comments, errors } = new Parser(text, { preserveComments: true }).parse();
 ```
 
-`Parser#parse()` returns a `ParseResult`: `program` and `tokens` are always present, `comments` is present only when `preserveComments` is set, and `errors` is `undefined` when there are none.
+`Parser#parse()` returns a `ParseResult`: `program` and `tokens` are always present, `comments` is present only when `preserveComments` is set, and `errors` is `undefined` when there are none. Unlike `parseToAst`, it throws lexical errors as a `LexerError`.
 
 ## Positions
 
 Every node, token and comment has a `loc: { start, end }` whose positions are `{ line, column, offset }`:
 
 - `line` is 1-based; `column` and `offset` are 0-based UTF-16 code-unit indexes.
-- `text.slice(loc.start.offset, loc.end.offset)` is exactly the source text of the node, token or comment.
+- `text.slice(loc.start.offset, loc.end.offset)` is exactly the source text of the node, token or comment. A token's or node's `raw` equals it, except that template `raw` normalizes line terminators (see [Template line terminators](#template-line-terminators)).
 - `\n`, `\r\n` (one break), a lone `\r`, U+2028 and U+2029 each end a line, matching ECMAScript and ESLint. Line comments also end at any of them.
 - Tokens that span lines (strings with line continuations, multi-line templates and block comments) start where their first character is.
 
@@ -63,7 +95,7 @@ All node shapes are exported as TypeScript types from the package root and from 
 | `TemplateLiteral` | `quasis: TemplateElement[]`, `expressions: Expression[]` | The opening backtick through the closing backtick. |
 | `TemplateElement` | `value: { raw, cooked }`, `tail` | The quasi's own token, delimiters included (see below). |
 
-A template literal without interpolation is represented as a `Literal` whose `raw` includes the backticks.
+A template literal without interpolation is represented as a `Literal` whose `raw` includes the backticks (with line terminators normalized as described under [Template line terminators](#template-line-terminators)).
 
 ### Template segments
 
@@ -75,7 +107,25 @@ Each `TemplateElement` has the same `loc` as its token, and `value.raw` is that 
 | middle | `TemplateMiddle` | `}b${` (the `}` closing the previous interpolation through the next `${`) | `"b"` |
 | tail (`tail: true`) | `TemplateTail` | `` }c` `` (the `}` closing the last interpolation through the closing backtick) | `"c"` |
 
-`value.cooked` is the segment text without delimiters and with escapes processed. Note that ESTree's `TemplateElement.value.raw` excludes the delimiters; here `raw` always equals `text.slice(loc.start.offset, loc.end.offset)`.
+`value.cooked` is the segment text without delimiters and with escapes processed. Note that ESTree's `TemplateElement.value.raw` excludes the delimiters; here `raw` is the source text at `loc`, delimiters included, with line terminators normalized as below.
+
+### Template line terminators
+
+Templates follow ECMAScript: a CRLF pair or a lone CR inside a template is one line terminator whose cooked value (TV) and raw value (TRV) are both LF. So a document evaluates the same whatever its line endings are:
+
+```js
+parseWithOptions("{ t: `a\r\nb`, u: `c\rd` }"); // { t: "a\nb", u: "c\nd" }, the same as for "`a\nb`" and "`c\nd`"
+```
+
+This applies to the template token `value` and `raw`, to `TemplateElement.value.cooked` and `value.raw`, and to the `raw` of a template `Literal`. It matches ESTree parsers such as acorn, whose `TemplateElement.value.raw` is normalized the same way.
+
+Positions are not normalized. `loc` always describes the original source, so the tokens and quasis of a CRLF document still tile it, line and column numbers count `\r\n` as one break, and `text.slice(loc.start.offset, loc.end.offset)` gives the exact source text of a template token or quasi, CR characters included. For a template, `raw` equals that slice with `/\r\n?/g` replaced by `"\n"`; for LF sources the two are identical.
+
+Other characters are unaffected:
+
+- An escaped `\r` (backslash then `r`) cooks to CR, and its `raw` keeps the two characters.
+- U+2028 and U+2029 are kept as they are in both `cooked` and `raw`, as in ECMAScript.
+- A line continuation (backslash followed by LF, CRLF, CR, U+2028 or U+2029) cooks to nothing in templates and in strings. In a template its `raw` is the backslash followed by the normalized line terminator. String tokens are not normalized: their `raw` is always the source slice.
 
 ### Property keys
 
@@ -100,4 +150,4 @@ parseToAst("// lead\n{ /* inner */ a: 1 }").comments;
 
 ## Tokens
 
-Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the exact source text; `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template tokens include their delimiters, so the tokens of a template tile its source with no gaps: `TemplateHead` runs from the opening backtick through `${`, and `TemplateMiddle` and `TemplateTail` start at the `}` that closes the preceding interpolation (for `` `http://${host}/path` `` the tail token is `` }/path` ``).
+Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the source text (for template tokens, with CRLF and lone CR normalized to LF; see [Template line terminators](#template-line-terminators)); `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template tokens include their delimiters, so the tokens of a template tile its source with no gaps: `TemplateHead` runs from the opening backtick through `${`, and `TemplateMiddle` and `TemplateTail` start at the `}` that closes the preceding interpolation (for `` `http://${host}/path` `` the tail token is `` }/path` ``).

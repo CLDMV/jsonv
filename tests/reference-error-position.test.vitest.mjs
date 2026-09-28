@@ -3,7 +3,7 @@
  * circular internal references) must carry structured position information
  * (line/column/offset) plus a dedicated, detectable error class -- the same
  * treatment issue #28/#31 gave lexer/parser syntax errors, extended to the
- * reference-resolution error thrown by `Parser#checkUnresolved`.
+ * reference-resolution error thrown by the parser's reference resolver.
  */
 
 import { describe, test, expect } from "vitest";
@@ -147,19 +147,21 @@ describe("JsonvReferenceError (issue #32)", () => {
 		// line 4: }
 		const input = "{\n  a: b,\n  b: a\n}";
 
-		test("keeps the existing message text unchanged (message stays 'circular reference or undefined')", () => {
-			expect(() => parse(input)).toThrow(/Unresolved reference: (a|b) \(circular reference or undefined\)/);
+		// Issue #54: a cycle is reported by name instead of as an unresolved reference
+		test("names the cycle", () => {
+			expect(() => parse(input)).toThrow("Circular reference: a -> b -> a");
 		});
 
-		test("is a JsonvReferenceError with a position", () => {
+		test("is a JsonvReferenceError positioned at the reference that closes the cycle", () => {
 			try {
 				parse(input);
 				expect.fail("should have thrown");
 			} catch (err) {
 				expect(err).toBeInstanceOf(JsonvReferenceError);
-				expect(typeof err.line).toBe("number");
-				expect(typeof err.column).toBe("number");
-				expect(typeof err.offset).toBe("number");
+				expect(err.code).toBe("UNRESOLVED_REFERENCE");
+				expect(err.line).toBe(3);
+				expect(err.column).toBe(input.split("\n")[2].indexOf("a"));
+				expect(err.offset).toBe(input.lastIndexOf("a"));
 			}
 		});
 	});

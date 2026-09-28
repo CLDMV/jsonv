@@ -158,43 +158,45 @@ describe("nested template literals (issue #49)", () => {
 			expect(err.offset).toBe(input.indexOf("`"));
 		});
 
+		// Cycles are reported by name, at the reference that closes the cycle (issue #54)
 		test("a self-reference through a nested template is detected as circular", () => {
 			const input = "{ t: `a${ `b${t}` }` }";
 			const err = thrown(() => parseWithOptions(input, { year: 2015 }));
 			expect(err).toBeInstanceOf(JsonvReferenceError);
-			expect(err.message).toBe("Unresolved reference: <template> (circular reference or undefined)");
+			expect(err.message).toBe("Circular reference: t -> t");
+			expect(err.code).toBe("UNRESOLVED_REFERENCE");
 			expect(err.line).toBe(1);
-			expect(err.column).toBe(input.indexOf("`"));
-			expect(err.offset).toBe(input.indexOf("`"));
+			expect(err.column).toBe(input.indexOf("${t}") + 2);
+			expect(err.offset).toBe(input.indexOf("${t}") + 2);
 		});
 
-		test("a two-key cycle through a nested template reports the first unresolved value's position", () => {
+		test("a two-key cycle through a nested template points at the interpolated reference that closes it", () => {
 			const input = "{\n  a: b,\n  b: `x${ `y${a}` }`\n}";
 			const err = thrown(() => parseWithOptions(input, { year: 2015 }));
 			expect(err).toBeInstanceOf(JsonvReferenceError);
-			expect(err.message).toBe("Unresolved reference: b (circular reference or undefined)");
-			expect(err.line).toBe(2);
-			expect(err.column).toBe(input.split("\n")[1].indexOf("b"));
-			expect(err.offset).toBe(input.indexOf("b,"));
+			expect(err.message).toBe("Circular reference: a -> b -> a");
+			expect(err.line).toBe(3);
+			expect(err.column).toBe(input.split("\n")[2].indexOf("${a}") + 2);
+			expect(err.offset).toBe(input.indexOf("${a}") + 2);
 		});
 
-		test("a cycle whose first key holds the nested template reports that template's position", () => {
+		test("a cycle whose first key holds the nested template points at the reference that closes it", () => {
 			const input = "{\n  a: `x${ `y${b}` }`,\n  b: a\n}";
 			const err = thrown(() => parse(input));
 			expect(err).toBeInstanceOf(JsonvReferenceError);
-			expect(err.message).toBe("Unresolved reference: <template> (circular reference or undefined)");
-			expect(err.line).toBe(2);
-			expect(err.column).toBe(input.split("\n")[1].indexOf("`"));
-			expect(err.offset).toBe(input.indexOf("`"));
+			expect(err.message).toBe("Circular reference: a -> b -> a");
+			expect(err.line).toBe(3);
+			expect(err.column).toBe(input.split("\n")[2].indexOf("a"));
+			expect(err.offset).toBe(input.lastIndexOf("a"));
 		});
 
 		test("a cycle through a nested template in an array element is detected", () => {
 			const input = "{ list: [`${ `${x}` }`], x: y, y: x }";
 			const err = thrown(() => parseWithOptions(input, { year: 2015 }));
 			expect(err).toBeInstanceOf(JsonvReferenceError);
-			expect(err.message).toBe("Unresolved reference: <template> (circular reference or undefined)");
-			expect(err.column).toBe(input.indexOf("`"));
-			expect(err.offset).toBe(input.indexOf("`"));
+			expect(err.message).toBe("Circular reference: x -> y -> x");
+			expect(err.column).toBe(input.lastIndexOf("x"));
+			expect(err.offset).toBe(input.lastIndexOf("x"));
 		});
 	});
 });

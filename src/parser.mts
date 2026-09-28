@@ -36,7 +36,7 @@ import type {
 } from "./ast-types.mjs";
 import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
-import type { Token } from "./lexer/lexer-types.mjs";
+import type { Token, LexerError } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
 import { JsonvSyntaxError, JsonvReferenceError, JsonvAggregateSyntaxError } from "./errors.mjs";
 
@@ -49,7 +49,7 @@ export { JsonvSyntaxError };
 export { JsonvAggregateSyntaxError };
 
 // Re-exported so consumers importing from the "./parser" subpath (where the
-// throw site for this error lives, in `checkUnresolved`) can detect it
+// throw sites for this error live, in the reference resolver) can detect it
 // without a separate import.
 export { JsonvReferenceError };
 
@@ -93,7 +93,7 @@ function getTokenTypeName(type: TokenType): string {
 
 /**
  * Marker for unresolved internal references
- * Used in multi-pass evaluation to mark references that need resolution
+ * Placed by evaluation pass 1 wherever a reference appears; pass 2 replaces it
  */
 interface UnresolvedReference {
 	__UNRESOLVED__: true;
@@ -102,10 +102,95 @@ interface UnresolvedReference {
 }
 
 /**
+ * Convert a lexer error into a collected {@link ParseError}.
+ */
+function toParseError(error: LexerError): ParseError {
+	return {
+		message: error.message,
+		loc: error.loc,
+		code: error.code,
+		line: error.line,
+		column: error.column,
+		offset: error.offset
+	};
+}
+
+/**
+ * Placeholder node for text the lexer could not read (an `Unknown` token):
+ * a `Literal` whose `value` is `null` and whose `raw` is the unreadable text.
+ */
+function unreadable(token: Token): Literal {
+	return {
+		type: "Literal",
+		value: null,
+		raw: token.raw,
+		loc: token.loc
+	};
+}
+
+/**
  * Check if a value is an unresolved reference marker
  */
 function isUnresolved(value: any): value is UnresolvedReference {
 	return value && typeof value === "object" && value.__UNRESOLVED__ === true;
+}
+
+/**
+ * One entry of the reference-resolution stack: a marker being resolved and
+ * the reference expression it is currently following (the marker's own node,
+ * or, for a template, the interpolated expression being looked up). Used to
+ * name a cycle and to point at the reference that closes it.
+ */
+interface ResolveFrame {
+	marker: UnresolvedReference;
+	via: Identifier | MemberExpression | TemplateLiteral;
+}
+
+/**
+ * How many markers `Parser#resolveMarker` may resolve recursively, one inside
+ * another, before deferring the rest to an explicit work stack (see
+ * `Parser#resolveDeferred`). Keeps a long chain of templates from overflowing
+ * the call stack; each level costs a handful of stack frames.
+ */
+const MAX_RESOLVE_DEPTH = 500;
+
+/**
+ * Thrown (not as an error) by `Parser#resolveMarker` when resolution nests past
+ * {@link MAX_RESOLVE_DEPTH}: `marker` is resolved first, then the interrupted
+ * resolution is retried.
+ */
+class DeferredResolution {
+	constructor(readonly marker: UnresolvedReference) {}
+}
+
+/**
+ * A marker waiting to be resolved by `Parser#resolveDeferred`, with the sizes
+ * of the resolution stacks to restore before resolving it.
+ */
+interface ResolutionPoint {
+	marker: UnresolvedReference;
+	frames: number;
+	values: number;
+	follows: number;
+}
+
+/**
+ * Deep-copy a fully resolved value (plain objects, arrays and primitives), so a
+ * reference to an object or array yields its own copy rather than sharing the
+ * referenced one.
+ */
+function cloneResolved(value: any): any {
+	if (Array.isArray(value)) {
+		return value.map(cloneResolved);
+	}
+	if (value !== null && typeof value === "object") {
+		const copy: Record<string, any> = {};
+		for (const key of Object.keys(value)) {
+			copy[key] = cloneResolved(value[key]);
+		}
+		return copy;
+	}
+	return value;
 }
 
 /**
@@ -118,7 +203,17 @@ export class Parser {
 	private comments: Comment[] = []; // Comments in source order (preserveComments only)
 	private current: number = 0;
 	private errors: ParseError[] = [];
-	private evaluationStack: Set<string> = new Set(); // Track references being evaluated (circular detection)
+
+	// Reference-resolution state, live only during `evaluate()` (see `resetResolution`)
+	private refRoot: any = undefined; // Evaluated document that references are looked up in
+	private refStack: ResolveFrame[] = []; // Markers being resolved, outermost first (for cycle messages)
+	private followVisiting: Set<UnresolvedReference> = new Set(); // Markers whose target is being located
+	private valueVisiting: Set<UnresolvedReference> = new Set(); // Markers whose full value is being built
+	private targetMemo: Map<UnresolvedReference, any> = new Map(); // Marker -> located target (memoized)
+	private valueMemo: Map<UnresolvedReference, any> = new Map(); // Marker -> final value (memoized)
+	private valueStack: UnresolvedReference[] = []; // valueVisiting in insertion order
+	private followStack: UnresolvedReference[] = []; // followVisiting in insertion order
+	private refDepth: number = 0; // Nesting depth of resolveMarker calls on the JS call stack
 
 	constructor(source: string, options: ParseOptions = {}) {
 		const requestedYear = options.year ?? new Date().getFullYear();
@@ -158,11 +253,40 @@ export class Parser {
 	 * Lexical errors are thrown as a `LexerError` (a {@link JsonvSyntaxError}).
 	 */
 	parse(): ParseResult {
-		// Tokenize the input, separating comments from the tokens the grammar
-		// consumes so comments may appear between any two tokens.
+		return this.run(this.lexer.tokenize(), []);
+	}
+
+	/**
+	 * Parse the input, collecting lexical errors into `errors` instead of
+	 * throwing them.
+	 *
+	 * Without `tolerant`, lexing stops at the first lexical error; the program
+	 * is parsed from the tokens lexed before it, and that error is the only one
+	 * reported. With `tolerant`, the lexer skips the unreadable text and keeps
+	 * going, and every lexical and parse error is reported in source order.
+	 *
+	 * @internal Used by {@link parseToAst}.
+	 */
+	parseCollectingLexerErrors(): ParseResult {
+		const { tokens, errors } = this.lexer.tokenizeCollectingErrors(this.options.tolerant);
+		const result = this.run(tokens, errors.map(toParseError));
+		// Lexical errors are collected before parsing starts; restore source order.
+		result.errors?.sort((a, b) => a.offset - b.offset);
+		return result;
+	}
+
+	/**
+	 * Parse a token stream.
+	 * @param lexed - Tokens from the lexer, ending with EOF
+	 * @param lexerErrors - Lexical errors already collected; parse errors are appended
+	 */
+	private run(lexed: Token[], lexerErrors: ParseError[]): ParseResult {
+		// Separate comments from the tokens the grammar consumes so comments may
+		// appear between any two tokens.
 		this.tokens = [];
 		this.comments = [];
-		for (const token of this.lexer.tokenize()) {
+		this.errors = lexerErrors;
+		for (const token of lexed) {
 			if (token.type === TokenType.LINE_COMMENT || token.type === TokenType.BLOCK_COMMENT) {
 				this.comments.push({
 					type: token.type === TokenType.LINE_COMMENT ? "Line" : "Block",
@@ -196,7 +320,8 @@ export class Parser {
 
 		const result: ParseResult = {
 			program,
-			tokens: this.tokens.slice(0, -1),
+			// Unknown tokens only stand in for text the lexer could not read.
+			tokens: this.tokens.slice(0, -1).filter((token) => token.type !== TokenType.UNKNOWN),
 			errors: this.errors.length > 0 ? this.errors : undefined
 		};
 
@@ -236,6 +361,10 @@ export class Parser {
 			case TokenType.TEMPLATE_LITERAL:
 			case TokenType.TEMPLATE_HEAD:
 				return this.parseTemplateLiteral();
+
+			case TokenType.UNKNOWN:
+				// Text the lexer could not read; the lexer already reported it.
+				return unreadable(this.advance());
 
 			default:
 				// Report the token but leave it in place: it is punctuation that no
@@ -390,7 +519,10 @@ export class Parser {
 		let key: PropertyKeyNode;
 		let computed = false;
 
-		if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
+		if (keyToken.type === TokenType.UNKNOWN) {
+			// Text the lexer could not read; the lexer already reported it.
+			key = unreadable(this.advance());
+		} else if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
 			// Quoted key, or numeric key (JSON5 allows numbers as keys, including BigInt)
 			key = this.parseLiteral();
 		} else if (
@@ -588,18 +720,26 @@ export class Parser {
 			expressions.push(expr);
 
 			// Expect TEMPLATE_MIDDLE or TEMPLATE_TAIL
-			if (!this.check(TokenType.TEMPLATE_MIDDLE) && !this.check(TokenType.TEMPLATE_TAIL)) {
-				this.addError("Expected template middle or template tail", this.peek());
+			let quasi = this.peek();
+			if (quasi.type !== TokenType.TEMPLATE_MIDDLE && quasi.type !== TokenType.TEMPLATE_TAIL && quasi.type !== TokenType.UNKNOWN) {
+				this.addError("Expected template middle or template tail", quasi);
 				// Tolerant recovery: skip the rest of this interpolation up to the
 				// template's next middle or tail and continue from there, so the
 				// leftover tokens are not misread by the enclosing value.
 				this.synchronize(false);
-				if (!this.check(TokenType.TEMPLATE_MIDDLE) && !this.check(TokenType.TEMPLATE_TAIL)) {
+				quasi = this.peek();
+				if (this.isAtEnd() || (quasi.type !== TokenType.TEMPLATE_MIDDLE && quasi.type !== TokenType.TEMPLATE_TAIL)) {
 					break;
 				}
 			}
 
-			const quasi = this.advance();
+			if (quasi.type === TokenType.UNKNOWN) {
+				// The rest of the template could not be read; the lexer already reported it.
+				this.advance();
+				break;
+			}
+
+			this.advance();
 			const tail = quasi.type === TokenType.TEMPLATE_TAIL;
 			quasis.push({
 				type: "TemplateElement",
@@ -650,7 +790,10 @@ export class Parser {
 		const error: ParseError = {
 			message: `${kind} literals are not supported in template interpolation`,
 			loc: expr.loc!,
-			code: "UNSUPPORTED_INTERPOLATION"
+			code: "UNSUPPORTED_INTERPOLATION",
+			line: expr.loc!.start.line,
+			column: expr.loc!.start.column,
+			offset: expr.loc!.start.offset
 		};
 		this.errors.splice(errorCount, this.options.tolerant ? 0 : this.errors.length, error);
 	}
@@ -781,18 +924,26 @@ export class Parser {
 		const error: ParseError = {
 			message,
 			loc: token.loc!,
-			code: "PARSE_ERROR"
+			code: "PARSE_ERROR",
+			line: token.loc!.start.line,
+			column: token.loc!.start.column,
+			offset: token.loc!.start.offset
 		};
 
 		this.errors.push(error);
 	}
 
 	/**
-	 * Convert AST to JavaScript value with multi-pass internal reference resolution
+	 * Convert AST to JavaScript value, resolving internal references in dependency order
 	 *
-	 * Pass 1: Build object structure, marking all references as __UNRESOLVED__
-	 * Pass 2-N: Resolve references that point to concrete values (not other markers)
-	 * Max 3 passes, then error on remaining unresolved references
+	 * Pass 1: Build the object structure, marking every reference as __UNRESOLVED__
+	 * Pass 2: Walk the structure and replace each marker with its value. A marker is
+	 * resolved on demand, depth-first: whatever it depends on (the key it names, the
+	 * keys on a member-expression path, the targets of a template's interpolations)
+	 * is resolved first, so any acyclic reference graph resolves regardless of its
+	 * depth or key order. Each reference is resolved once. A reference that depends
+	 * on itself throws a `JsonvReferenceError` naming the cycle; one whose target
+	 * does not exist throws "Unresolved reference".
 	 */
 	evaluate(program: Program): any {
 		// Pass 1: Build structure with unresolved markers
@@ -803,20 +954,13 @@ export class Parser {
 			return this.applyReviver("", result, { "": result });
 		}
 
-		// Pass 2-N: Resolve references (max 3 passes)
-		const maxPasses = 3;
-		for (let pass = 1; pass <= maxPasses; pass++) {
-			const { value, changed } = this.resolvePass(result, result);
-			result = value;
-
-			// If nothing resolved this pass, we're done
-			if (!changed) {
-				break;
-			}
+		// Pass 2: Resolve references in dependency order
+		this.resetResolution(result);
+		try {
+			result = this.resolveInPlace(result);
+		} finally {
+			this.resetResolution(undefined);
 		}
-
-		// Check for unresolved references (circular or undefined)
-		this.checkUnresolved(result);
 
 		// Apply reviver function if provided (JSON.parse compatibility)
 		return this.applyReviver("", result, { "": result });
@@ -920,6 +1064,14 @@ export class Parser {
 	 * Build path string for member expression
 	 */
 	private buildMemberPath(node: MemberExpression): string {
+		return this.referenceSegments(node).join(".");
+	}
+
+	/**
+	 * Split a reference into the keys it walks from the document root:
+	 * `database.primary.port` → `["database", "primary", "port"]`
+	 */
+	private referenceSegments(node: Identifier | MemberExpression): string[] {
 		const parts: string[] = [];
 		let current: Expression = node;
 
@@ -933,105 +1085,230 @@ export class Parser {
 			parts.unshift((current as Identifier).name);
 		}
 
-		return parts.join(".");
+		return parts;
 	}
 
 	/**
-	 * Pass 2-N: Resolve references in a value recursively
-	 * Only resolves if target has concrete value (not another marker)
+	 * Reset the reference-resolution state and set the document that references
+	 * are looked up in (`undefined` releases it once evaluation finishes).
 	 */
-	private resolvePass(value: any, rootObj: any): { value: any; changed: boolean } {
-		let changed = false;
+	private resetResolution(root: any): void {
+		this.refRoot = root;
+		this.refStack = [];
+		this.refDepth = 0;
+		this.valueStack = [];
+		this.followStack = [];
+		this.followVisiting.clear();
+		this.valueVisiting.clear();
+		this.targetMemo.clear();
+		this.valueMemo.clear();
+	}
 
-		// Handle arrays
-		if (Array.isArray(value)) {
-			const arr = [];
-			for (const item of value) {
-				const result = this.resolvePass(item, rootObj);
-				arr.push(result.value);
-				if (result.changed) {
-					changed = true;
-				}
-			}
-			return { value: arr, changed };
-		}
-
-		// Handle unresolved references
+	/**
+	 * Replace every unresolved marker inside `value` with its resolved value, in
+	 * place, and return the resolved value (a marker passed in directly is
+	 * resolved and returned, since it has no container to be replaced in).
+	 */
+	private resolveInPlace(value: any): any {
 		if (isUnresolved(value)) {
-			const resolved = this.tryResolve(value, rootObj);
-
-			// Only resolve if target is concrete (not another marker)
-			if (resolved !== undefined && !isUnresolved(resolved)) {
-				return { value: resolved, changed: true };
-			}
-
-			// Still unresolved, keep marker
-			return { value, changed: false };
+			// Outside any other resolution, drive it with an explicit work stack
+			return this.refDepth === 0 ? this.resolveDeferred(value) : this.resolveMarker(value);
 		}
 
-		// Handle objects
-		if (value && typeof value === "object" && value !== null) {
-			const obj: Record<string, any> = {};
-			for (const key in value) {
-				const result = this.resolvePass(value[key], rootObj);
-				obj[key] = result.value;
-				if (result.changed) {
-					changed = true;
+		if (Array.isArray(value)) {
+			for (let i = 0; i < value.length; i++) {
+				const item = value[i];
+				if (item !== null && typeof item === "object") {
+					value[i] = this.resolveInPlace(item);
 				}
 			}
-			return { value: obj, changed };
-		}
-
-		// Primitive - no change
-		return { value, changed: false };
-	}
-
-	/**
-	 * Try to resolve a single reference by looking it up in root object
-	 */
-	private tryResolve(ref: UnresolvedReference, rootObj: any): any {
-		const node = ref.node;
-
-		if (node.type === "Identifier") {
-			return rootObj[node.name];
-		}
-
-		if (node.type === "MemberExpression") {
-			return this.resolveMemberExpr(node, rootObj);
-		}
-
-		if (node.type === "TemplateLiteral") {
-			return this.resolveTemplate(node, rootObj);
-		}
-
-		return undefined;
-	}
-
-	/**
-	 * Resolve a member expression by walking the path in rootObj
-	 */
-	private resolveMemberExpr(node: MemberExpression, rootObj: any): any {
-		// Build path: database.primary.port → ["database", "primary", "port"]
-		const path: string[] = [];
-		let current: Expression = node;
-
-		while (current.type === "MemberExpression") {
-			const memberExpr = current as MemberExpression;
-			path.unshift(memberExpr.property.name);
-			current = memberExpr.object;
-		}
-
-		if (current.type === "Identifier") {
-			path.unshift((current as Identifier).name);
-		}
-
-		// Walk the path in rootObj
-		let value: any = rootObj;
-		for (const prop of path) {
-			if (value === null || value === undefined || typeof value !== "object") {
-				return undefined;
+		} else if (value !== null && typeof value === "object") {
+			for (const key of Object.keys(value)) {
+				const item = value[key];
+				if (item !== null && typeof item === "object") {
+					value[key] = this.resolveInPlace(item);
+				}
 			}
-			if (!(prop in value)) {
+		}
+
+		return value;
+	}
+
+	/**
+	 * Resolve a marker without letting a long dependency chain overflow the call
+	 * stack. `resolveMarker` recurses once per marker whose value it needs (a
+	 * template interpolating a template interpolating a template ...); past
+	 * `MAX_RESOLVE_DEPTH` nested markers it throws a {@link DeferredResolution}
+	 * instead, unwinding the call stack but leaving the resolution state (the
+	 * frames and visiting sets) exactly as it was at that call. The deferred
+	 * marker is then resolved in that state, from an empty call stack, so cycle
+	 * detection sees the same ancestors plain recursion would. Afterwards the
+	 * interrupted marker is retried from its own starting state; resolved values
+	 * are memoized, so the retry gets past the point it stopped at.
+	 */
+	private resolveDeferred(marker: UnresolvedReference): any {
+		const pending: ResolutionPoint[] = [this.resolutionPoint(marker)];
+
+		for (;;) {
+			const current = pending[pending.length - 1];
+			this.unwindResolution(current);
+			this.refDepth = 0;
+			try {
+				const value = this.resolveMarker(current.marker);
+				pending.pop();
+				if (pending.length === 0) {
+					return value;
+				}
+			} catch (err) {
+				if (!(err instanceof DeferredResolution)) {
+					throw err;
+				}
+				pending.push(this.resolutionPoint(err.marker));
+			}
+		}
+	}
+
+	/**
+	 * Record the current resolution state, as the point to resolve `marker` from
+	 */
+	private resolutionPoint(marker: UnresolvedReference): ResolutionPoint {
+		return { marker, frames: this.refStack.length, values: this.valueStack.length, follows: this.followStack.length };
+	}
+
+	/**
+	 * Drop everything pushed onto the resolution state since `point` was recorded
+	 */
+	private unwindResolution(point: ResolutionPoint): void {
+		this.refStack.length = point.frames;
+		while (this.valueStack.length > point.values) {
+			this.valueVisiting.delete(this.valueStack.pop()!);
+		}
+		while (this.followStack.length > point.follows) {
+			this.followVisiting.delete(this.followStack.pop()!);
+		}
+	}
+
+	/**
+	 * Resolve a marker to its final value: the value it refers to with every
+	 * marker inside that value resolved too. An object or array is copied, so the
+	 * result never shares structure with the key it was copied from.
+	 *
+	 * Meeting a marker whose value is already being built means the value would
+	 * have to contain itself (`a: { x: a }`), which is a cycle.
+	 *
+	 * The resolution state is restored on return; a throw leaves it as it was at
+	 * the throw (see `resolveDeferred`).
+	 */
+	private resolveMarker(marker: UnresolvedReference): any {
+		if (this.valueMemo.has(marker)) {
+			return cloneResolved(this.valueMemo.get(marker));
+		}
+		if (this.valueVisiting.has(marker)) {
+			throw this.circularReferenceError(marker);
+		}
+		if (this.refDepth >= MAX_RESOLVE_DEPTH) {
+			throw new DeferredResolution(marker);
+		}
+
+		this.refDepth++;
+		this.valueVisiting.add(marker);
+		this.valueStack.push(marker);
+		const frames = this.refStack.length;
+
+		let value = this.followReference(marker);
+		if (value !== null && typeof value === "object") {
+			value = cloneResolved(this.resolveInPlace(value));
+		}
+
+		this.refStack.length = frames;
+		this.valueStack.pop();
+		this.valueVisiting.delete(marker);
+		this.refDepth--;
+
+		this.valueMemo.set(marker, value);
+		return value;
+	}
+
+	/**
+	 * Find the value a marker refers to, without resolving the markers inside it:
+	 * the evaluated string of a template, or the value stored at the key path an
+	 * identifier / member expression names. When that value is itself a marker
+	 * (`a: b, b: c, ...`), it is followed in turn; the chain is walked in a loop
+	 * rather than by recursion, so its length does not deepen the call stack.
+	 * Results are memoized, so each marker is followed once.
+	 *
+	 * Pushes one frame per marker followed onto `refStack` and leaves them there;
+	 * the caller restores the stack. Meeting a marker that is already being
+	 * followed is a cycle (`a: b, b: a`); a reference to a key that does not
+	 * exist is unresolved.
+	 */
+	private followReference(start: UnresolvedReference): any {
+		if (this.targetMemo.has(start)) {
+			this.refStack.push({ marker: start, via: start.node });
+			return this.targetMemo.get(start);
+		}
+
+		const follows = this.followStack.length;
+		let marker = start;
+		let target: any;
+
+		for (;;) {
+			if (this.followVisiting.has(marker)) {
+				throw this.circularReferenceError(marker);
+			}
+			this.followVisiting.add(marker);
+			this.followStack.push(marker);
+			this.refStack.push({ marker, via: marker.node });
+
+			const node = marker.node;
+			target = node.type === "TemplateLiteral" ? this.resolveTemplate(node, this.refRoot) : this.lookupReference(node, this.refRoot);
+
+			if (target === undefined) {
+				throw this.unresolvedReferenceError(marker);
+			}
+			if (!isUnresolved(target)) {
+				break;
+			}
+			if (this.targetMemo.has(target)) {
+				// Already followed: reuse its target, keeping a frame for the hop
+				this.refStack.push({ marker: target, via: target.node });
+				target = this.targetMemo.get(target);
+				break;
+			}
+			marker = target;
+		}
+
+		// Everything followed above this call's start is this chain (nested follows have returned)
+		while (this.followStack.length > follows) {
+			const followed = this.followStack.pop()!;
+			this.followVisiting.delete(followed);
+			this.targetMemo.set(followed, target);
+		}
+
+		return target;
+	}
+
+	/**
+	 * Look up the value stored at the key path a reference names, starting from
+	 * the document root. A marker met partway along the path (`a: b.x` where
+	 * `b: c`) is followed to the container it refers to so the walk can continue;
+	 * the value at the end of the path is returned as is, marker or not.
+	 * Returns `undefined` when a key along the path does not exist.
+	 */
+	private lookupReference(node: Identifier | MemberExpression, rootObj: any): any {
+		// A reference that is itself the whole document has no keys to resolve against
+		if (isUnresolved(rootObj)) {
+			return undefined;
+		}
+
+		let value: any = rootObj;
+		for (const prop of this.referenceSegments(node)) {
+			if (isUnresolved(value)) {
+				const frames = this.refStack.length;
+				value = this.followReference(value);
+				this.refStack.length = frames;
+			}
+			if (value === null || typeof value !== "object" || !(prop in value)) {
 				return undefined;
 			}
 			value = value[prop];
@@ -1052,8 +1329,8 @@ export class Parser {
 			if (i < node.expressions.length) {
 				const value = this.resolveInterpolation(node.expressions[i], rootObj);
 
-				// If value is still unresolved, can't resolve template yet
-				if (value === undefined || isUnresolved(value)) {
+				// An interpolation that does not resolve leaves the template unresolved
+				if (value === undefined) {
 					return undefined;
 				}
 
@@ -1070,17 +1347,16 @@ export class Parser {
 	 * A nested template is resolved recursively, so `a${ `b${x}c` }d` evaluates like
 	 * any other interpolation (issue #49). A nested template without interpolation of
 	 * its own is parsed as a string `Literal`, which is why literals resolve to their
-	 * value here. Returns `undefined` or an unresolved marker when the expression
-	 * cannot be resolved yet (a reference whose target is missing or not yet
-	 * resolved, or an inline object or array), which leaves the enclosing template
-	 * unresolved for this pass.
+	 * value here. A reference resolves to the final value of its target, resolving
+	 * that target first when it has not been resolved yet. Returns `undefined` when
+	 * the expression cannot be resolved (a reference whose target is missing, or an
+	 * inline object or array), which leaves the enclosing template unresolved.
 	 */
 	private resolveInterpolation(expr: Expression, rootObj: any): any {
 		switch (expr.type) {
 			case "Identifier":
-				return rootObj[expr.name];
 			case "MemberExpression":
-				return this.resolveMemberExpr(expr, rootObj);
+				return this.resolveInterpolatedReference(expr, rootObj);
 			case "TemplateLiteral":
 				return this.resolveTemplate(expr, rootObj);
 			case "Literal":
@@ -1091,29 +1367,77 @@ export class Parser {
 	}
 
 	/**
-	 * Check for unresolved references and throw error
+	 * Resolve a reference interpolated into the template on top of `refStack`
+	 * to its final value.
 	 */
-	private checkUnresolved(value: any, path: string = ""): void {
-		if (Array.isArray(value)) {
-			for (let i = 0; i < value.length; i++) {
-				this.checkUnresolved(value[i], `${path}[${i}]`);
-			}
-			return;
-		}
+	private resolveInterpolatedReference(expr: Identifier | MemberExpression, rootObj: any): any {
+		// Record the reference being followed, so a cycle is reported at it
+		this.refStack[this.refStack.length - 1].via = expr;
 
+		const value = this.lookupReference(expr, rootObj);
 		if (isUnresolved(value)) {
-			throw new JsonvReferenceError(
-				`Unresolved reference: ${value.path} (circular reference or undefined)`,
-				value.node.loc!,
-				"UNRESOLVED_REFERENCE"
-			);
+			return this.resolveMarker(value);
+		}
+		if (value !== null && typeof value === "object") {
+			this.resolveInPlace(value);
 		}
 
-		if (value && typeof value === "object" && value !== null) {
-			for (const key in value) {
-				this.checkUnresolved(value[key], path ? `${path}.${key}` : key);
-			}
+		return value;
+	}
+
+	/**
+	 * Build the error for a reference whose target does not exist
+	 */
+	private unresolvedReferenceError(marker: UnresolvedReference): JsonvReferenceError {
+		return new JsonvReferenceError(
+			`Unresolved reference: ${marker.path} (circular reference or undefined)`,
+			marker.node.loc!,
+			"UNRESOLVED_REFERENCE"
+		);
+	}
+
+	/**
+	 * Build the error for a reference cycle that closes on `marker`.
+	 *
+	 * The message names the keys on the cycle, from the key holding `marker` to
+	 * the reference that leads back to it (`a -> b -> a` for `{ a: b, b: a }`),
+	 * and the position is that closing reference's.
+	 */
+	private circularReferenceError(marker: UnresolvedReference): JsonvReferenceError {
+		const top = this.refStack.length - 1;
+		let start = top;
+		while (start > 0 && this.refStack[start].marker !== marker) {
+			start--;
 		}
+
+		const closing = this.refStack[top].via;
+		// Every marker on the stack is still in the document: a marker is replaced
+		// only after resolving it succeeds, and resolving one whose frame is on the
+		// stack runs into that same marker again (a cycle) before it can succeed
+		const locations = this.markerLocations();
+		const cycle = this.refStack.slice(start).map((frame) => locations.get(frame.marker)!);
+		cycle.push(this.buildReferencePath(closing));
+
+		return new JsonvReferenceError(`Circular reference: ${cycle.join(" -> ")}`, closing.loc!, "UNRESOLVED_REFERENCE");
+	}
+
+	/**
+	 * Map every marker still in the document to its key path (`a.b[2].c`)
+	 */
+	private markerLocations(): Map<UnresolvedReference, string> {
+		const locations = new Map<UnresolvedReference, string>();
+		const walk = (value: any, path: string): void => {
+			if (isUnresolved(value)) {
+				locations.set(value, path);
+			} else if (value !== null && typeof value === "object") {
+				const isArray = Array.isArray(value);
+				for (const key of Object.keys(value)) {
+					walk(value[key], isArray ? `${path}[${key}]` : path ? `${path}.${key}` : key);
+				}
+			}
+		};
+		walk(this.refRoot, "");
+		return locations;
 	}
 }
 
@@ -1178,8 +1502,22 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
  * Unlike {@link Parser.parse}, every list is always present: `comments` is
  * collected by default (pass `preserveComments: false` to skip it, which
  * yields an empty array) and `errors` is an empty array when the input parsed
- * cleanly. Parse errors are collected rather than thrown (the first one only,
- * unless `tolerant: true`); lexical errors throw a {@link JsonvSyntaxError}.
+ * cleanly. Nothing is thrown for invalid input: lexical errors (an
+ * unterminated string, an invalid escape, a year-gated literal) and parse
+ * errors are both collected into `errors` as {@link ParseError} objects.
+ *
+ * Without `tolerant: true`, only the first error is collected: lexing stops at
+ * the first lexical error, so `tokens` and `comments` hold what was lexed
+ * before it, and a lexical error takes precedence over parse errors (it is
+ * the error `parseWithOptions` would throw). With `tolerant: true`, the lexer
+ * skips unreadable text and keeps going, and every lexical and parse error is
+ * collected in source order.
+ *
+ * `program` is always a `Program`, never `null`: on error it is the partial
+ * program recovered from the tokens that could be read. A value the lexer
+ * could not read is a `Literal` with `value: null` whose `raw` is the
+ * unreadable text; it has no entry in `tokens`.
+ *
  * Internal references are left as `Identifier` / `MemberExpression` nodes and
  * are not resolved.
  *
@@ -1197,7 +1535,7 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
  * ```
  */
 export function parseToAst(text: string, options: ParseOptions = {}): AstResult {
-	const result = new Parser(text, { ...options, preserveComments: options.preserveComments ?? true }).parse();
+	const result = new Parser(text, { ...options, preserveComments: options.preserveComments ?? true }).parseCollectingLexerErrors();
 
 	return {
 		program: result.program,

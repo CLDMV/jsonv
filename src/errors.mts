@@ -94,9 +94,11 @@ export class JsonvSyntaxError extends SyntaxError {
 /**
  * A `ReferenceError` raised when jsonv's internal-reference resolution fails
  * -- an identifier/member-expression/template reference that never resolves
- * to a concrete value, whether because it's genuinely undefined or because
- * it's part of a circular chain (the multi-pass resolver in {@link
- * ./parser.mjs} can't tell the two apart, so both share one message shape).
+ * to a concrete value. A reference to a key that does not exist throws
+ * `Unresolved reference: <path> (circular reference or undefined)` at that
+ * reference; a reference cycle throws `Circular reference: a -> b -> a`,
+ * naming the keys on the cycle, at the reference that closes it. Both carry
+ * the `"UNRESOLVED_REFERENCE"` code.
  *
  * Carries the same structured source-location info as {@link
  * JsonvSyntaxError} -- `loc`/`line`/`column`/`offset`/`code` -- but pointing
