@@ -67,6 +67,15 @@ updates:
       open-pull-requests-limit: 5
       commit-message:
           prefix: "deps"
+      ignore:
+          # typescript-eslint (used by the lint config) peers on
+          # `typescript >=4.8.4 <6.1.0` and throws "typescript-eslint does not
+          # support TS 7.0" under TypeScript 7, which breaks `npm run lint` and
+          # therefore build:ci. Stay on the latest 6.x until typescript-eslint
+          # supports TS 7 (tracked upstream in typescript-eslint#10940), then
+          # drop this rule.
+          - dependency-name: "typescript"
+            versions: [">=7"]
       groups:
           # vitest and @vitest/coverage-v8 (and other @vitest/* packages) peer
           # each other EXACTLY, so a partial bump (e.g. vitest to 5.0.0 while
