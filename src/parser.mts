@@ -38,11 +38,15 @@ import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
 import type { Token } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
-import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError, JsonvAggregateSyntaxError } from "./errors.mjs";
 
 // Re-exported so consumers importing from the "./parser" subpath (where both
 // throw sites for this error live) can detect it without a separate import.
 export { JsonvSyntaxError };
+
+// Re-exported so consumers importing from the "./parser" subpath (where
+// tolerant parses throw it) can detect it without a separate import.
+export { JsonvAggregateSyntaxError };
 
 // Re-exported so consumers importing from the "./parser" subpath (where the
 // throw site for this error lives, in `checkUnresolved`) can detect it
@@ -144,7 +148,9 @@ export class Parser {
 	 *
 	 * Returns the `Program` (whose `loc` spans the whole input), the positioned
 	 * token stream (excluding comments and EOF), the comments in source order
-	 * when `preserveComments` is set, and any collected parse errors.
+	 * when `preserveComments` is set, and any collected parse errors (only the
+	 * first unless `tolerant` is set, in which case the parser resynchronizes at
+	 * the next property / element boundary and keeps collecting).
 	 * Lexical errors are thrown as a `LexerError` (a {@link JsonvSyntaxError}).
 	 */
 	parse(): ParseResult {
@@ -228,8 +234,12 @@ export class Parser {
 				return this.parseTemplateLiteral();
 
 			default:
+				// Report the token but leave it in place: it is punctuation that no
+				// value can start with (a `,`, `:`, `}`, `]`, `.`, a template middle or
+				// tail, or EOF), and the enclosing object, array, template or root
+				// uses it to resynchronize (see `synchronize`). Consuming it here would
+				// swallow the boundary the caller needs, e.g. the `}` in `{ c: }`.
 				this.addError(`Unexpected token: ${getTokenTypeName(token.type)}`, token);
-				this.advance();
 				// Return null literal as fallback
 				return {
 					type: "Literal",
@@ -324,7 +334,10 @@ export class Parser {
 		const properties: Property[] = [];
 
 		while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
-			properties.push(this.parseProperty());
+			const property = this.parseProperty();
+			if (property) {
+				properties.push(property);
+			}
 
 			// Handle trailing comma
 			if (this.check(TokenType.COMMA)) {
@@ -335,7 +348,13 @@ export class Parser {
 				}
 			} else if (!this.check(TokenType.RBRACE)) {
 				this.addError("Expected ',' or '}' in object", this.peek());
-				break;
+				// Tolerant recovery: skip to the next property boundary and carry on
+				// with the property after it, instead of abandoning the object.
+				this.synchronize();
+				if (!this.check(TokenType.COMMA)) {
+					break;
+				}
+				this.advance();
 			}
 		}
 
@@ -355,9 +374,14 @@ export class Parser {
 	}
 
 	/**
-	 * Parse an object property
+	 * Parse an object property.
+	 *
+	 * Returns `null` when the property is malformed beyond a single bad key
+	 * token: the error is recorded and the tokens up to the next property
+	 * boundary are skipped, so nothing after the error is misread as a value
+	 * (in `{ a: 1,, b: 2 }` the `b` is a key, not an internal reference).
 	 */
-	private parseProperty(): Property {
+	private parseProperty(): Property | null {
 		const keyToken = this.peek();
 		let key: PropertyKeyNode;
 		let computed = false;
@@ -382,6 +406,15 @@ export class Parser {
 			};
 		} else {
 			this.addError(`Expected property key, got ${getTokenTypeName(keyToken.type)}`, keyToken);
+			if (this.peekNext().type !== TokenType.COLON) {
+				// Not a lone bad key token followed by its `:` (an extra `,`, a
+				// bracketed key, ...): drop the property and resume at the next
+				// property boundary. A `,` is itself that boundary.
+				this.synchronize();
+				return null;
+			}
+			// A single bad token in key position (`{ [: 1 }`): keep a positioned
+			// placeholder key and parse the value after the `:`.
 			this.advance();
 			key = {
 				type: "Literal",
@@ -391,7 +424,15 @@ export class Parser {
 			};
 		}
 
-		this.expect(TokenType.COLON);
+		if (!this.check(TokenType.COLON)) {
+			// Missing `:` -- whatever follows the key is not reliably a value (in
+			// `{ a b: 1 }` it is the next key), so drop the property and resume at
+			// the next property boundary rather than parse it as a reference.
+			this.expect(TokenType.COLON);
+			this.synchronize();
+			return null;
+		}
+		this.advance();
 		const value = this.parseValue();
 
 		return {
@@ -425,7 +466,13 @@ export class Parser {
 				}
 			} else if (!this.check(TokenType.RBRACKET)) {
 				this.addError("Expected ',' or ']' in array", this.peek());
-				break;
+				// Tolerant recovery: skip to the next element boundary and carry on
+				// with the element after it, instead of abandoning the array.
+				this.synchronize();
+				if (!this.check(TokenType.COMMA)) {
+					break;
+				}
+				this.advance();
 			}
 		}
 
@@ -533,32 +580,29 @@ export class Parser {
 			expressions.push(expr);
 
 			// Expect TEMPLATE_MIDDLE or TEMPLATE_TAIL
-			const quasi = this.peek();
-			if (quasi.type === TokenType.TEMPLATE_MIDDLE) {
-				this.advance();
-				quasis.push({
-					type: "TemplateElement",
-					value: {
-						raw: quasi.raw,
-						cooked: quasi.value as string
-					},
-					tail: false,
-					loc: quasi.loc
-				});
-			} else if (quasi.type === TokenType.TEMPLATE_TAIL) {
-				this.advance();
-				quasis.push({
-					type: "TemplateElement",
-					value: {
-						raw: quasi.raw,
-						cooked: quasi.value as string
-					},
-					tail: true,
-					loc: quasi.loc
-				});
-				break;
-			} else {
-				this.addError("Expected template middle or template tail", quasi);
+			if (!this.check(TokenType.TEMPLATE_MIDDLE) && !this.check(TokenType.TEMPLATE_TAIL)) {
+				this.addError("Expected template middle or template tail", this.peek());
+				// Tolerant recovery: skip the rest of this interpolation up to the
+				// template's next middle or tail and continue from there, so the
+				// leftover tokens are not misread by the enclosing value.
+				this.synchronize(false);
+				if (!this.check(TokenType.TEMPLATE_MIDDLE) && !this.check(TokenType.TEMPLATE_TAIL)) {
+					break;
+				}
+			}
+
+			const quasi = this.advance();
+			const tail = quasi.type === TokenType.TEMPLATE_TAIL;
+			quasis.push({
+				type: "TemplateElement",
+				value: {
+					raw: quasi.raw,
+					cooked: quasi.value as string
+				},
+				tail,
+				loc: quasi.loc
+			});
+			if (tail) {
 				break;
 			}
 		}
@@ -601,6 +645,60 @@ export class Parser {
 	}
 
 	/**
+	 * Return the token after the current one without consuming anything
+	 * (the EOF token when the current token is the last one).
+	 */
+	private peekNext(): Token {
+		return this.tokens[Math.min(this.current + 1, this.tokens.length - 1)];
+	}
+
+	/**
+	 * Error recovery: skip tokens up to the next boundary at the current nesting
+	 * level, leaving the boundary token unconsumed for the caller.
+	 *
+	 * A boundary is a `,` (when `stopAtComma` is set), a closing `}` / `]` or a
+	 * template middle / tail that closes the enclosing construct, or EOF.
+	 * Nested objects, arrays and templates opened while skipping are skipped
+	 * whole, so the commas and closers inside them are not mistaken for
+	 * boundaries of the enclosing construct.
+	 *
+	 * @param stopAtComma - Stop at a `,` (a property or element boundary); an
+	 *   interpolation has no commas of its own, so template recovery passes `false`.
+	 */
+	private synchronize(stopAtComma: boolean = true): void {
+		let depth = 0;
+
+		while (!this.isAtEnd()) {
+			switch (this.peek().type) {
+				case TokenType.LBRACE:
+				case TokenType.LBRACKET:
+				case TokenType.TEMPLATE_HEAD:
+					depth++;
+					break;
+				case TokenType.RBRACE:
+				case TokenType.RBRACKET:
+				case TokenType.TEMPLATE_TAIL:
+					if (depth === 0) {
+						return;
+					}
+					depth--;
+					break;
+				case TokenType.TEMPLATE_MIDDLE:
+					if (depth === 0) {
+						return;
+					}
+					break;
+				case TokenType.COMMA:
+					if (depth === 0 && stopAtComma) {
+						return;
+					}
+					break;
+			}
+			this.advance();
+		}
+	}
+
+	/**
 	 * Return previous token
 	 */
 	private previous(): Token {
@@ -633,6 +731,15 @@ export class Parser {
 	private addError(message: string, token: Token): void {
 		if (!this.options.tolerant && this.errors.length > 0) {
 			return; // Already have an error in fail-fast mode
+		}
+
+		// While recovering, the construct that reported an error and the
+		// constructs enclosing it can each stop at the same unexpected token
+		// (`Expected ',' or ']'`, then `Expected RBRACKET`, then `Unexpected token
+		// after root value`). Only the first report at a position is kept.
+		const last = this.errors[this.errors.length - 1];
+		if (last && last.loc.start.offset === token.loc.start.offset) {
+			return;
 		}
 
 		const error: ParseError = {
@@ -975,26 +1082,57 @@ export class Parser {
 }
 
 /**
-
- * Public parse function
- * Compatible with JSON.parse(text, reviver) signature
- * Automatically enables strictBigInt when caller is in strict mode
+ * Convert a collected parse error to the {@link JsonvSyntaxError} a parse
+ * throws for it, with the position appended to the message.
  */
-export function parse(text: string, reviver?: (this: any, key: string, value: any) => any): any {
-	const options: ParseOptions = {
-		reviver
-	};
+function toSyntaxError(error: ParseError): JsonvSyntaxError {
+	const message = `${error.message} at line ${error.loc.start.line}, column ${error.loc.start.column}`;
+	return new JsonvSyntaxError(message, error.loc, error.code);
+}
 
+/**
+ * Parse and evaluate `text`, the shared body of {@link parse} and
+ * {@link parseWithOptions}.
+ *
+ * A strict parse throws the first syntax error. A tolerant parse that
+ * collected any syntax errors throws one {@link JsonvAggregateSyntaxError}
+ * listing all of them in source order, and does not evaluate the partial
+ * document (evaluating it would report references in the recovered structure
+ * instead of the syntax errors). A lexical error aborts tokenization before
+ * anything can be collected; a tolerant parse reports it through the same
+ * aggregate so tolerant callers always get one error shape.
+ */
+function parseAndEvaluate(text: string, options: ParseOptions): any {
 	const parser = new Parser(text, options);
-	const result = parser.parse();
+	let result: ParseResult;
+	try {
+		result = parser.parse();
+	} catch (err) {
+		if (options.tolerant && err instanceof JsonvSyntaxError) {
+			throw new JsonvAggregateSyntaxError([err]);
+		}
+		throw err;
+	}
 
-	if (result.errors && result.errors.length > 0 && !options?.tolerant) {
-		const firstError = result.errors[0];
-		const message = `${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`;
-		throw new JsonvSyntaxError(message, firstError.loc, firstError.code);
+	const errors = result.errors ?? [];
+	if (errors.length > 0) {
+		if (!options.tolerant) {
+			throw toSyntaxError(errors[0]);
+		}
+		// Array#sort is stable, so errors at the same offset keep their order.
+		const ordered = [...errors].sort((a, b) => a.loc.start.offset - b.loc.start.offset);
+		throw new JsonvAggregateSyntaxError(ordered.map(toSyntaxError));
 	}
 
 	return parser.evaluate(result.program);
+}
+
+/**
+ * Public parse function
+ * Compatible with JSON.parse(text, reviver) signature
+ */
+export function parse(text: string, reviver?: (this: any, key: string, value: any) => any): any {
+	return parseAndEvaluate(text, { reviver });
 }
 
 /**
@@ -1034,17 +1172,13 @@ export function parseToAst(text: string, options: ParseOptions = {}): AstResult 
 }
 
 /**
- * Parse with explicit options
+ * Parse with explicit options.
+ *
+ * With `tolerant: true` the parser recovers from syntax errors and keeps
+ * collecting them; if any were collected, one {@link JsonvAggregateSyntaxError}
+ * listing every error in source order is thrown and the document is not
+ * evaluated. Input without syntax errors evaluates exactly as in a strict parse.
  */
 export function parseWithOptions(text: string, options?: ParseOptions): any {
-	const parser = new Parser(text, options);
-	const result = parser.parse();
-
-	if (result.errors && result.errors.length > 0 && !options?.tolerant) {
-		const firstError = result.errors[0];
-		const message = `${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`;
-		throw new JsonvSyntaxError(message, firstError.loc, firstError.code);
-	}
-
-	return parser.evaluate(result.program);
+	return parseAndEvaluate(text, options ?? {});
 }
