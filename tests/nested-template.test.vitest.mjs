@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV, { parse, parseWithOptions, JsonvReferenceError } from "../src/index.mjs";
+import JSONV, { parse, parseWithOptions, JsonvReferenceError, JsonvSyntaxError } from "../src/index.mjs";
 import JSONV2015 from "../src/years/2015.mjs";
 import JSONV2020 from "../src/years/2020.mjs";
 import JSONV2021 from "../src/years/2021.mjs";
@@ -88,9 +88,18 @@ describe("nested template literals (issue #49)", () => {
 			expect(parseWithOptions("{ t: `${'s'}|${1}|${true}|${null}|${ `${2}` }` }", { year: 2015 })).toEqual({ t: "s|1|true|null|2" });
 		});
 
-		test("an array interpolation is still not evaluated and is reported as unresolved (unchanged)", () => {
+		test("an array interpolation is rejected at the array literal (issue #50)", () => {
 			const input = "{ t: `a${ `b${ [1] }` }` }";
 			const err = thrown(() => parseWithOptions(input, { year: 2015 }));
+			expect(err).toBeInstanceOf(JsonvSyntaxError);
+			expect(err.code).toBe("UNSUPPORTED_INTERPOLATION");
+			expect(err.message).toBe(`Array literals are not supported in template interpolation at line 1, column ${input.indexOf("[")}`);
+			expect(err.offset).toBe(input.indexOf("["));
+		});
+
+		test("in tolerant mode a rejected array interpolation leaves the template unresolved", () => {
+			const input = "{ t: `a${ `b${ [1] }` }` }";
+			const err = thrown(() => parseWithOptions(input, { year: 2015, tolerant: true }));
 			expect(err).toBeInstanceOf(JsonvReferenceError);
 			expect(err.message).toBe("Unresolved reference: <template> (circular reference or undefined)");
 			expect(err.offset).toBe(input.indexOf("`"));

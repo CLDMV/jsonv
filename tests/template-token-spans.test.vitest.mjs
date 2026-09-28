@@ -51,10 +51,20 @@ function templatesIn(node, found = []) {
 	return found;
 }
 
-/** Parse, fail on any collected error, and return tokens (without EOF) and comments sorted by offset. */
-function parse(text) {
-	const result = parseToAst(text);
-	expect(result.errors).toEqual([]);
+/**
+ * Parse and return tokens (without EOF) and comments sorted by offset. Fails on
+ * any collected error, unless `rejected` is set: then the input must produce
+ * only UNSUPPORTED_INTERPOLATION errors (an object or array literal inside
+ * `${}`, issue #50), whose tokens must tile the source all the same.
+ */
+function parse(text, rejected = false) {
+	const result = parseToAst(text, { tolerant: rejected });
+	if (rejected) {
+		expect(result.errors.length).toBeGreaterThan(0);
+		expect(result.errors.map((e) => e.code)).toEqual(result.errors.map(() => "UNSUPPORTED_INTERPOLATION"));
+	} else {
+		expect(result.errors).toEqual([]);
+	}
 	const spans = [...result.tokens.filter((t) => t.type !== TokenType.EOF), ...result.comments].sort(
 		(a, b) => a.loc.start.offset - b.loc.start.offset
 	);
@@ -81,10 +91,30 @@ const cases = {
 	"templates as array elements": "[`${1}`, `a${`b`}c`, `plain`]"
 };
 
+/**
+ * Braces inside an interpolation (issue #50). Object and array literals are
+ * rejected there, but only the } that balances `${` ends the interpolation, so
+ * the tokens and quasis still tile the source.
+ */
+const rejectedCases = {
+	"object literal inside an interpolation (issue #50 reproduction)": "{ t: `x${ {b:1} }y` }",
+	"array literal inside an interpolation": "{ t: `x${ [1] }y` }",
+	"array containing an object": "{ t: `x${ [ {a: 1}, {b: [2]} ] }y` }",
+	"template inside an object inside a template": "{ a: 1, t: `x${ {b: `q${a}r`} }y${a}z` }",
+	"deeply nested braces": "{ a: 1, t: `<${ {a: {b: {c: {d: {e: 1}}}}} }|${a}>` }",
+	"empty object and array, then a middle": "{ a: 1, t: `${ {} }-${ [] }-${a}` }",
+	"multi-line object literal (CRLF)": "{\r\n  a: 1,\r\n  t: `x${ {\r\n    b: {c: 1}\r\n  } }y`\r\n}"
+};
+
+const allCases = [
+	...Object.entries(cases).map(([name, text]) => [name, text, false]),
+	...Object.entries(rejectedCases).map(([name, text]) => [name, text, true])
+];
+
 describe("template token and quasi spans tile the source (issue #47)", () => {
-	describe.each(Object.entries(cases))("%s", (_name, text) => {
+	describe.each(allCases)("%s", (_name, text, rejected) => {
 		test("token slices plus the whitespace between them reproduce the input", () => {
-			const { spans } = parse(text);
+			const { spans } = parse(text, rejected);
 
 			let rebuilt = "";
 			let cursor = 0;
@@ -104,7 +134,7 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 		});
 
 		test("no non-whitespace character falls outside every token", () => {
-			const { spans } = parse(text);
+			const { spans } = parse(text, rejected);
 			const uncovered = [];
 			for (let i = 0; i < text.length; i++) {
 				if (WHITESPACE_ONLY.test(text[i])) continue;
@@ -116,7 +146,7 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 		});
 
 		test("every token's raw and line/column agree with its offsets", () => {
-			const { tokens } = parse(text);
+			const { tokens } = parse(text, rejected);
 			for (const token of tokens) {
 				expect(token.loc.start).toEqual(positionAt(text, token.loc.start.offset));
 				expect(token.loc.end).toEqual(positionAt(text, token.loc.end.offset));
@@ -125,7 +155,7 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 		});
 
 		test("each quasi's span and raw text match its template token", () => {
-			const { program, tokens } = parse(text);
+			const { program, tokens } = parse(text, rejected);
 			const byStart = new Map(tokens.map((t) => [t.loc.start.offset, t]));
 			const templates = templatesIn(program);
 

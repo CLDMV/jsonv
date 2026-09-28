@@ -121,10 +121,14 @@ export class Parser {
 	private evaluationStack: Set<string> = new Set(); // Track references being evaluated (circular detection)
 
 	constructor(source: string, options: ParseOptions = {}) {
-		const targetYear = getFeatureYear(options.year ?? new Date().getFullYear()) as 2011 | 2015 | 2020 | 2021;
+		const requestedYear = options.year ?? new Date().getFullYear();
+		const targetYear = getFeatureYear(requestedYear) as 2011 | 2015 | 2020 | 2021;
 
 		this.lexer = new Lexer(source, {
-			year: targetYear,
+			// The lexer maps this to its feature year itself; it also needs the
+			// requested year for rules that change between feature years (ES2019
+			// allows U+2028/U+2029 in strings, but 2019 maps to feature year 2015).
+			year: requestedYear,
 			preserveComments: options.preserveComments ?? false,
 			mode: options.mode ?? "jsonv",
 			strictOctal: options.strictOctal ?? false
@@ -576,7 +580,11 @@ export class Parser {
 		// Parse expressions and middle/tail quasis
 		while (true) {
 			// Parse the expression inside ${...}
+			const errorCount = this.errors.length;
 			const expr = this.parseValue();
+			if (expr.type === "ObjectExpression" || expr.type === "ArrayExpression") {
+				this.rejectInterpolatedLiteral(expr, errorCount);
+			}
 			expressions.push(expr);
 
 			// Expect TEMPLATE_MIDDLE or TEMPLATE_TAIL
@@ -617,6 +625,34 @@ export class Parser {
 				end: this.previous().loc.end
 			}
 		};
+	}
+
+	/**
+	 * Report an object or array literal used as a template interpolation.
+	 *
+	 * Interpolation only stringifies internal references, nested templates and
+	 * scalar literals; an inline object or array has no defined string form in
+	 * jsonv, so it is a parse error positioned on the whole literal (issue #50).
+	 * The literal is still parsed first so the token stream stays in step, which
+	 * may already have recorded errors from inside it: the rejection is inserted
+	 * ahead of those so errors stay in source order, and in fail-fast mode it
+	 * replaces them, since it is the first problem in the source.
+	 *
+	 * @param expr - The object or array literal inside `${...}`
+	 * @param errorCount - Number of errors recorded before the literal was parsed
+	 */
+	private rejectInterpolatedLiteral(expr: ObjectExpression | ArrayExpression, errorCount: number): void {
+		if (!this.options.tolerant && errorCount > 0) {
+			return; // An earlier error already stops a fail-fast parse
+		}
+
+		const kind = expr.type === "ObjectExpression" ? "Object" : "Array";
+		const error: ParseError = {
+			message: `${kind} literals are not supported in template interpolation`,
+			loc: expr.loc!,
+			code: "UNSUPPORTED_INTERPOLATION"
+		};
+		this.errors.splice(errorCount, this.options.tolerant ? 0 : this.errors.length, error);
 	}
 
 	// ===== Token Management =====

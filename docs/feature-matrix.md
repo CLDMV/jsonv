@@ -29,6 +29,8 @@ This document summarizes @cldmv/jsonv features by ECMAScript year and the core l
 
 - Bare identifiers reference earlier values: `{ port: 8080, backup: port }`.
 - Template interpolation (2015+): `` `http://${host}:${port}` ``.
+- An interpolation holds an internal reference (`${host}`, `${db.port}`), a nested template, or a scalar literal (string, number, boolean, `null`), stringified with JS template semantics (`String(value)`). A reference to an object or array value stringifies the same way JS does (`[1, 2]` → `"1,2"`).
+- Inline object and array literals are not supported inside `${}`: `` `x${ {a: 1} }` `` and `` `x${ [1] }` `` are parse errors (`UNSUPPORTED_INTERPOLATION`) positioned on the literal. Only the `}` that balances `${` ends an interpolation, so a braced literal is reported at its opening `{` rather than misread as the end of the interpolation.
 - File-scoped only, no external variables or imports.
 - Forward references are supported; circular references are errors.
 
@@ -38,6 +40,27 @@ This document summarizes @cldmv/jsonv features by ECMAScript year and the core l
 - Numeric separators must be inside digit groups (no leading/trailing or doubled `_`).
 - BigInt suffix `n` must be directly adjacent to digits.
 - Line terminators are `\n`, `\r\n` (one break), a lone `\r`, U+2028 and U+2029; each advances the reported line, and each ends a `//` comment.
+- Plain strings (single- or double-quoted) follow the rules below. A rejected string is a `JsonvSyntaxError` ("Unterminated string", code `UNTERMINATED_STRING`) positioned at the offending character; for a CRLF pair that is the CR.
+
+### Line terminators in plain strings
+
+| Character in a string | `jsonv` mode, year < 2019 | `jsonv` mode, year >= 2019 (and the default year) | `json5` mode, any year | `json` mode, any year |
+| --- | --- | --- | --- | --- |
+| Unescaped LF, CR or CRLF | Rejected | Rejected | Rejected | Rejected |
+| Unescaped U+2028 or U+2029 | Rejected | Allowed | Allowed | Allowed |
+| Backslash + LF, CR, CRLF, U+2028 or U+2029 (line continuation) | Allowed | Allowed | Allowed | Accepted (see below) |
+
+A line continuation adds nothing to the string's value. RFC 8259 has no line continuations, but `json` mode does not reject them yet; strict enforcement of the JSON grammar in `json` mode is tracked in [#52](https://github.com/CLDMV/jsonv/issues/52).
+
+The mode decides which grammar applies, and the year only matters in `jsonv` mode:
+
+- `jsonv` mode follows ECMAScript for the selected year. ES2019 (the JSON superset proposal) made U+2028 and U+2029 legal in string literals; before that they are line terminators, which a string literal cannot contain.
+- `json5` mode follows the JSON5 spec, which allows U+2028 and U+2029 in strings in every year.
+- `json` mode follows RFC 8259, which allows any character except `"`, `\` and U+0000 to U+001F, so U+2028 and U+2029 are allowed and LF and CR are not.
+
+The rule uses the requested year, so `parseWithOptions(text, { year: 2019 })` allows U+2028 and U+2029 even though 2019 otherwise shares the 2015 feature set. The `@cldmv/jsonv/2016` to `@cldmv/jsonv/2019` modules forward to the 2015 module, which parses as year 2015 and rejects them in `jsonv` mode; use the root `parseWithOptions` (from `@cldmv/jsonv`) with `year: 2019`, or a 2020+ module, for ES2019 string rules. The 2011 module parses in `json5` mode and allows them.
+
+`stringify()` escapes U+2028 and U+2029 as `\u2028` and `\u2029` in every output mode, so its output parses under every year and mode.
 
 ## Excluded syntax (all years)
 
@@ -68,6 +91,7 @@ Invalid:
 {
   value: 1_ 234,       // whitespace inside token
   name: { first },     // shorthand property (not supported)
-  [`k_${x}`]: 1        // computed key (not supported)
+  [`k_${x}`]: 1,       // computed key (not supported)
+  tag: `v${ {a: 1} }`  // object literal in an interpolation (not supported)
 }
 ```
