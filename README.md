@@ -74,6 +74,21 @@ Main entry: [src/index.mts](src/index.mts)
 
 Full types: [src/api-types.mts](src/api-types.mts)
 
+## Errors
+Parse failures throw `JsonvSyntaxError` (extends `SyntaxError`, `name` stays `"SyntaxError"`), with structured position info alongside the message:
+```js
+import { parse, JsonvSyntaxError } from "@cldmv/jsonv";
+
+try {
+  parse("{ a: 1, }");
+} catch (err) {
+  if (err instanceof JsonvSyntaxError) {
+    console.log(err.line, err.column, err.offset); // 1-based line, message-matching column, 0-based offset
+  }
+}
+```
+This applies to every parse entry point (year-pinned APIs included) and every kind of positioned error — lexer-level (unterminated strings, invalid escapes, year-gated feature checks) and parser-level (unexpected tokens, strict-mode violations) alike.
+
 ## Internal references
 ```jsonv
 { port: 8080, backup: port, url: `http://${host}:${port}` }
