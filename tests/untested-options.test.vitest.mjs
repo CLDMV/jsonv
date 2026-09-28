@@ -51,7 +51,7 @@ describe("Untested API Options", () => {
 	describe("stringify replacer function", () => {
 		it("should call replacer function for array elements", () => {
 			// Line 296 in stringify.mts - tests array replacer path
-			const replacer = (key: string, value: any) => {
+			const replacer = (key, value) => {
 				if (typeof value === "number") return value * 2;
 				return value;
 			};
@@ -63,7 +63,7 @@ describe("Untested API Options", () => {
 		});
 
 		it("should call replacer function for object properties", () => {
-			const replacer = (key: string, value: any) => {
+			const replacer = (key, value) => {
 				if (key === "secret") return undefined; // omit
 				return value;
 			};
@@ -78,7 +78,7 @@ describe("Untested API Options", () => {
 		});
 
 		it("should handle replacer that transforms values", () => {
-			const replacer = (key: string, value: any) => {
+			const replacer = (key, value) => {
 				if (typeof value === "string") return value.toUpperCase();
 				return value;
 			};

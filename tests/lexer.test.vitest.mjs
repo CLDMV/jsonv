@@ -514,7 +514,7 @@ describe("Lexer", () => {
 			try {
 				lexer.tokenize();
 				expect.fail("Should have thrown");
-			} catch (error: any) {
+			} catch (error) {
 				expect(error.message).toContain("Unterminated string");
 				expect(error.loc).toBeDefined();
 				expect(error.loc.start.line).toBe(1);
@@ -526,7 +526,7 @@ describe("Lexer", () => {
 
 			try {
 				lexer.tokenize();
-			} catch (error: any) {
+			} catch (error) {
 				expect(error.code).toBeDefined();
 			}
 		});

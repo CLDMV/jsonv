@@ -182,8 +182,8 @@ describe("stringify() - Replacer Function", () => {
 
 	test("should call replacer with correct 'this' context", () => {
 		const data = { a: 1, b: 2 };
-		const contexts: any[] = [];
-		JSONV.stringify(data, function (this: any, key, value) {
+		const contexts = [];
+		JSONV.stringify(data, function (key, value) {
 			contexts.push(this);
 			return value;
 		});
@@ -240,7 +240,7 @@ describe("stringify() - Edge Cases", () => {
 	});
 
 	test("should throw on circular references", () => {
-		const obj: any = { a: 1 };
+		const obj = { a: 1 };
 		obj.self = obj;
 		expect(() => JSONV.stringify(obj)).toThrow(/circular/i);
 	});
@@ -407,14 +407,14 @@ describe("Round-trip Tests", () => {
 
 describe("Edge Cases - Circular and Complex", () => {
 	test("should detect circular references in arrays", () => {
-		const arr: any[] = [1, 2];
+		const arr = [1, 2];
 		arr.push(arr);
 		expect(() => JSONV.stringify(arr)).toThrow(/circular/i);
 	});
 
 	test("should detect indirect circular references", () => {
-		const obj1: any = { name: "obj1" };
-		const obj2: any = { name: "obj2", ref: obj1 };
+		const obj1 = { name: "obj1" };
+		const obj2 = { name: "obj2", ref: obj1 };
 		obj1.ref = obj2;
 		expect(() => JSONV.stringify(obj1)).toThrow(/circular/i);
 	});

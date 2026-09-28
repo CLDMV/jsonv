@@ -72,7 +72,7 @@ describe("Additional Coverage - Edge Cases", () => {
 		});
 
 		it("should apply reviver when provided", () => {
-			const reviver = (key: string, value: any) => {
+			const reviver = (key, value) => {
 				if (typeof value === "number") return value * 2;
 				return value;
 			};
@@ -81,7 +81,7 @@ describe("Additional Coverage - Edge Cases", () => {
 		});
 
 		it("should handle reviver that returns undefined (filters out values)", () => {
-			const reviver = (key: string, value: any) => {
+			const reviver = (key, value) => {
 				if (key === "filter") return undefined;
 				return value;
 			};
