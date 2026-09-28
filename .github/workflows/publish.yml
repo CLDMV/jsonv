@@ -111,9 +111,6 @@ jobs:
             # test_command: "NODE_ENV=test npm test"  # Override NODE_ENV only
             # test_command: "NODE_ENV=test NODE_OPTIONS='--conditions=slothlet-dev' npm test"  # Override both
             test_environment: ${{ github.event.inputs.test_environment || 'development' }} # Alternative to setting in test_command
-            # jsonv doesn't have a build:ci script (only `build`, which runs the
-            # full clean+tsc+types+cjs pipeline) — use it directly instead of the
-            # template default.
             build_command: "npm run build:ci"
             # --- Satellite packages (optional) ----------------------------------------
             # Publish extra packages carved from this build's output (e.g. locale JSON,

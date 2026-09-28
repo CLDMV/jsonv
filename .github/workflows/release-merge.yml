@@ -55,7 +55,6 @@ on:
             - "🧪 CI Tests & Build"
             - "🔍 CodeQL"
             - "🔒 Dependency Review"
-            - "📊 Bundle Size"
             - "🚀 Next Release (v4)"
             - "🚑 Hotfixes Release (v4)"
             - "🌿 Branch Retention"
