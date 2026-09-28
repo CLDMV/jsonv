@@ -22,7 +22,7 @@ It returns an `AstResult` in which every list is always present:
 | `tokens` | `Token[]` | Every non-comment token in source order, excluding the EOF token. |
 | `errors` | `ParseError[]` | Collected parse errors; `[]` when the input parsed cleanly. |
 
-`options` accepts the usual [parse options](../src/api-types.mts) (`year`, `mode`, `tolerant`, `strictBigInt`, `strictOctal`, ...). Parse errors are collected rather than thrown: only the first one unless `tolerant: true`, in which case the parser recovers and keeps going. Lexical errors (an unterminated string, an invalid escape, a year-gated literal) cannot produce a token stream, so they throw a `JsonvSyntaxError` carrying `line`, `column` and `offset`.
+`options` accepts the usual [parse options](../src/api-types.mts) (`year`, `mode`, `tolerant`, `strictBigInt`, `strictOctal`, ...). Parse errors are collected rather than thrown: only the first one unless `tolerant: true`, in which case the parser recovers and keeps going. Lexical errors (an unterminated string, an invalid escape, a year-gated literal, a token form the `mode` does not allow) cannot produce a token stream, so they throw a `JsonvSyntaxError` carrying `line`, `column` and `offset`. Structural `mode` violations (trailing commas, key forms, internal references) are parse errors and are collected with `code: "FEATURE_NOT_ALLOWED_IN_MODE"`; see [JSON5 compatibility](json5-compatibility.md#compatibility-modes).
 
 `parseToAst` never evaluates the document: internal references stay as `Identifier` / `MemberExpression` nodes and unresolved references are not reported.
 

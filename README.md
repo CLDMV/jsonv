@@ -60,12 +60,23 @@ Main entry: [src/index.mts](src/index.mts)
 
 ### Parse options (selected)
 - `year`: 2011–2025 (defaults to latest)
-- `mode`: `jsonv | json5 | json`
+- `mode`: `jsonv` (default) | `json5` (exactly JSON5 1.0) | `json` (exactly RFC 8259 JSON); see [Parse modes](#parse-modes)
 - `allowInternalReferences`: default `true`
 - `strictBigInt`: require `n` for unsafe integers (default `false`)
 - `strictOctal`: require `0o` (reject legacy `0755`, default `false`)
 - `tolerant`: collect multiple errors
 - `preserveComments`: return comments (with positions) from `Parser#parse()`; see [AST for tooling](#ast-for-tooling)
+
+### Parse modes
+`mode: "json"` accepts exactly RFC 8259 JSON and `mode: "json5"` accepts exactly JSON5 1.0; `mode: "jsonv"` (the default) enables every jsonv feature of the selected year. A feature outside the mode throws a positioned `JsonvSyntaxError` with `code: "FEATURE_NOT_ALLOWED_IN_MODE"` naming the feature and the mode, and an unknown `mode` value throws a `TypeError`. `parse()` takes the options object in place of the reviver:
+```js
+import { parse } from "@cldmv/jsonv";
+
+parse('{"a": [1, 2]}', { mode: "json" }); // { a: [1, 2] }
+parse("{ a: 1, }", { mode: "json" }); // throws: Unquoted keys not allowed in JSON mode at line 1, column 2
+parse("{ a: 1, b: a }", { mode: "json5" }); // throws: Internal references not allowed in JSON5 mode at line 1, column 11
+```
+The full feature × mode table is in [docs/json5-compatibility.md](docs/json5-compatibility.md#compatibility-modes).
 
 ### Stringify options (selected)
 - `mode`: `jsonv | json5 | json`

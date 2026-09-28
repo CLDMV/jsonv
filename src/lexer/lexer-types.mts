@@ -120,6 +120,48 @@ export function getFeatureYear(year: number): number {
 }
 
 /**
+ * Parsing mode: which syntax a document may use.
+ * - `"jsonv"`: every jsonv feature available in the selected year
+ * - `"json5"`: exactly JSON5 1.0 (https://spec.json5.org/)
+ * - `"json"`: exactly RFC 8259 JSON
+ */
+export type ParseMode = "jsonv" | "json5" | "json";
+
+/**
+ * Error code for a syntax feature that the selected `mode` does not allow
+ * (e.g. a trailing comma in `mode: "json"`, a template literal in
+ * `mode: "json5"`). The message names the feature and the mode.
+ */
+export const FEATURE_NOT_ALLOWED_IN_MODE = "FEATURE_NOT_ALLOWED_IN_MODE";
+
+/**
+ * Display names used in mode error messages
+ */
+export const MODE_LABELS: Readonly<Record<ParseMode, string>> = {
+	jsonv: "jsonv",
+	json5: "JSON5",
+	json: "JSON"
+};
+
+/**
+ * Validate a `mode` option value.
+ *
+ * @param mode - The `mode` option as passed by the caller
+ * @returns The mode, or `"jsonv"` when `mode` is `undefined` or `null`
+ * @throws {TypeError} When `mode` is anything other than `"jsonv"`, `"json5"` or `"json"`
+ */
+export function resolveMode(mode: unknown): ParseMode {
+	if (mode === undefined || mode === null) {
+		return "jsonv";
+	}
+	if (mode === "jsonv" || mode === "json5" || mode === "json") {
+		return mode;
+	}
+	const shown = typeof mode === "string" ? `"${mode}"` : String(mode);
+	throw new TypeError(`Invalid parse mode: ${shown} (expected "jsonv", "json5" or "json")`);
+}
+
+/**
  * Lexer configuration options
  */
 export interface LexerOptions {
@@ -175,11 +217,11 @@ export interface LexerOptions {
 	/**
 	 * Parsing mode (determines strictness)
 	 * - 'jsonv': Full jsonv features
-	 * - 'json5': JSON5 features only
-	 * - 'json': Strict JSON only
-	 * Default: 'jsonv'
+	 * - 'json5': Exactly JSON5 1.0
+	 * - 'json': Exactly RFC 8259 JSON
+	 * Default: 'jsonv'. Any other value throws a `TypeError`.
 	 */
-	mode?: "jsonv" | "json5" | "json";
+	mode?: ParseMode;
 }
 
 /**
