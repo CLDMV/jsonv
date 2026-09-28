@@ -165,10 +165,10 @@ export class Lexer {
 			return this.createToken(TokenType.LBRACE, "{", this.advance());
 		}
 		if (ch === "}") {
-			// If we're inside a template interpolation, this closes it
-			// Continue scanning the template instead of returning RBRACE
+			// If we're inside a template interpolation, this closes it.
+			// Continue scanning the template instead of returning RBRACE: the
+			// closing } is the first character of the TemplateMiddle/TemplateTail.
 			if (this.templateDepth > 0) {
-				this.advance(); // consume }
 				return this.scanTemplateMiddleOrTail();
 			}
 			return this.createToken(TokenType.RBRACE, "}", this.advance());
@@ -392,11 +392,14 @@ export class Lexer {
 	}
 
 	/**
-	 * Scan a template literal (backtick string)
-	 */
-	/**
-	 * Scan a template literal or template head
-	 * Handles both plain templates and templates with interpolation
+	 * Scan a template literal (no interpolation) or a template head.
+	 *
+	 * Template tokens carry their delimiters, so the tokens of a template tile its
+	 * source with no gaps:
+	 * - `TemplateLiteral`: `` `text` `` (both backticks)
+	 * - `TemplateHead`: `` `text${ `` (the opening backtick through the `${`)
+	 *
+	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
 	 */
 	private scanTemplateLiteral(): Token {
 		const start = this.pos;
@@ -442,13 +445,21 @@ export class Lexer {
 	}
 
 	/**
-	 * Continue scanning a template after an interpolation expression
-	 * Called after the parser consumes the interpolation expression and encounters }
+	 * Continue scanning a template after an interpolation expression.
+	 * Called with the lexer positioned on the `}` that closes the interpolation.
+	 *
+	 * The token starts at that `}`, so no character of the template falls between
+	 * tokens:
+	 * - `TemplateMiddle`: `}text${` (the closing `}` through the next `${`)
+	 * - `TemplateTail`: `` }text` `` (the closing `}` through the closing backtick)
+	 *
+	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
 	 */
 	private scanTemplateMiddleOrTail(): Token {
 		const start = this.pos;
 		const startLine = this.line;
 		const startCol = this.column;
+		this.advance(); // the } that closes the interpolation
 		let value = "";
 
 		while (!this.isAtEnd()) {
