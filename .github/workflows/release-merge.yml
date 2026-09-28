@@ -30,13 +30,17 @@
 # merge check, because check_suite silently never fired for that case at all.
 # `workflow_run` is GitHub's documented replacement for exactly this pattern.
 #
-# IMPORTANT: `workflows:` below must list the exact `name:` of THIS repo's own
-# ci.yml (matched by literal workflow name, not filename) — update it if you
-# renamed that workflow. If more than one top-level workflow in your repo can
-# plausibly be the last to finish (e.g. a separately-scheduled CodeQL run that
-# sometimes outlasts ci.yml), list all of them; a workflow that finishes and
-# isn't listed here won't re-arm the merge check, though the manual
-# workflow_dispatch fallback below always will.
+# IMPORTANT: the merge gate waits on EVERY check-run on the release PR's head
+# commit, from any workflow — so `workflows:` below must name every workflow in
+# your repo that puts a check on that commit, not just ci.yml. Only the one that
+# finishes LAST can see a fully green head; if it isn't listed, nothing re-fires
+# and the PR sits approved + green until you dispatch this workflow by hand.
+# CodeQL in particular routinely outlasts ci.yml (CLDMV/.github PR #322 stuck
+# exactly this way). The list below covers the standard v4 template set by their
+# template `name:`s — names are matched literally (not by filename), so fix any
+# you renamed, and add any extra PR-triggered workflow your repo has. Listing a
+# workflow your repo doesn't have is harmless. `branches:` limits re-fires to
+# runs on the integration branches, so feature-branch CI doesn't wake this up.
 #
 # Thin caller: all logic lives in the reusable, pinned at @v4.
 # NOTE: pull_request_review / workflow_run events run the copy of this file on
@@ -46,13 +50,32 @@ name: 🚦 Release Merge (v4)
 on:
     pull_request_review:
         types: [submitted] # your approval arms it
-    workflow_run:
-        workflows: ["🧪 CI Tests & Build"] # ← match your ci.yml's `name:` — see #318
+    workflow_run: # re-evaluate as each check-producing workflow finishes — see #318
+        workflows: # ← must match your workflows' `name:`s — see IMPORTANT above
+            - "🧪 CI Tests & Build"
+            - "🔍 CodeQL"
+            - "🔒 Dependency Review"
+            - "📊 Bundle Size"
+            - "🚀 Next Release (v4)"
+            - "🚑 Hotfixes Release (v4)"
+            - "🌿 Branch Retention"
+            - "🏷️ PR Labeler"
+            - "🏷️ PR Title Normalizer"
+            - "👋 Welcome Contributor"
+            - "🔀 Hotfix PR Redirector (v4)"
+            - "🚀 Member Auto-Enable Auto-Merge"
+            - "🤖 Dependabot Auto-Merge"
+            - "🔁 Dependabot Auto-Recreate"
+            - "📜 CLA"
+            - "📥 PR Notify"
         types: [completed]
+        branches: [next, hotfixes]
     workflow_dispatch: # manual re-evaluation
 
 # Serialize per repo: each run re-resolves the release PR + re-gates the head,
 # so queue (don't cancel) to avoid racing a merge that's already in flight.
+# GitHub keeps one pending run per group and a newer arrival replaces it — that
+# is harmless, since every run re-reads approval + check state from the API.
 concurrency:
     group: release-merge-${{ github.repository }}
     cancel-in-progress: false
