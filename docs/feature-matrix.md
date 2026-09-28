@@ -37,6 +37,7 @@ This document summarizes @cldmv/jsonv features by ECMAScript year and the core l
 - Whitespace is allowed between tokens but **never inside a token**.
 - Numeric separators must be inside digit groups (no leading/trailing or doubled `_`).
 - BigInt suffix `n` must be directly adjacent to digits.
+- Line terminators are `\n`, `\r\n` (one break), a lone `\r`, U+2028 and U+2029; each advances the reported line, and each ends a `//` comment.
 
 ## Excluded syntax (all years)
 
