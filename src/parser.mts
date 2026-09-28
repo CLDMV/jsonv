@@ -35,11 +35,16 @@ import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
 import type { Token } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
-import { JsonvSyntaxError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
 
 // Re-exported so consumers importing from the "./parser" subpath (where both
 // throw sites for this error live) can detect it without a separate import.
 export { JsonvSyntaxError };
+
+// Re-exported so consumers importing from the "./parser" subpath (where the
+// throw site for this error lives, in `checkUnresolved`) can detect it
+// without a separate import.
+export { JsonvReferenceError };
 
 /**
  * Helper to get token type name for error messages
@@ -888,7 +893,11 @@ export class Parser {
 		}
 
 		if (isUnresolved(value)) {
-			throw new Error(`Unresolved reference: ${value.path} (circular reference or undefined)`);
+			throw new JsonvReferenceError(
+				`Unresolved reference: ${value.path} (circular reference or undefined)`,
+				value.node.loc!,
+				"UNRESOLVED_REFERENCE"
+			);
 		}
 
 		if (value && typeof value === "object" && value !== null) {
