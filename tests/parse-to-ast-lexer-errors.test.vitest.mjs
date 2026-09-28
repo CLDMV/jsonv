@@ -364,3 +364,11 @@ describe("parseToAst collects lexical errors (issue #51)", () => {
 		});
 	});
 });
+
+describe("errors from other parser checks carry positions", () => {
+	test("gives the interpolation-literal rejection the same line/column/offset fields as every collected error", () => {
+		const { errors } = parseToAst("{ t: `x${ {b:1} }y` }", { year: 2015 });
+		expect(errors).toHaveLength(1);
+		expect(errors[0]).toMatchObject({ code: "UNSUPPORTED_INTERPOLATION", line: 1, column: 10, offset: 10 });
+	});
+});

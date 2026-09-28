@@ -173,7 +173,7 @@ describe("brace balancing inside template interpolations (issue #50)", () => {
 		test("an array containing an object is reported at the array", () => {
 			const text = "{ t: `x${ [ {a: 1} ] }y` }";
 			const { errors } = parseToAst(text);
-			expect(errors).toEqual([
+			expect(errors).toMatchObject([
 				{ message: ARRAY_MESSAGE, code: "UNSUPPORTED_INTERPOLATION", loc: { start: pos(1, 10, 10), end: pos(1, 20, 20) } }
 			]);
 		});
@@ -183,7 +183,7 @@ describe("brace balancing inside template interpolations (issue #50)", () => {
 			const { errors, program } = parseToAst(text);
 			const start = text.indexOf("{b");
 			const end = text.indexOf("} }y") + 1;
-			expect(errors).toEqual([
+			expect(errors).toMatchObject([
 				{ message: OBJECT_MESSAGE, code: "UNSUPPORTED_INTERPOLATION", loc: { start: pos(1, start, start), end: pos(1, end, end) } }
 			]);
 
@@ -198,7 +198,7 @@ describe("brace balancing inside template interpolations (issue #50)", () => {
 			const { errors } = parseToAst(text, { tolerant: true });
 			const start = text.indexOf("{a:");
 			const end = text.indexOf("}}}}}") + 5;
-			expect(errors).toEqual([
+			expect(errors).toMatchObject([
 				{ message: OBJECT_MESSAGE, code: "UNSUPPORTED_INTERPOLATION", loc: { start: pos(1, start, start), end: pos(1, end, end) } }
 			]);
 		});

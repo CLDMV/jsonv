@@ -674,7 +674,10 @@ export class Parser {
 		const error: ParseError = {
 			message: `${kind} literals are not supported in template interpolation`,
 			loc: expr.loc!,
-			code: "UNSUPPORTED_INTERPOLATION"
+			code: "UNSUPPORTED_INTERPOLATION",
+			line: expr.loc!.start.line,
+			column: expr.loc!.start.column,
+			offset: expr.loc!.start.offset
 		};
 		this.errors.splice(errorCount, this.options.tolerant ? 0 : this.errors.length, error);
 	}
