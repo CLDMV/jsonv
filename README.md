@@ -89,6 +89,19 @@ try {
 ```
 This applies to every parse entry point (year-pinned APIs included) and every kind of positioned error — lexer-level (unterminated strings, invalid escapes, year-gated feature checks) and parser-level (unexpected tokens, strict-mode violations) alike.
 
+Internal-reference resolution failures (an unresolved or circular internal reference) throw the sibling `JsonvReferenceError` (extends `ReferenceError`, `name` stays `"ReferenceError"`) instead, with the same structured `line`/`column`/`offset`/`code` shape, pointing at the offending reference:
+```js
+import { parseWithOptions, JsonvReferenceError } from "@cldmv/jsonv";
+
+try {
+  parseWithOptions("{ a: missing }");
+} catch (err) {
+  if (err instanceof JsonvReferenceError) {
+    console.log(err.line, err.column, err.offset);
+  }
+}
+```
+
 ## Internal references
 ```jsonv
 { port: 8080, backup: port, url: `http://${host}:${port}` }

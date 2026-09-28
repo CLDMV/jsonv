@@ -6,6 +6,11 @@
  * so consumers can detect a jsonv parse failure with `instanceof` and read
  * its position via `line`/`column`/`offset` instead of parsing the message
  * text.
+ *
+ * Internal-reference resolution failures (unresolved and circular
+ * references) throw the sibling {@link JsonvReferenceError} instead, with
+ * the same `line`/`column`/`offset`/`code` shape but pointing at the
+ * offending reference node.
  */
 
 import type { SourceLocation } from "./ast-types.mjs";
@@ -79,5 +84,80 @@ export class JsonvSyntaxError extends SyntaxError {
 		this.offset = loc.start.offset;
 		this.code = code;
 		Object.setPrototypeOf(this, JsonvSyntaxError.prototype);
+	}
+}
+
+/**
+ * A `ReferenceError` raised when jsonv's internal-reference resolution fails
+ * -- an identifier/member-expression/template reference that never resolves
+ * to a concrete value, whether because it's genuinely undefined or because
+ * it's part of a circular chain (the multi-pass resolver in {@link
+ * ./parser.mjs} can't tell the two apart, so both share one message shape).
+ *
+ * Carries the same structured source-location info as {@link
+ * JsonvSyntaxError} -- `loc`/`line`/`column`/`offset`/`code` -- but pointing
+ * at the offending reference node rather than a lexer/parser token, so
+ * callers don't have to parse `path` out of {@link Error.message}.
+ *
+ * `name` is `"ReferenceError"`, so `error.name === "ReferenceError"` /
+ * `error instanceof ReferenceError` checks work as expected. Use `instanceof
+ * JsonvReferenceError` to detect jsonv's own positioned reference errors
+ * specifically.
+ *
+ * @example
+ * ```js
+ * import { parseWithOptions, JsonvReferenceError } from "@cldmv/jsonv";
+ *
+ * try {
+ *   parseWithOptions("{ a: missing }");
+ * } catch (err) {
+ *   if (err instanceof JsonvReferenceError) {
+ *     console.log(err.line, err.column, err.offset);
+ *   }
+ * }
+ * ```
+ */
+export class JsonvReferenceError extends ReferenceError {
+	/**
+	 * Full source location (start/end line, column, offset) of the reference.
+	 */
+	public readonly loc: SourceLocation;
+
+	/**
+	 * 1-based line number where the reference occurred.
+	 */
+	public readonly line: number;
+
+	/**
+	 * Column where the reference occurred. Uses the same 0-based numbering as
+	 * {@link JsonvSyntaxError.column}.
+	 */
+	public readonly column: number;
+
+	/**
+	 * 0-based character offset into the source text where the reference occurred.
+	 */
+	public readonly offset: number;
+
+	/**
+	 * Machine-readable error code (e.g. `"UNRESOLVED_REFERENCE"`).
+	 */
+	public readonly code: string;
+
+	/**
+	 * Create a positioned jsonv reference error.
+	 * @param message - Human-readable error message
+	 * @param loc - Source location of the offending reference
+	 * @param code - Machine-readable error code
+	 */
+	constructor(message: string, loc: SourceLocation, code: string = "UNRESOLVED_REFERENCE") {
+		super(message);
+		this.name = "ReferenceError";
+		this.loc = loc;
+		this.line = loc.start.line;
+		this.column = loc.start.column;
+		this.offset = loc.start.offset;
+		this.code = code;
+		Object.setPrototypeOf(this, JsonvReferenceError.prototype);
 	}
 }
