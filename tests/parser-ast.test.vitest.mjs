@@ -307,8 +307,19 @@ describe("Parser AST for tooling (issue #30)", () => {
 			expect(parseToAst("[1 2, }", { tolerant: true }).errors.length).toBeGreaterThan(1);
 		});
 
-		test("throws a JsonvSyntaxError for lexical errors", () => {
-			expect(() => parseToAst('{ a: "open')).toThrow(JsonvSyntaxError);
+		test("collects lexical errors instead of throwing (issue #51)", () => {
+			const result = parseToAst('{ a: "open');
+			expect(result.errors).toEqual([
+				{
+					message: "Unterminated string",
+					code: "UNTERMINATED_STRING",
+					loc: { start: pos(1, 10, 10), end: pos(1, 10, 10) },
+					line: 1,
+					column: 10,
+					offset: 10
+				}
+			]);
+			expect(() => parseWithOptions('{ a: "open')).toThrow(JsonvSyntaxError);
 		});
 
 		test("does not evaluate references", () => {

@@ -36,7 +36,7 @@ import type {
 } from "./ast-types.mjs";
 import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
-import type { Token } from "./lexer/lexer-types.mjs";
+import type { Token, LexerError } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
 import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
 
@@ -95,6 +95,33 @@ interface UnresolvedReference {
 	__UNRESOLVED__: true;
 	path: string;
 	node: Identifier | MemberExpression | TemplateLiteral;
+}
+
+/**
+ * Convert a lexer error into a collected {@link ParseError}.
+ */
+function toParseError(error: LexerError): ParseError {
+	return {
+		message: error.message,
+		loc: error.loc,
+		code: error.code,
+		line: error.line,
+		column: error.column,
+		offset: error.offset
+	};
+}
+
+/**
+ * Placeholder node for text the lexer could not read (an `Unknown` token):
+ * a `Literal` whose `value` is `null` and whose `raw` is the unreadable text.
+ */
+function unreadable(token: Token): Literal {
+	return {
+		type: "Literal",
+		value: null,
+		raw: token.raw,
+		loc: token.loc
+	};
 }
 
 /**
@@ -220,11 +247,40 @@ export class Parser {
 	 * Lexical errors are thrown as a `LexerError` (a {@link JsonvSyntaxError}).
 	 */
 	parse(): ParseResult {
-		// Tokenize the input, separating comments from the tokens the grammar
-		// consumes so comments may appear between any two tokens.
+		return this.run(this.lexer.tokenize(), []);
+	}
+
+	/**
+	 * Parse the input, collecting lexical errors into `errors` instead of
+	 * throwing them.
+	 *
+	 * Without `tolerant`, lexing stops at the first lexical error; the program
+	 * is parsed from the tokens lexed before it, and that error is the only one
+	 * reported. With `tolerant`, the lexer skips the unreadable text and keeps
+	 * going, and every lexical and parse error is reported in source order.
+	 *
+	 * @internal Used by {@link parseToAst}.
+	 */
+	parseCollectingLexerErrors(): ParseResult {
+		const { tokens, errors } = this.lexer.tokenizeCollectingErrors(this.options.tolerant);
+		const result = this.run(tokens, errors.map(toParseError));
+		// Lexical errors are collected before parsing starts; restore source order.
+		result.errors?.sort((a, b) => a.offset - b.offset);
+		return result;
+	}
+
+	/**
+	 * Parse a token stream.
+	 * @param lexed - Tokens from the lexer, ending with EOF
+	 * @param lexerErrors - Lexical errors already collected; parse errors are appended
+	 */
+	private run(lexed: Token[], lexerErrors: ParseError[]): ParseResult {
+		// Separate comments from the tokens the grammar consumes so comments may
+		// appear between any two tokens.
 		this.tokens = [];
 		this.comments = [];
-		for (const token of this.lexer.tokenize()) {
+		this.errors = lexerErrors;
+		for (const token of lexed) {
 			if (token.type === TokenType.LINE_COMMENT || token.type === TokenType.BLOCK_COMMENT) {
 				this.comments.push({
 					type: token.type === TokenType.LINE_COMMENT ? "Line" : "Block",
@@ -258,7 +314,8 @@ export class Parser {
 
 		const result: ParseResult = {
 			program,
-			tokens: this.tokens.slice(0, -1),
+			// Unknown tokens only stand in for text the lexer could not read.
+			tokens: this.tokens.slice(0, -1).filter((token) => token.type !== TokenType.UNKNOWN),
 			errors: this.errors.length > 0 ? this.errors : undefined
 		};
 
@@ -298,6 +355,10 @@ export class Parser {
 			case TokenType.TEMPLATE_LITERAL:
 			case TokenType.TEMPLATE_HEAD:
 				return this.parseTemplateLiteral();
+
+			case TokenType.UNKNOWN:
+				// Text the lexer could not read; the lexer already reported it.
+				return unreadable(this.advance());
 
 			default:
 				this.addError(`Unexpected token: ${getTokenTypeName(token.type)}`, token);
@@ -434,7 +495,10 @@ export class Parser {
 		let key: PropertyKeyNode;
 		let computed = false;
 
-		if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
+		if (keyToken.type === TokenType.UNKNOWN) {
+			// Text the lexer could not read; the lexer already reported it.
+			key = unreadable(this.advance());
+		} else if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
 			// Quoted key, or numeric key (JSON5 allows numbers as keys, including BigInt)
 			key = this.parseLiteral();
 		} else if (
@@ -633,6 +697,10 @@ export class Parser {
 					loc: quasi.loc
 				});
 				break;
+			} else if (quasi.type === TokenType.UNKNOWN) {
+				// The rest of the template could not be read; the lexer already reported it.
+				this.advance();
+				break;
 			} else {
 				this.addError("Expected template middle or template tail", quasi);
 				break;
@@ -674,7 +742,10 @@ export class Parser {
 		const error: ParseError = {
 			message: `${kind} literals are not supported in template interpolation`,
 			loc: expr.loc!,
-			code: "UNSUPPORTED_INTERPOLATION"
+			code: "UNSUPPORTED_INTERPOLATION",
+			line: expr.loc!.start.line,
+			column: expr.loc!.start.column,
+			offset: expr.loc!.start.offset
 		};
 		this.errors.splice(errorCount, this.options.tolerant ? 0 : this.errors.length, error);
 	}
@@ -742,7 +813,10 @@ export class Parser {
 		const error: ParseError = {
 			message,
 			loc: token.loc!,
-			code: "PARSE_ERROR"
+			code: "PARSE_ERROR",
+			line: token.loc!.start.line,
+			column: token.loc!.start.column,
+			offset: token.loc!.start.offset
 		};
 
 		this.errors.push(error);
@@ -1286,8 +1360,22 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
  * Unlike {@link Parser.parse}, every list is always present: `comments` is
  * collected by default (pass `preserveComments: false` to skip it, which
  * yields an empty array) and `errors` is an empty array when the input parsed
- * cleanly. Parse errors are collected rather than thrown (the first one only,
- * unless `tolerant: true`); lexical errors throw a {@link JsonvSyntaxError}.
+ * cleanly. Nothing is thrown for invalid input: lexical errors (an
+ * unterminated string, an invalid escape, a year-gated literal) and parse
+ * errors are both collected into `errors` as {@link ParseError} objects.
+ *
+ * Without `tolerant: true`, only the first error is collected: lexing stops at
+ * the first lexical error, so `tokens` and `comments` hold what was lexed
+ * before it, and a lexical error takes precedence over parse errors (it is
+ * the error `parseWithOptions` would throw). With `tolerant: true`, the lexer
+ * skips unreadable text and keeps going, and every lexical and parse error is
+ * collected in source order.
+ *
+ * `program` is always a `Program`, never `null`: on error it is the partial
+ * program recovered from the tokens that could be read. A value the lexer
+ * could not read is a `Literal` with `value: null` whose `raw` is the
+ * unreadable text; it has no entry in `tokens`.
+ *
  * Internal references are left as `Identifier` / `MemberExpression` nodes and
  * are not resolved.
  *
@@ -1305,7 +1393,7 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
  * ```
  */
 export function parseToAst(text: string, options: ParseOptions = {}): AstResult {
-	const result = new Parser(text, { ...options, preserveComments: options.preserveComments ?? true }).parse();
+	const result = new Parser(text, { ...options, preserveComments: options.preserveComments ?? true }).parseCollectingLexerErrors();
 
 	return {
 		program: result.program,
