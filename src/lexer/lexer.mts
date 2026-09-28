@@ -26,6 +26,7 @@ export class Lexer {
 	 */
 	private interpolationBraces: number[] = [];
 	private tokenStart: Position = { line: 1, column: 0, offset: 0 }; // Start of the token currently being scanned
+	private allowUnescapedLineSeparators: boolean; // U+2028/U+2029 allowed unescaped in plain strings
 
 	/**
 	 * Create a new lexer instance
@@ -50,6 +51,14 @@ export class Lexer {
 			strictOctal: options.strictOctal ?? false,
 			mode: options.mode ?? "jsonv"
 		};
+
+		// U+2028 and U+2029 may appear unescaped in a plain string when the target
+		// grammar allows them: RFC 8259 JSON and the JSON5 spec always do, and
+		// ECMAScript does from ES2019 on (the JSON superset proposal). This uses the
+		// requested year, not the feature year, because 2019 has no feature year of
+		// its own (getFeatureYear(2019) is 2015).
+		const mode = this.options.mode;
+		this.allowUnescapedLineSeparators = mode === "json" || mode === "json5" || targetYear >= 2019;
 	}
 
 	/**
@@ -311,8 +320,12 @@ export class Lexer {
 				break;
 			}
 
-			// JSON5: allow line continuation with backslash
-			if (ch === "\n" && !escaped) {
+			// An unescaped line terminator ends the line before the string is closed,
+			// as in ECMAScript, JSON5 and JSON. The error points at the terminator
+			// (the CR of a CRLF pair). U+2028 and U+2029 are allowed where the target
+			// grammar allows them; see the constructor. A backslash followed by a line
+			// terminator is a line continuation and is handled by parseEscapeSequence.
+			if (this.isLineTerminator(ch) && !(this.allowUnescapedLineSeparators && (ch === "\u2028" || ch === "\u2029"))) {
 				throw this.createError("Unterminated string", "UNTERMINATED_STRING");
 			}
 
@@ -371,6 +384,10 @@ export class Lexer {
 			case "\r":
 				// JSON5: Line continuation (handle CRLF)
 				if (this.peek() === "\n") this.advance();
+				return "";
+			case "\u2028":
+			case "\u2029":
+				// Line continuation: U+2028 and U+2029 are line terminators too
 				return "";
 			default:
 				// JSON5: invalid escape is just the character

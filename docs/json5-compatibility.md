@@ -12,7 +12,8 @@
 - Leading/trailing decimal points (`.5`, `5.`)
 - Explicit `+` sign (`+1`)
 - `Infinity`, `-Infinity`, `NaN`
-- Multiline strings via backslash continuation
+- Multiline strings via backslash continuation (after LF, CR, CRLF, U+2028 or U+2029)
+- Unescaped U+2028 and U+2029 in strings (in `mode: "json5"` in every year; in `mode: "jsonv"` from year 2019 on, as in ECMAScript; see [Line terminators in plain strings](feature-matrix.md#line-terminators-in-plain-strings))
 
 ## Differences from JSON5
 
