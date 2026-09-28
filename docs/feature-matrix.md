@@ -29,6 +29,8 @@ This document summarizes @cldmv/jsonv features by ECMAScript year and the core l
 
 - Bare identifiers reference earlier values: `{ port: 8080, backup: port }`.
 - Template interpolation (2015+): `` `http://${host}:${port}` ``.
+- An interpolation holds an internal reference (`${host}`, `${db.port}`), a nested template, or a scalar literal (string, number, boolean, `null`), stringified with JS template semantics (`String(value)`). A reference to an object or array value stringifies the same way JS does (`[1, 2]` → `"1,2"`).
+- Inline object and array literals are not supported inside `${}`: `` `x${ {a: 1} }` `` and `` `x${ [1] }` `` are parse errors (`UNSUPPORTED_INTERPOLATION`) positioned on the literal. Only the `}` that balances `${` ends an interpolation, so a braced literal is reported at its opening `{` rather than misread as the end of the interpolation.
 - File-scoped only, no external variables or imports.
 - Forward references are supported; circular references are errors.
 
@@ -68,6 +70,7 @@ Invalid:
 {
   value: 1_ 234,       // whitespace inside token
   name: { first },     // shorthand property (not supported)
-  [`k_${x}`]: 1        // computed key (not supported)
+  [`k_${x}`]: 1,       // computed key (not supported)
+  tag: `v${ {a: 1} }`  // object literal in an interpolation (not supported)
 }
 ```
