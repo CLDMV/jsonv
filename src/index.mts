@@ -13,7 +13,7 @@ import {
 	isRawJSON as isRawJSONImpl
 } from "./stringify.mjs";
 import { diagnose as diagnoseImpl, info as infoImpl } from "./diagnose.mjs";
-import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError, JsonvAggregateSyntaxError } from "./errors.mjs";
 import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON } from "./api-types.mjs";
 
 /**
@@ -177,7 +177,8 @@ export {
 	diagnose,
 	info,
 	JsonvSyntaxError,
-	JsonvReferenceError
+	JsonvReferenceError,
+	JsonvAggregateSyntaxError
 };
 
 // Default export

@@ -42,7 +42,22 @@ export interface ParseOptions {
 	preserveComments?: boolean;
 
 	/**
-	 * Tolerant mode: collect multiple errors instead of failing on first
+	 * Tolerant mode: collect multiple errors instead of failing on first.
+	 *
+	 * The parser recovers at the next property / element boundary after a
+	 * syntax error and keeps going, so one parse reports every syntax error.
+	 * - `parse` / `parseWithOptions` (and the year entry points): if any syntax
+	 *   error was collected, one `JsonvAggregateSyntaxError` (a
+	 *   `JsonvSyntaxError`) is thrown and the document is not evaluated. Its
+	 *   `errors` array holds every error in source order, each a
+	 *   `JsonvSyntaxError` with `line`, `column`, `offset` and `code`; its own
+	 *   message, position and code are the first error's, and the message ends
+	 *   with the total count. A lexical error (which stops tokenization) is
+	 *   reported the same way. Input without syntax errors evaluates exactly as
+	 *   in a strict parse.
+	 * - `parseToAst`: never throws for collected errors; they are returned in
+	 *   its `errors` array.
+	 *
 	 * Default: false
 	 */
 	tolerant?: boolean;

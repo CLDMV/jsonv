@@ -7,6 +7,10 @@
  * its position via `line`/`column`/`offset` instead of parsing the message
  * text.
  *
+ * A `tolerant: true` parse that collected syntax errors throws a single
+ * {@link JsonvAggregateSyntaxError} (a {@link JsonvSyntaxError} subclass)
+ * whose `errors` array lists every collected error in source order.
+ *
  * Internal-reference resolution failures (unresolved and circular
  * references) throw the sibling {@link JsonvReferenceError} instead, with
  * the same `line`/`column`/`offset`/`code` shape but pointing at the
@@ -161,5 +165,55 @@ export class JsonvReferenceError extends ReferenceError {
 		this.offset = loc.start.offset;
 		this.code = code;
 		Object.setPrototypeOf(this, JsonvReferenceError.prototype);
+	}
+}
+
+/**
+ * The single error thrown by `parse` / `parseWithOptions` (and the year
+ * entry points) when a `tolerant: true` parse collected one or more syntax
+ * errors. The document is not evaluated.
+ *
+ * It is a {@link JsonvSyntaxError}, so existing `instanceof JsonvSyntaxError`
+ * / `instanceof SyntaxError` checks keep matching, and its own
+ * `loc`/`line`/`column`/`offset`/`code` are those of the first error. The
+ * full list is in {@link JsonvAggregateSyntaxError.errors}: one
+ * {@link JsonvSyntaxError} per collected error, in source order, each with the
+ * same message, position and code a strict (non-tolerant) parse would have
+ * thrown for it. The message is the first error's message followed by the
+ * total count, e.g. `Expected property key, got COMMA at line 1, column 7
+ * (2 syntax errors in total)`.
+ *
+ * {@link parseToAst} never throws this: it returns the collected errors in
+ * its `errors` array instead.
+ *
+ * @example
+ * ```js
+ * import { parseWithOptions, JsonvAggregateSyntaxError } from "@cldmv/jsonv";
+ *
+ * try {
+ *   parseWithOptions("{ a: 1,, b: 2,, c: }", { tolerant: true });
+ * } catch (err) {
+ *   if (err instanceof JsonvAggregateSyntaxError) {
+ *     for (const e of err.errors) console.log(e.line, e.column, e.code, e.message);
+ *   }
+ * }
+ * ```
+ */
+export class JsonvAggregateSyntaxError extends JsonvSyntaxError {
+	/**
+	 * Every collected syntax error, in source order (never empty).
+	 */
+	public readonly errors: readonly JsonvSyntaxError[];
+
+	/**
+	 * Create an aggregate of collected syntax errors.
+	 * @param errors - The collected errors, in source order (at least one)
+	 */
+	constructor(errors: readonly JsonvSyntaxError[]) {
+		const [first] = errors;
+		const count = `${errors.length} syntax error${errors.length === 1 ? "" : "s"} in total`;
+		super(`${first.message} (${count})`, first.loc, first.code);
+		this.errors = errors;
+		Object.setPrototypeOf(this, JsonvAggregateSyntaxError.prototype);
 	}
 }

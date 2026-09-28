@@ -44,7 +44,7 @@ parseToAst("{ t: `abc }", { year: 2015 }).errors;
 
 Without `tolerant`, only the first error is collected. Lexing stops at the first lexical error, so `tokens` and `comments` hold only what was lexed before it, and a lexical error takes precedence over parse errors: it is the error `parseWithOptions` would throw for the same input.
 
-With `tolerant: true`, the lexer skips the unreadable text and keeps going, and the parser recovers from grammar errors, so every error is reported, in source order. The lexer resynchronizes by skipping:
+With `tolerant: true`, the lexer skips the unreadable text and keeps going, and the parser recovers from grammar errors, so every error is reported, in source order. Only the first error at a given position is kept. The parser resynchronizes at the next property or element boundary (the next `,` or closing `}` / `]` at the same nesting level, or the next template middle / tail inside an interpolation), so the tokens after an error are skipped rather than misread: in `{ a: 1,, b: 2 }` the extra `,` is one error and `b` is still parsed as a key. The lexer resynchronizes by skipping:
 
 - a bad string: the rest of the string, through its closing quote or up to the end of the line;
 - a bad template or template segment: the rest of the template, through its closing backtick;
@@ -54,7 +54,7 @@ With `tolerant: true`, the lexer skips the unreadable text and keeps going, and 
 
 `program` is always a `Program`, never `null`. When there are errors it is the partial program recovered from the tokens that could be read. A value the lexer could not read is represented by a `Literal` whose `value` is `null` and whose `raw` is the unreadable source text; that text has no entry in `tokens`. Text that runs to the end of the input (an unterminated string or template) leaves any enclosing object or array unclosed, which `tolerant` mode also reports as parse errors.
 
-`parse` and `parseWithOptions` still throw: a lexical error as a `LexerError`, a parse error as a `JsonvSyntaxError` (`LexerError` extends `JsonvSyntaxError`). `Parser#parse()` also throws lexical errors.
+`parse` and `parseWithOptions` still throw: a lexical error as a `LexerError`, a parse error as a `JsonvSyntaxError` (`LexerError` extends `JsonvSyntaxError`). With `tolerant: true`, `parseWithOptions` throws every collected error together as one `JsonvAggregateSyntaxError` instead, and does not evaluate the document (see the README's Errors section). `Parser#parse()` also throws lexical errors.
 
 `parseToAst` never evaluates the document: internal references stay as `Identifier` / `MemberExpression` nodes and unresolved references are not reported.
 
