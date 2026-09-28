@@ -18,7 +18,13 @@ export class Lexer {
 	private column: number = 0;
 	private tokens: Token[] = [];
 	private options: Required<LexerOptions>;
-	private templateDepth: number = 0; // Track nesting depth of template interpolations
+	/**
+	 * One entry per open template interpolation (innermost last), counting the
+	 * `{` opened inside that interpolation and not yet closed. A `}` ends the
+	 * interpolation only when its entry is 0, i.e. it balances the `${`; any
+	 * other `}` inside the interpolation is a plain RBRACE.
+	 */
+	private interpolationBraces: number[] = [];
 	private tokenStart: Position = { line: 1, column: 0, offset: 0 }; // Start of the token currently being scanned
 
 	/**
@@ -55,6 +61,7 @@ export class Lexer {
 		this.pos = 0;
 		this.line = 1;
 		this.column = 0;
+		this.interpolationBraces = [];
 
 		while (!this.isAtEnd()) {
 			this.skipWhitespace();
@@ -162,14 +169,22 @@ export class Lexer {
 
 		// Punctuation
 		if (ch === "{") {
+			const depth = this.interpolationBraces.length;
+			if (depth > 0) {
+				this.interpolationBraces[depth - 1]++; // a brace nested inside the interpolation
+			}
 			return this.createToken(TokenType.LBRACE, "{", this.advance());
 		}
 		if (ch === "}") {
-			// If we're inside a template interpolation, this closes it.
-			// Continue scanning the template instead of returning RBRACE: the
-			// closing } is the first character of the TemplateMiddle/TemplateTail.
-			if (this.templateDepth > 0) {
-				return this.scanTemplateMiddleOrTail();
+			const depth = this.interpolationBraces.length;
+			if (depth > 0) {
+				// The } that balances the `${` closes the interpolation. Continue
+				// scanning the template instead of returning RBRACE: the closing }
+				// is the first character of the TemplateMiddle/TemplateTail.
+				if (this.interpolationBraces[depth - 1] === 0) {
+					return this.scanTemplateMiddleOrTail();
+				}
+				this.interpolationBraces[depth - 1]--; // closes a brace nested inside the interpolation
 			}
 			return this.createToken(TokenType.RBRACE, "}", this.advance());
 		}
@@ -417,7 +432,7 @@ export class Lexer {
 				const raw = this.input.slice(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
-				this.templateDepth++; // Enter template interpolation mode
+				this.interpolationBraces.push(0); // Enter template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_HEAD, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
@@ -477,7 +492,7 @@ export class Lexer {
 			if (ch === "`") {
 				this.advance(); // closing backtick
 				const raw = this.input.slice(start, this.pos);
-				this.templateDepth--; // Exit template interpolation mode
+				this.interpolationBraces.pop(); // Exit template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
