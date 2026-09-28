@@ -904,16 +904,7 @@ export class Parser {
 			result += node.quasis[i].value.cooked;
 
 			if (i < node.expressions.length) {
-				const expr = node.expressions[i];
-				let value: any;
-
-				if (expr.type === "Identifier") {
-					value = rootObj[expr.name];
-				} else if (expr.type === "MemberExpression") {
-					value = this.resolveMemberExpr(expr, rootObj);
-				} else {
-					value = undefined;
-				}
+				const value = this.resolveInterpolation(node.expressions[i], rootObj);
 
 				// If value is still unresolved, can't resolve template yet
 				if (value === undefined || isUnresolved(value)) {
@@ -925,6 +916,32 @@ export class Parser {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Resolve one expression interpolated into a template literal.
+	 *
+	 * A nested template is resolved recursively, so `a${ `b${x}c` }d` evaluates like
+	 * any other interpolation (issue #49). A nested template without interpolation of
+	 * its own is parsed as a string `Literal`, which is why literals resolve to their
+	 * value here. Returns `undefined` or an unresolved marker when the expression
+	 * cannot be resolved yet (a reference whose target is missing or not yet
+	 * resolved, or an inline object or array), which leaves the enclosing template
+	 * unresolved for this pass.
+	 */
+	private resolveInterpolation(expr: Expression, rootObj: any): any {
+		switch (expr.type) {
+			case "Identifier":
+				return rootObj[expr.name];
+			case "MemberExpression":
+				return this.resolveMemberExpr(expr, rootObj);
+			case "TemplateLiteral":
+				return this.resolveTemplate(expr, rootObj);
+			case "Literal":
+				return expr.value;
+			default:
+				return undefined;
+		}
 	}
 
 	/**
