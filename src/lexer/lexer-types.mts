@@ -35,6 +35,9 @@ export enum TokenType {
 	BLOCK_COMMENT = "BlockComment", // /* */
 
 	// ES2015 additions
+	// Template tokens include their delimiters: `raw` and `loc` run from the
+	// opening ` or the } that closes the previous interpolation through the
+	// closing ` or the next ${, so a template's tokens tile its source with no gaps.
 	TEMPLATE_LITERAL = "TemplateLiteral", // `string`
 	TEMPLATE_HEAD = "TemplateHead", // `string${
 	TEMPLATE_MIDDLE = "TemplateMiddle", // }string${
@@ -65,12 +68,15 @@ export interface Token {
 	 * - Null token: null
 	 * - Identifier: identifier name
 	 * - Comments: comment text (without delimiters)
+	 * - Template tokens: cooked (unescaped) text without the `` ` ``, `${` and `}` delimiters
 	 * - Others: usually the raw string
 	 */
 	value: string | number | bigint | boolean | null;
 
 	/**
-	 * Raw source text of the token (as it appears in input)
+	 * Raw source text of the token (as it appears in input), always equal to
+	 * `input.slice(loc.start.offset, loc.end.offset)`. Template tokens include
+	 * their delimiters: `` `a${ `` (head), `}b${` (middle), `` }c` `` (tail).
 	 */
 	raw: string;
 

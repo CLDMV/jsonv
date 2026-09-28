@@ -118,12 +118,25 @@ export interface TemplateLiteral extends ASTNode {
 }
 
 /**
- * Template literal string segment
+ * Template literal string segment (a quasi).
+ *
+ * Each quasi is its template token: `loc` and `value.raw` include the segment's
+ * delimiters, so the quasis and the interpolated expressions between them tile
+ * the template's source with no gaps. For `` `a${x}b${y}c` ``:
+ * - head: `` `a${ `` (the opening backtick through the `${`)
+ * - middle: `}b${` (the `}` that closes the previous interpolation through the next `${`)
+ * - tail: `` }c` `` (the `}` that closes the last interpolation through the closing backtick)
+ *
+ * `value.cooked` is the segment's text without delimiters and with escapes
+ * processed (`"a"`, `"b"`, `"c"`). A template without interpolation is a
+ * `Literal`, not a `TemplateLiteral`.
  */
 export interface TemplateElement extends ASTNode {
 	type: "TemplateElement";
 	value: {
+		/** Source text of the segment including its delimiters; equals the source slice at `loc`. */
 		raw: string;
+		/** Segment text without delimiters, escapes processed. */
 		cooked: string;
 	};
 	tail: boolean; // true if this is the last element

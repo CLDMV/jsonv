@@ -484,6 +484,9 @@ export class Parser {
 	/**
 	 * Parse a template literal with optional interpolation
 	 * Examples: `plain string`, `http://${host}:${port}`
+	 *
+	 * Each quasi takes its token's `raw` and `loc` unchanged, delimiters included:
+	 * for `` `http://${host}/path` `` the quasis are `` `http://${ `` and `` }/path` ``.
 	 */
 	private parseTemplateLiteral(): TemplateLiteral | Literal {
 		const token = this.advance();

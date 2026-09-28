@@ -61,9 +61,21 @@ All node shapes are exported as TypeScript types from the package root and from 
 | `Identifier` | `name` | The identifier. |
 | `MemberExpression` | `object`, `property: Identifier`, `computed: false` | The first identifier through the last property. |
 | `TemplateLiteral` | `quasis: TemplateElement[]`, `expressions: Expression[]` | The opening backtick through the closing backtick. |
-| `TemplateElement` | `value: { raw, cooked }`, `tail` | The quasi's own token. |
+| `TemplateElement` | `value: { raw, cooked }`, `tail` | The quasi's own token, delimiters included (see below). |
 
 A template literal without interpolation is represented as a `Literal` whose `raw` includes the backticks.
+
+### Template segments
+
+Each `TemplateElement` has the same `loc` as its token, and `value.raw` is that token's source text, delimiters included. The quasis and the interpolated expressions between them tile the template with no gaps:
+
+| Quasi | Token | `value.raw` for `` `a${x}b${y}c` `` | `value.cooked` |
+|---|---|---|---|
+| head | `TemplateHead` | `` `a${ `` (opening backtick through `${`) | `"a"` |
+| middle | `TemplateMiddle` | `}b${` (the `}` closing the previous interpolation through the next `${`) | `"b"` |
+| tail (`tail: true`) | `TemplateTail` | `` }c` `` (the `}` closing the last interpolation through the closing backtick) | `"c"` |
+
+`value.cooked` is the segment text without delimiters and with escapes processed. Note that ESTree's `TemplateElement.value.raw` excludes the delimiters; here `raw` always equals `text.slice(loc.start.offset, loc.end.offset)`.
 
 ### Property keys
 
@@ -88,4 +100,4 @@ parseToAst("// lead\n{ /* inner */ a: 1 }").comments;
 
 ## Tokens
 
-Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the exact source text; `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template middle and tail tokens start after the `}` that closes the preceding interpolation.
+Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the exact source text; `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template tokens include their delimiters, so the tokens of a template tile its source with no gaps: `TemplateHead` runs from the opening backtick through `${`, and `TemplateMiddle` and `TemplateTail` start at the `}` that closes the preceding interpolation (for `` `http://${host}/path` `` the tail token is `` }/path` ``).
