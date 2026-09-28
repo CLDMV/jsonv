@@ -396,6 +396,29 @@ export class Lexer {
 	}
 
 	/**
+	 * Consume one template character and return its cooked text. A CRLF pair or a
+	 * lone CR is a single line terminator whose template value is LF (ECMAScript
+	 * TV of a LineTerminatorSequence); every other character is itself.
+	 */
+	private advanceTemplateCharacter(): string {
+		const ch = this.advance();
+		if (ch === "\r") {
+			if (this.peek() === "\n") this.advance();
+			return "\n";
+		}
+		return ch;
+	}
+
+	/**
+	 * Raw text of a template token: the source slice from `start` to `end` with
+	 * each CRLF pair and lone CR replaced by LF, as in the ECMAScript TRV. Escaped
+	 * `\r` (backslash, `r`) is two ordinary characters and is left alone.
+	 */
+	private templateRaw(start: number, end: number): string {
+		return this.input.slice(start, end).replace(/\r\n?/g, "\n");
+	}
+
+	/**
 	 * Parse unicode escape sequence (\uXXXX)
 	 */
 	private parseUnicodeEscape(length: number): string {
@@ -432,6 +455,8 @@ export class Lexer {
 	 * - `TemplateHead`: `` `text${ `` (the opening backtick through the `${`)
 	 *
 	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
+	 * As in ECMAScript, a CR or CRLF line terminator becomes LF in both `value`
+	 * and `raw`; `loc` still describes the original source.
 	 */
 	private scanTemplateLiteral(): Token {
 		const start = this.pos;
@@ -446,7 +471,7 @@ export class Lexer {
 
 			// Check for interpolation start
 			if (ch === "$" && this.peekNext() === "{") {
-				const raw = this.input.slice(start, this.pos + 2); // Include ${
+				const raw = this.templateRaw(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
 				this.interpolationBraces.push(0); // Enter template interpolation mode
@@ -456,7 +481,7 @@ export class Lexer {
 			// Check for closing backtick
 			if (ch === "`") {
 				this.advance(); // closing backtick
-				const raw = this.input.slice(start, this.pos);
+				const raw = this.templateRaw(start, this.pos);
 				return this.createToken(TokenType.TEMPLATE_LITERAL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
@@ -469,8 +494,8 @@ export class Lexer {
 				continue;
 			}
 
-			// Regular character
-			value += this.advance();
+			// Regular character (a CR or CRLF line terminator cooks to LF)
+			value += this.advanceTemplateCharacter();
 		}
 
 		throw this.createError("Unterminated template literal", "UNTERMINATED_TEMPLATE");
@@ -486,6 +511,8 @@ export class Lexer {
 	 * - `TemplateTail`: `` }text` `` (the closing `}` through the closing backtick)
 	 *
 	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
+	 * As in ECMAScript, a CR or CRLF line terminator becomes LF in both `value`
+	 * and `raw`; `loc` still describes the original source.
 	 */
 	private scanTemplateMiddleOrTail(): Token {
 		const start = this.pos;
@@ -499,7 +526,7 @@ export class Lexer {
 
 			// Check for another interpolation
 			if (ch === "$" && this.peekNext() === "{") {
-				const raw = this.input.slice(start, this.pos + 2); // Include ${
+				const raw = this.templateRaw(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
 				return this.createToken(TokenType.TEMPLATE_MIDDLE, value, raw, { line: startLine, column: startCol, offset: start });
@@ -508,7 +535,7 @@ export class Lexer {
 			// Check for closing backtick
 			if (ch === "`") {
 				this.advance(); // closing backtick
-				const raw = this.input.slice(start, this.pos);
+				const raw = this.templateRaw(start, this.pos);
 				this.interpolationBraces.pop(); // Exit template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
@@ -522,8 +549,8 @@ export class Lexer {
 				continue;
 			}
 
-			// Regular character
-			value += this.advance();
+			// Regular character (a CR or CRLF line terminator cooks to LF)
+			value += this.advanceTemplateCharacter();
 		}
 
 		throw this.createError("Unterminated template literal", "UNTERMINATED_TEMPLATE");

@@ -43,7 +43,7 @@ const { program, tokens, comments, errors } = new Parser(text, { preserveComment
 Every node, token and comment has a `loc: { start, end }` whose positions are `{ line, column, offset }`:
 
 - `line` is 1-based; `column` and `offset` are 0-based UTF-16 code-unit indexes.
-- `text.slice(loc.start.offset, loc.end.offset)` is exactly the source text of the node, token or comment.
+- `text.slice(loc.start.offset, loc.end.offset)` is exactly the source text of the node, token or comment. A token's or node's `raw` equals it, except that template `raw` normalizes line terminators (see [Template line terminators](#template-line-terminators)).
 - `\n`, `\r\n` (one break), a lone `\r`, U+2028 and U+2029 each end a line, matching ECMAScript and ESLint. Line comments also end at any of them.
 - Tokens that span lines (strings with line continuations, multi-line templates and block comments) start where their first character is.
 
@@ -63,7 +63,7 @@ All node shapes are exported as TypeScript types from the package root and from 
 | `TemplateLiteral` | `quasis: TemplateElement[]`, `expressions: Expression[]` | The opening backtick through the closing backtick. |
 | `TemplateElement` | `value: { raw, cooked }`, `tail` | The quasi's own token, delimiters included (see below). |
 
-A template literal without interpolation is represented as a `Literal` whose `raw` includes the backticks.
+A template literal without interpolation is represented as a `Literal` whose `raw` includes the backticks (with line terminators normalized as described under [Template line terminators](#template-line-terminators)).
 
 ### Template segments
 
@@ -75,7 +75,25 @@ Each `TemplateElement` has the same `loc` as its token, and `value.raw` is that 
 | middle | `TemplateMiddle` | `}b${` (the `}` closing the previous interpolation through the next `${`) | `"b"` |
 | tail (`tail: true`) | `TemplateTail` | `` }c` `` (the `}` closing the last interpolation through the closing backtick) | `"c"` |
 
-`value.cooked` is the segment text without delimiters and with escapes processed. Note that ESTree's `TemplateElement.value.raw` excludes the delimiters; here `raw` always equals `text.slice(loc.start.offset, loc.end.offset)`.
+`value.cooked` is the segment text without delimiters and with escapes processed. Note that ESTree's `TemplateElement.value.raw` excludes the delimiters; here `raw` is the source text at `loc`, delimiters included, with line terminators normalized as below.
+
+### Template line terminators
+
+Templates follow ECMAScript: a CRLF pair or a lone CR inside a template is one line terminator whose cooked value (TV) and raw value (TRV) are both LF. So a document evaluates the same whatever its line endings are:
+
+```js
+parseWithOptions("{ t: `a\r\nb`, u: `c\rd` }"); // { t: "a\nb", u: "c\nd" }, the same as for "`a\nb`" and "`c\nd`"
+```
+
+This applies to the template token `value` and `raw`, to `TemplateElement.value.cooked` and `value.raw`, and to the `raw` of a template `Literal`. It matches ESTree parsers such as acorn, whose `TemplateElement.value.raw` is normalized the same way.
+
+Positions are not normalized. `loc` always describes the original source, so the tokens and quasis of a CRLF document still tile it, line and column numbers count `\r\n` as one break, and `text.slice(loc.start.offset, loc.end.offset)` gives the exact source text of a template token or quasi, CR characters included. For a template, `raw` equals that slice with `/\r\n?/g` replaced by `"\n"`; for LF sources the two are identical.
+
+Other characters are unaffected:
+
+- An escaped `\r` (backslash then `r`) cooks to CR, and its `raw` keeps the two characters.
+- U+2028 and U+2029 are kept as they are in both `cooked` and `raw`, as in ECMAScript.
+- A line continuation (backslash followed by LF, CRLF, CR, U+2028 or U+2029) cooks to nothing in templates and in strings. In a template its `raw` is the backslash followed by the normalized line terminator. String tokens are not normalized: their `raw` is always the source slice.
 
 ### Property keys
 
@@ -100,4 +118,4 @@ parseToAst("// lead\n{ /* inner */ a: 1 }").comments;
 
 ## Tokens
 
-Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the exact source text; `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template tokens include their delimiters, so the tokens of a template tile its source with no gaps: `TemplateHead` runs from the opening backtick through `${`, and `TemplateMiddle` and `TemplateTail` start at the `}` that closes the preceding interpolation (for `` `http://${host}/path` `` the tail token is `` }/path` ``).
+Each token is `{ type, value, raw, loc }`. `type` is a `TokenType` member (exported from `@cldmv/jsonv/parser`), for example `TokenType.STRING` (`"String"`), `TokenType.LBRACE` (`"{"`) or `TokenType.TEMPLATE_HEAD` (`"TemplateHead"`). `raw` is the source text (for template tokens, with CRLF and lone CR normalized to LF; see [Template line terminators](#template-line-terminators)); `value` is the decoded value (the unescaped string, the numeric or BigInt value, the identifier name). Template tokens include their delimiters, so the tokens of a template tile its source with no gaps: `TemplateHead` runs from the opening backtick through `${`, and `TemplateMiddle` and `TemplateTail` start at the `}` that closes the preceding interpolation (for `` `http://${host}/path` `` the tail token is `` }/path` ``).
