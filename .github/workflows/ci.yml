@@ -246,10 +246,7 @@ jobs:
             lint_fix_command: ${{ github.event.inputs.lint_fix_command || 'npm run lint:fix --if-present' }}
             lint_command: ${{ github.event.inputs.lint_command || 'npm run lint --if-present' }}
             format_check_command: ${{ github.event.inputs.format_check_command || 'npm run format:check --if-present' }}
-            # jsonv doesn't have a build:ci script (only `build`, which runs the
-            # full clean+tsc+types+cjs pipeline) — use it directly instead of the
-            # template default.
-            build_command: "npm run build"
+            build_command: "npm run build:ci"
             skip_performance_tests: false
             skip_matrix_tests: false
 
@@ -259,8 +256,7 @@ jobs:
             # Only runs on direct pushes to default_branch — PRs and feature branches
             # are automatically skipped so coverage always reflects merged master code.
             # Requires: the coverage_command produces coverage/coverage-summary.json
-            # Disabled: no `ci:coverage` script and no `badges` branch set up yet.
-            enable_coverage_badge: false
+            enable_coverage_badge: ${{ github.event.inputs.enable_coverage_badge != 'false' }}
             default_branch: ${{ github.event.inputs.default_branch || 'master' }} # Badge only pushed when a push lands on this branch
             coverage_command: ${{ github.event.inputs.coverage_command || 'npm run ci:coverage' }}
             coverage_summary_path: ${{ github.event.inputs.coverage_summary_path || 'coverage/coverage-summary.json' }}
@@ -270,16 +266,13 @@ jobs:
 
             # ── Type check (runs inside the coverage-badge job) ────────────────────
             type_check_command: ${{ github.event.inputs.type_check_command || 'npm run test:types' }}
-            # Skipped: no `test:types` script — .d.ts generation happens as part of
-            # `build:types` in the build pipeline, not as a standalone check.
-            skip_type_check: true
+            skip_type_check: ${{ github.event.inputs.skip_type_check == 'true' }}
 
             # ── PR coverage badge ─────────────────────────────────────────────────
             # Injects a Shields.io badge + breakdown table directly into the PR body
             # on every push to the PR branch. Only fires on pull_request events;
             # skipped automatically on push and workflow_dispatch. No files committed.
-            # Disabled alongside enable_coverage_badge (no coverage data produced yet).
-            enable_coverage_pr_comment: false
+            enable_coverage_pr_comment: ${{ github.event.inputs.enable_coverage_pr_comment != 'false' }}
 
         # Authentication & Bot Configuration
         # The workflow supports automatic App token detection for enhanced permissions and proper attribution:
