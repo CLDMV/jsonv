@@ -1,6 +1,6 @@
 #
-# @Project: @cldmv/.github
-# @Filename: /examples/individual-repo-workflows/release-companions/master-commit-audit.yml
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/master-commit-audit.yml
 # @Date: 2026-05-31 00:00:00 -07:00 (1780210800)
 # @Author: Nate Corcoran CLDMV
 # @Email: <Shinrai@users.noreply.github.com>

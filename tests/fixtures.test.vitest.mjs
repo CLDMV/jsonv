@@ -5,16 +5,18 @@
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { parseWithOptions } from "../src/parser.mjs";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(__dirname, "fixtures");
 
 /**
  * Get all .jsonv files recursively from a directory
  */
-function getFixtureFiles(dir: string): string[] {
-	const files: string[] = [];
+function getFixtureFiles(dir) {
+	const files = [];
 	const entries = readdirSync(dir);
 
 	for (const entry of entries) {
@@ -34,14 +36,14 @@ function getFixtureFiles(dir: string): string[] {
 /**
  * Determine if a fixture file should fail parsing
  */
-function isViolationFixture(filepath: string): boolean {
+function isViolationFixture(filepath) {
 	return filepath.includes("/violations/") || filepath.includes("\\violations\\");
 }
 
 /**
  * Extract ES year from fixture path
  */
-function getYearFromPath(filepath: string): string | null {
+function getYearFromPath(filepath) {
 	const match = filepath.match(/\/(20\d{2}(-20\d{2})?)\//);
 	return match ? match[1] : null;
 }
@@ -64,7 +66,7 @@ describe("jsonv fixtures", () => {
 	});
 
 	// Group fixtures by year for organized test output
-	const fixturesByYear: Record<string, string[]> = {};
+	const fixturesByYear = {};
 	for (const file of fixtureFiles) {
 		const year = getYearFromPath(file) || "unknown";
 		if (!fixturesByYear[year]) {
@@ -99,7 +101,7 @@ describe("jsonv fixtures", () => {
 				it(`should parse: ${relativePath}`, () => {
 					const content = readFileSync(file, "utf-8");
 					const year = getYearFromPath(file);
-					const yearNum = year ? (parseInt(year.split("-")[0]) as 2011 | 2015 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025) : undefined;
+					const yearNum = year ? parseInt(year.split("-")[0]) : undefined;
 
 					if (isViolation) {
 						// Violation fixtures should throw parse errors (test in strict mode)

@@ -1,6 +1,6 @@
 #
-# @Project: @cldmv/.github
-# @Filename: /examples/individual-repo-workflows/security/dependency-review.yml
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/dependency-review.yml
 # @Date: 2026-05-20 00:00:00 -07:00 (1779606000)
 # @Author: Nate Corcoran CLDMV
 # @Email: <Shinrai@users.noreply.github.com>
@@ -8,6 +8,14 @@
 #
 
 # Individual repo: .github/workflows/dependency-review.yml
+#
+# PRIVATE REPOS are skipped by DEFAULT (the dependency-review API needs
+# GitHub Advanced Security there): the bootstrap's `variables` phase sets
+# CLDMV_SKIP_DEPENDENCY_REVIEW on every private repo not opted into the
+# `scan` list in data/code-scanning-skips.json in CLDMV/.github. To run the
+# review on a private repo, pay for Code Security and add it to that list.
+# Consumers outside CLDMV can pass `skip_dependency_review: true` below
+# instead.
 name: 🔒 Dependency Review
 
 on:

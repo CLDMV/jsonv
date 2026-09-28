@@ -1,6 +1,6 @@
 #
-# @Project: @cldmv/.github
-# @Filename: /examples/individual-repo-workflows/automation/dependabot-auto-merge.yml
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/dependabot-auto-merge.yml
 # @Date: 2026-05-20 00:00:00 -07:00 (1779606000)
 # @Author: Nate Corcoran CLDMV
 # @Email: <Shinrai@users.noreply.github.com>
@@ -37,11 +37,13 @@ on:
         types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
     automerge:
+        permissions:
+            contents: write
+            pull-requests: write
         # Pre-filter at workflow level so this doesn't spin up for every PR.
         if: github.event.pull_request.user.login == 'dependabot[bot]'
         uses: CLDMV/.github/.github/workflows/reusable-dependabot-auto-merge.yml@v4

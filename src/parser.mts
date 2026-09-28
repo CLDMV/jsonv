@@ -35,6 +35,11 @@ import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
 import type { Token } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
+import { JsonvSyntaxError } from "./errors.mjs";
+
+// Re-exported so consumers importing from the "./parser" subpath (where both
+// throw sites for this error live) can detect it without a separate import.
+export { JsonvSyntaxError };
 
 /**
  * Helper to get token type name for error messages
@@ -910,7 +915,8 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
 
 	if (result.errors && result.errors.length > 0 && !options?.tolerant) {
 		const firstError = result.errors[0];
-		throw new SyntaxError(`${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`);
+		const message = `${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`;
+		throw new JsonvSyntaxError(message, firstError.loc, firstError.code);
 	}
 
 	return parser.evaluate(result.program);
@@ -925,7 +931,8 @@ export function parseWithOptions(text: string, options?: ParseOptions): any {
 
 	if (result.errors && result.errors.length > 0 && !options?.tolerant) {
 		const firstError = result.errors[0];
-		throw new SyntaxError(`${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`);
+		const message = `${firstError.message} at line ${firstError.loc.start.line}, column ${firstError.loc.start.column}`;
+		throw new JsonvSyntaxError(message, firstError.loc, firstError.code);
 	}
 
 	return parser.evaluate(result.program);

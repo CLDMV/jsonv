@@ -1,6 +1,6 @@
 #
-# @Project: @cldmv/.github
-# @Filename: /examples/individual-repo-workflows/release-flow-v4/next-release.yml
+# @Project: @cldmv/jsonv
+# @Filename: /.github/workflows/next-release.yml
 # @Date: 2026-05-22 00:00:00 -07:00 (1779778800)
 # @Author: Nate Corcoran <CLDMV>
 # @Email: <Shinrai@users.noreply.github.com>
@@ -37,6 +37,9 @@ concurrency:
     group: next-release-${{ github.repository }}
     cancel-in-progress: false
 
+permissions:
+    contents: read
+
 jobs:
     release:
         permissions:
@@ -45,7 +48,7 @@ jobs:
         uses: CLDMV/.github/.github/workflows/workflow-next-release.yml@v4
         with:
             package_name: "@cldmv/jsonv"
-            build_command: "npm run build"
+            build_command: "npm run build:ci"
         secrets:
             # Map your repo/org secrets to the expected names.
             BOT_APP_CLIENT_ID: ${{ secrets.CLDMV_BOT_APP_CLIENT_ID }}

@@ -11,7 +11,7 @@ describe("Parser Error Recovery and Edge Cases", () => {
 	describe("Reviver function edge cases", () => {
 		it("should handle reviver that returns undefined for array elements (line 624)", () => {
 			// Line 624 - delete array element when reviver returns undefined
-			const reviver = (key: string, value: any) => {
+			const reviver = (key, value) => {
 				if (typeof value === "number" && value === 2) {
 					return undefined; // Delete this element
 				}
@@ -28,7 +28,7 @@ describe("Parser Error Recovery and Edge Cases", () => {
 
 		it("should handle reviver that returns undefined for object properties (line 634)", () => {
 			// Line 634 - delete object property when reviver returns undefined
-			const reviver = (key: string, value: any) => {
+			const reviver = (key, value) => {
 				if (key === "secret") {
 					return undefined; // Delete this property
 				}
@@ -42,7 +42,7 @@ describe("Parser Error Recovery and Edge Cases", () => {
 
 		it("should handle reviver that transforms nested values (line 644)", () => {
 			// Line 644 - set new value returned by reviver
-			const reviver = (key: string, value: any) => {
+			const reviver = (key, value) => {
 				if (typeof value === "string") {
 					return value.toUpperCase();
 				}

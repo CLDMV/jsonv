@@ -147,7 +147,7 @@ describe("JSONV API - End User Experience", () => {
 			try {
 				JSONV.parse("{ invalid syntax here }");
 				expect.fail("Should have thrown");
-			} catch (err: any) {
+			} catch (err) {
 				expect(err.message).toMatch(/line \d+/);
 				expect(err.message).toMatch(/column \d+/);
 			}

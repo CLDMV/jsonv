@@ -5,6 +5,7 @@
  */
 
 import type { SourceLocation } from "../ast-types.mjs";
+import { JsonvSyntaxError } from "../errors.mjs";
 
 /**
  * All possible token types in @cldmv/jsonv
@@ -177,11 +178,13 @@ export interface LexerOptions {
 
 /**
  * Lexer error with position information
+ *
+ * Extends {@link JsonvSyntaxError}, so a `LexerError` is also a
+ * `JsonvSyntaxError` (and a `SyntaxError`) with `line`/`column`/`offset`
+ * properties; `name` stays `"LexerError"` (this class's existing, more
+ * specific convention) rather than the base class's `"SyntaxError"`.
  */
-export class LexerError extends Error {
-	public readonly loc: SourceLocation;
-	public readonly code: string;
-
+export class LexerError extends JsonvSyntaxError {
 	/**
 	 * Create a lexer error
 	 * @param message - Error message
@@ -189,10 +192,8 @@ export class LexerError extends Error {
 	 * @param code - Error code for programmatic handling
 	 */
 	constructor(message: string, loc: SourceLocation, code: string = "LEXER_ERROR") {
-		super(message);
+		super(message, loc, code);
 		this.name = "LexerError";
-		this.loc = loc;
-		this.code = code;
 		Object.setPrototypeOf(this, LexerError.prototype);
 	}
 }
