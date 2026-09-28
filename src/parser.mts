@@ -29,17 +29,50 @@ import type {
 	Identifier,
 	TemplateLiteral,
 	TemplateElement,
-	MemberExpression
+	MemberExpression,
+	PropertyKeyNode,
+	Comment,
+	AstResult
 } from "./ast-types.mjs";
 import type { ParseOptions } from "./api-types.mjs";
 import { Lexer } from "./lexer/lexer.mjs";
 import type { Token } from "./lexer/lexer-types.mjs";
 import { TokenType, getFeatureYear } from "./lexer/lexer-types.mjs";
-import { JsonvSyntaxError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
 
 // Re-exported so consumers importing from the "./parser" subpath (where both
 // throw sites for this error live) can detect it without a separate import.
 export { JsonvSyntaxError };
+
+// Re-exported so consumers importing from the "./parser" subpath (where the
+// throw site for this error lives, in `checkUnresolved`) can detect it
+// without a separate import.
+export { JsonvReferenceError };
+
+// Re-exported for tooling that walks the AST / token stream returned by
+// Parser.parse() and parseToAst() (token `type` values are TokenType members).
+export { TokenType };
+export type { Token };
+export type {
+	ASTNode,
+	SourceLocation,
+	Position,
+	Program,
+	Expression,
+	Literal,
+	ObjectExpression,
+	ArrayExpression,
+	Property,
+	PropertyKeyNode,
+	Identifier,
+	TemplateLiteral,
+	TemplateElement,
+	MemberExpression,
+	Comment,
+	ParseResult,
+	AstResult,
+	ParseError
+} from "./ast-types.mjs";
 
 /**
  * Helper to get token type name for error messages
@@ -77,7 +110,8 @@ function isUnresolved(value: any): value is UnresolvedReference {
 export class Parser {
 	private lexer: Lexer;
 	private options: Required<ParseOptions>;
-	private tokens: Token[] = [];
+	private tokens: Token[] = []; // Non-comment tokens, ending with EOF
+	private comments: Comment[] = []; // Comments in source order (preserveComments only)
 	private current: number = 0;
 	private errors: ParseError[] = [];
 	private evaluationStack: Set<string> = new Set(); // Track references being evaluated (circular detection)
@@ -106,15 +140,30 @@ export class Parser {
 	}
 
 	/**
-	 * Parse the input and return AST
+	 * Parse the input and return the AST.
+	 *
+	 * Returns the `Program` (whose `loc` spans the whole input), the positioned
+	 * token stream (excluding comments and EOF), the comments in source order
+	 * when `preserveComments` is set, and any collected parse errors.
+	 * Lexical errors are thrown as a `LexerError` (a {@link JsonvSyntaxError}).
 	 */
 	parse(): ParseResult {
-		// Tokenize the input
-		this.tokens = this.lexer.tokenize();
+		// Tokenize the input, separating comments from the tokens the grammar
+		// consumes so comments may appear between any two tokens.
+		this.tokens = [];
+		this.comments = [];
+		for (const token of this.lexer.tokenize()) {
+			if (token.type === TokenType.LINE_COMMENT || token.type === TokenType.BLOCK_COMMENT) {
+				this.comments.push({
+					type: token.type === TokenType.LINE_COMMENT ? "Line" : "Block",
+					value: token.value as string,
+					loc: token.loc
+				});
+			} else {
+				this.tokens.push(token);
+			}
+		}
 		this.current = 0;
-
-		// Skip leading comments before the root value
-		this.skipComments();
 
 		// Parse the root value
 		const body = this.parseValue();
@@ -124,15 +173,28 @@ export class Parser {
 			this.addError("Unexpected token after root value", this.peek());
 		}
 
+		// The EOF token sits at the very end of the input
+		const eof = this.tokens[this.tokens.length - 1];
 		const program: Program = {
 			type: "Program",
-			body
+			body,
+			loc: {
+				start: { line: 1, column: 0, offset: 0 },
+				end: eof.loc.end
+			}
 		};
 
-		return {
+		const result: ParseResult = {
 			program,
+			tokens: this.tokens.slice(0, -1),
 			errors: this.errors.length > 0 ? this.errors : undefined
 		};
+
+		if (this.options.preserveComments) {
+			result.comments = this.comments;
+		}
+
+		return result;
 	}
 
 	/**
@@ -255,32 +317,18 @@ export class Parser {
 	}
 
 	/**
-	 * Skip any comment tokens
-	 */
-	private skipComments(): void {
-		while (!this.isAtEnd() && (this.peek().type === TokenType.LINE_COMMENT || this.peek().type === TokenType.BLOCK_COMMENT)) {
-			this.advance();
-		}
-	}
-
-	/**
 	 * Parse an object expression
 	 */
 	private parseObject(): ObjectExpression {
 		const start = this.expect(TokenType.LBRACE);
 		const properties: Property[] = [];
 
-		this.skipComments(); // Skip comments after opening brace
-
 		while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
 			properties.push(this.parseProperty());
-
-			this.skipComments(); // Skip comments after property
 
 			// Handle trailing comma
 			if (this.check(TokenType.COMMA)) {
 				this.advance();
-				this.skipComments(); // Skip comments after comma
 				// Allow trailing comma before }
 				if (this.check(TokenType.RBRACE)) {
 					break;
@@ -311,35 +359,36 @@ export class Parser {
 	 */
 	private parseProperty(): Property {
 		const keyToken = this.peek();
-		let key: Expression | string;
+		let key: PropertyKeyNode;
 		let computed = false;
 
-		if (keyToken.type === TokenType.STRING) {
-			// Quoted key
-			const literal = this.parseLiteral();
-			key = literal.value as string;
-		} else if (keyToken.type === TokenType.IDENTIFIER) {
-			// Unquoted key
-			this.advance();
-			key = keyToken.value as string;
-		} else if (keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
-			// Numeric key (JSON5 allows numbers as keys, including BigInt)
-			const literal = this.parseLiteral();
-			key = String(literal.value);
+		if (keyToken.type === TokenType.STRING || keyToken.type === TokenType.NUMBER || keyToken.type === TokenType.BIGINT) {
+			// Quoted key, or numeric key (JSON5 allows numbers as keys, including BigInt)
+			key = this.parseLiteral();
 		} else if (
+			keyToken.type === TokenType.IDENTIFIER ||
 			keyToken.type === TokenType.TRUE ||
 			keyToken.type === TokenType.FALSE ||
 			keyToken.type === TokenType.NULL ||
 			keyToken.type === TokenType.INFINITY ||
 			keyToken.type === TokenType.NAN
 		) {
-			// Keywords as keys (JSON5 allows reserved words as unquoted keys)
+			// Unquoted key, including keywords (JSON5 allows reserved words as unquoted keys)
 			this.advance();
-			key = keyToken.raw;
+			key = {
+				type: "Identifier",
+				name: keyToken.raw,
+				loc: keyToken.loc
+			};
 		} else {
 			this.addError(`Expected property key, got ${getTokenTypeName(keyToken.type)}`, keyToken);
 			this.advance();
-			key = "error";
+			key = {
+				type: "Literal",
+				value: "error",
+				raw: keyToken.raw,
+				loc: keyToken.loc
+			};
 		}
 
 		this.expect(TokenType.COLON);
@@ -350,7 +399,10 @@ export class Parser {
 			key,
 			value,
 			computed,
-			loc: keyToken.loc
+			loc: {
+				start: keyToken.loc.start,
+				end: value.loc!.end
+			}
 		};
 	}
 
@@ -361,17 +413,12 @@ export class Parser {
 		const start = this.expect(TokenType.LBRACKET);
 		const elements: (Expression | null)[] = [];
 
-		this.skipComments(); // Skip comments after opening bracket
-
 		while (!this.check(TokenType.RBRACKET) && !this.isAtEnd()) {
 			elements.push(this.parseValue());
-
-			this.skipComments(); // Skip comments after element
 
 			// Handle trailing comma
 			if (this.check(TokenType.COMMA)) {
 				this.advance();
-				this.skipComments(); // Skip comments after comma
 				// Allow trailing comma before ]
 				if (this.check(TokenType.RBRACKET)) {
 					break;
@@ -517,7 +564,11 @@ export class Parser {
 			type: "TemplateLiteral",
 			quasis,
 			expressions,
-			loc: token.loc
+			// Head through the last consumed token (the tail, when well-formed)
+			loc: {
+				start: token.loc.start,
+				end: this.previous().loc.end
+			}
 		};
 	}
 
@@ -675,7 +726,7 @@ export class Parser {
 			case "ObjectExpression": {
 				const obj: Record<string, any> = {};
 				for (const prop of (node as ObjectExpression).properties) {
-					const key = typeof prop.key === "string" ? prop.key : String((prop.key as Literal).value);
+					const key = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
 					obj[key] = this.evaluateNodePass1(prop.value);
 				}
 				return obj;
@@ -888,7 +939,11 @@ export class Parser {
 		}
 
 		if (isUnresolved(value)) {
-			throw new Error(`Unresolved reference: ${value.path} (circular reference or undefined)`);
+			throw new JsonvReferenceError(
+				`Unresolved reference: ${value.path} (circular reference or undefined)`,
+				value.node.loc!,
+				"UNRESOLVED_REFERENCE"
+			);
 		}
 
 		if (value && typeof value === "object" && value !== null) {
@@ -920,6 +975,42 @@ export function parse(text: string, reviver?: (this: any, key: string, value: an
 	}
 
 	return parser.evaluate(result.program);
+}
+
+/**
+ * Parse jsonv text to a positioned AST for tooling (linters, formatters,
+ * editors) without evaluating it.
+ *
+ * Unlike {@link Parser.parse}, every list is always present: `comments` is
+ * collected by default (pass `preserveComments: false` to skip it, which
+ * yields an empty array) and `errors` is an empty array when the input parsed
+ * cleanly. Parse errors are collected rather than thrown (the first one only,
+ * unless `tolerant: true`); lexical errors throw a {@link JsonvSyntaxError}.
+ * Internal references are left as `Identifier` / `MemberExpression` nodes and
+ * are not resolved.
+ *
+ * @param text - The jsonv text to parse
+ * @param options - Parse options (`year`, `mode`, `tolerant`, `preserveComments`, ...)
+ * @returns `{ program, comments, tokens, errors }`
+ *
+ * @example
+ * ```js
+ * import { parseToAst } from "@cldmv/jsonv";
+ *
+ * const { program, comments, tokens, errors } = parseToAst("// port\n{ port: 8080 }");
+ * program.body.properties[0].key; // { type: "Identifier", name: "port", loc: { ... } }
+ * comments[0]; // { type: "Line", value: " port", loc: { start: { line: 1, column: 0, offset: 0 }, ... } }
+ * ```
+ */
+export function parseToAst(text: string, options: ParseOptions = {}): AstResult {
+	const result = new Parser(text, { ...options, preserveComments: options.preserveComments ?? true }).parse();
+
+	return {
+		program: result.program,
+		comments: result.comments ?? [],
+		tokens: result.tokens,
+		errors: result.errors ?? []
+	};
 }
 
 /**

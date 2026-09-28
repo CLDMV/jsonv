@@ -19,6 +19,7 @@ export class Lexer {
 	private tokens: Token[] = [];
 	private options: Required<LexerOptions>;
 	private templateDepth: number = 0; // Track nesting depth of template interpolations
+	private tokenStart: Position = { line: 1, column: 0, offset: 0 }; // Start of the token currently being scanned
 
 	/**
 	 * Create a new lexer instance
@@ -72,7 +73,8 @@ export class Lexer {
 			}
 		}
 
-		// Add EOF token
+		// Add EOF token (zero-width, at the end of the input)
+		this.tokenStart = this.getCurrentPosition();
 		this.tokens.push(this.createToken(TokenType.EOF, null, ""));
 
 		return this.tokens;
@@ -84,6 +86,10 @@ export class Lexer {
 	 */
 	private nextToken(): Token | null {
 		if (this.isAtEnd()) return null;
+
+		// Record where this token starts so createToken() can position tokens
+		// that span lines (strings with line continuations) correctly.
+		this.tokenStart = this.getCurrentPosition();
 
 		const ch = this.peek();
 
@@ -212,7 +218,7 @@ export class Lexer {
 		this.advance(); // /
 
 		let value = "";
-		while (!this.isAtEnd() && this.peek() !== "\n") {
+		while (!this.isAtEnd() && !this.isLineTerminator(this.peek())) {
 			value += this.advance();
 		}
 
@@ -1030,7 +1036,9 @@ export class Lexer {
 		const ch = this.input[this.pos];
 		this.pos++;
 
-		if (ch === "\n") {
+		// \n, lone \r, U+2028 and U+2029 each end a line; the \r of a \r\n pair
+		// is an ordinary column so the pair counts as a single line break.
+		if (this.isLineTerminator(ch) && !(ch === "\r" && this.input[this.pos] === "\n")) {
 			this.line++;
 			this.column = 0;
 		} else {
@@ -1038,6 +1046,13 @@ export class Lexer {
 		}
 
 		return ch;
+	}
+
+	/**
+	 * Check if character is an ECMAScript line terminator (LF, CR, U+2028, U+2029)
+	 */
+	private isLineTerminator(ch: string): boolean {
+		return ch === "\n" || ch === "\r" || ch === "\u2028" || ch === "\u2029";
 	}
 
 	/**
@@ -1063,11 +1078,7 @@ export class Lexer {
 	 */
 	private createToken(type: TokenType, value: string | number | bigint | boolean | null, raw: string, startOverride?: Position): Token {
 		const endPos = this.getCurrentPosition();
-		const startPos: Position = startOverride ?? {
-			line: endPos.line,
-			column: endPos.column - raw.length,
-			offset: endPos.offset - raw.length
-		};
+		const startPos: Position = startOverride ?? this.tokenStart;
 
 		return {
 			type,

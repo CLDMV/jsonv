@@ -53,6 +53,7 @@ See [docs/feature-matrix.md](docs/feature-matrix.md) and [docs/versioning-and-ex
 - [docs/feature-matrix.md](docs/feature-matrix.md)
 - [docs/versioning-and-exports.md](docs/versioning-and-exports.md)
 - [docs/json5-compatibility.md](docs/json5-compatibility.md)
+- [docs/ast.md](docs/ast.md) — AST, tokens and comments for tooling
 
 ## API surface
 Main entry: [src/index.mts](src/index.mts)
@@ -64,7 +65,7 @@ Main entry: [src/index.mts](src/index.mts)
 - `strictBigInt`: require `n` for unsafe integers (default `false`)
 - `strictOctal`: require `0o` (reject legacy `0755`, default `false`)
 - `tolerant`: collect multiple errors
-- `preserveComments`: keep comment nodes in results
+- `preserveComments`: return comments (with positions) from `Parser#parse()`; see [AST for tooling](#ast-for-tooling)
 
 ### Stringify options (selected)
 - `mode`: `jsonv | json5 | json`
@@ -88,6 +89,30 @@ try {
 }
 ```
 This applies to every parse entry point (year-pinned APIs included) and every kind of positioned error — lexer-level (unterminated strings, invalid escapes, year-gated feature checks) and parser-level (unexpected tokens, strict-mode violations) alike.
+
+Internal-reference resolution failures (an unresolved or circular internal reference) throw the sibling `JsonvReferenceError` (extends `ReferenceError`, `name` stays `"ReferenceError"`) instead, with the same structured `line`/`column`/`offset`/`code` shape, pointing at the offending reference:
+```js
+import { parseWithOptions, JsonvReferenceError } from "@cldmv/jsonv";
+
+try {
+  parseWithOptions("{ a: missing }");
+} catch (err) {
+  if (err instanceof JsonvReferenceError) {
+    console.log(err.line, err.column, err.offset);
+  }
+}
+```
+
+## AST for tooling
+`parseToAst()` returns the positioned AST without evaluating it, for linters, formatters and editors:
+```js
+import { parseToAst } from "@cldmv/jsonv"; // also exported from "@cldmv/jsonv/parser"
+
+const { program, comments, tokens, errors } = parseToAst("// port\n{ port: 8080 }");
+program.body.properties[0].key; // { type: "Identifier", name: "port", loc: { start: { line: 2, column: 2, offset: 10 }, ... } }
+comments[0].value; // " port"
+```
+Every node, token and comment carries `loc: { start, end }` with `{ line, column, offset }` positions (`\n`, `\r\n`, `\r`, U+2028 and U+2029 each count as one line break). Property keys are positioned `Literal` / `Identifier` nodes, and `Property.loc` spans key through value. Parse errors are collected in `errors`; lexical errors throw `JsonvSyntaxError`. See [docs/ast.md](docs/ast.md) for the node reference.
 
 ## Internal references
 ```jsonv

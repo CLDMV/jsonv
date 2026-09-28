@@ -5,7 +5,7 @@
  * Year-based API versioning tied to ECMAScript releases
  */
 
-import { parse, parseWithOptions } from "./parser.mjs";
+import { parse, parseWithOptions, parseToAst } from "./parser.mjs";
 import {
 	stringify as stringifyImpl,
 	stringifyWithOptions as stringifyOptsImpl,
@@ -13,7 +13,7 @@ import {
 	isRawJSON as isRawJSONImpl
 } from "./stringify.mjs";
 import { diagnose as diagnoseImpl, info as infoImpl } from "./diagnose.mjs";
-import { JsonvSyntaxError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
 import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON } from "./api-types.mjs";
 
 /**
@@ -166,10 +166,43 @@ function stringifyWithOptions(value: any, options?: StringifyOptions): string {
 }
 
 // Named exports
-export { parseJSON as parse, parseWithOptions, stringify, stringifyWithOptions, isRawJSON, rawJSON, diagnose, info, JsonvSyntaxError };
+export {
+	parseJSON as parse,
+	parseWithOptions,
+	parseToAst,
+	stringify,
+	stringifyWithOptions,
+	isRawJSON,
+	rawJSON,
+	diagnose,
+	info,
+	JsonvSyntaxError,
+	JsonvReferenceError
+};
 
 // Default export
 export default JSONV;
 
 // Type exports
 export type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON };
+export type {
+	AstResult,
+	ParseResult,
+	ParseError,
+	Comment,
+	SourceLocation,
+	Position,
+	ASTNode,
+	Program,
+	Expression,
+	Literal,
+	ObjectExpression,
+	ArrayExpression,
+	Property,
+	PropertyKeyNode,
+	Identifier,
+	TemplateLiteral,
+	TemplateElement,
+	MemberExpression
+} from "./ast-types.mjs";
+export type { Token } from "./lexer/lexer-types.mjs";
