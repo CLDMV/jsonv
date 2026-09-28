@@ -237,7 +237,10 @@ class Stringifier {
 					result += quote === "'" ? "\\'" : "'";
 					break;
 				default:
-					if (code < 0x20 || code === 0x7f) {
+					// U+2028 and U+2029 are escaped too: jsonv before year 2019 (like
+					// ECMAScript before ES2019) rejects them unescaped in a string, so
+					// escaping keeps the output parseable under every year and mode.
+					if (code < 0x20 || code === 0x7f || code === 0x2028 || code === 0x2029) {
 						result += "\\u" + code.toString(16).padStart(4, "0");
 					} else {
 						result += char;

@@ -117,10 +117,14 @@ export class Parser {
 	private evaluationStack: Set<string> = new Set(); // Track references being evaluated (circular detection)
 
 	constructor(source: string, options: ParseOptions = {}) {
-		const targetYear = getFeatureYear(options.year ?? new Date().getFullYear()) as 2011 | 2015 | 2020 | 2021;
+		const requestedYear = options.year ?? new Date().getFullYear();
+		const targetYear = getFeatureYear(requestedYear) as 2011 | 2015 | 2020 | 2021;
 
 		this.lexer = new Lexer(source, {
-			year: targetYear,
+			// The lexer maps this to its feature year itself; it also needs the
+			// requested year for rules that change between feature years (ES2019
+			// allows U+2028/U+2029 in strings, but 2019 maps to feature year 2015).
+			year: requestedYear,
 			preserveComments: options.preserveComments ?? false,
 			mode: options.mode ?? "jsonv",
 			strictOctal: options.strictOctal ?? false
