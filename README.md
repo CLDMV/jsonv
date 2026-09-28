@@ -112,7 +112,7 @@ const { program, comments, tokens, errors } = parseToAst("// port\n{ port: 8080 
 program.body.properties[0].key; // { type: "Identifier", name: "port", loc: { start: { line: 2, column: 2, offset: 10 }, ... } }
 comments[0].value; // " port"
 ```
-Every node, token and comment carries `loc: { start, end }` with `{ line, column, offset }` positions (`\n`, `\r\n`, `\r`, U+2028 and U+2029 each count as one line break). Property keys are positioned `Literal` / `Identifier` nodes, and `Property.loc` spans key through value. Parse errors are collected in `errors`; lexical errors throw `JsonvSyntaxError`. See [docs/ast.md](docs/ast.md) for the node reference.
+Every node, token and comment carries `loc: { start, end }` with `{ line, column, offset }` positions (`\n`, `\r\n`, `\r`, U+2028 and U+2029 each count as one line break). Property keys are positioned `Literal` / `Identifier` nodes, and `Property.loc` spans key through value. `parseToAst()` never throws for invalid input: lexical and parse errors are both collected in `errors` (with `code`, `line`, `column` and `offset`), and `tolerant: true` recovers from both and reports every one. See [docs/ast.md](docs/ast.md) for the node reference.
 
 ## Internal references
 ```jsonv

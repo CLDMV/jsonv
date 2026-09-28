@@ -187,22 +187,58 @@ export interface ParseResult {
 /**
  * Result of {@link parseToAst}: a stable, tooling-oriented view of the parse
  * where every list is always present.
+ *
+ * `parseToAst` never throws for invalid input: lexical and parse errors are
+ * both collected into `errors`. Without `tolerant`, lexing stops at the first
+ * lexical error, so `tokens` and `comments` hold only what was lexed before
+ * it; with `tolerant`, the lexer skips the unreadable text and keeps going.
  */
 export interface AstResult {
+	/**
+	 * The root node. Never `null`: when there are errors it is the partial
+	 * program recovered from the tokens that could be read. A value the lexer
+	 * could not read is represented by a `Literal` with `value: null` whose
+	 * `raw` is the unreadable source text.
+	 */
 	program: Program;
-	/** Comments in source order (empty when `preserveComments: false` was passed). */
+	/**
+	 * Comments in source order (empty when `preserveComments: false` was
+	 * passed). After a lexical error without `tolerant`, only the comments
+	 * before the error.
+	 */
 	comments: Comment[];
-	/** Positioned tokens in source order, excluding comments and EOF. */
+	/**
+	 * Positioned tokens in source order, excluding comments and EOF. Text the
+	 * lexer could not read has no token. After a lexical error without
+	 * `tolerant`, only the tokens before the error.
+	 */
 	tokens: Token[];
-	/** Collected parse errors (empty when the input parsed cleanly). */
+	/**
+	 * Collected lexical and parse errors, in source order (empty when the input
+	 * parsed cleanly). Without `tolerant`, at most one: the first lexical error
+	 * if there is one, otherwise the first parse error.
+	 */
 	errors: ParseError[];
 }
 
 /**
- * Parse error information
+ * A collected lexical or parse error.
+ *
+ * Lexical errors (from the lexer) carry the lexer's specific `code`, such as
+ * `"UNTERMINATED_STRING"`, `"INVALID_UNICODE_ESCAPE"` or `"INVALID_BIGINT"`;
+ * errors from the parser's grammar checks have the code `"PARSE_ERROR"`.
  */
 export interface ParseError {
+	/** Human-readable message, without position information. */
 	message: string;
+	/** Source location of the error. */
 	loc: SourceLocation;
-	code: string; // Error code for programmatic handling
+	/** Machine-readable error code for programmatic handling. */
+	code: string;
+	/** 1-based line of the error (`loc.start.line`). */
+	line: number;
+	/** 0-based column of the error (`loc.start.column`). */
+	column: number;
+	/** 0-based character offset of the error (`loc.start.offset`). */
+	offset: number;
 }

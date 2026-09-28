@@ -249,9 +249,16 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 			throw new Error("expected an error");
 		}
 
+		/** Parse with parseToAst and return its only collected error. */
+		function collected(text) {
+			const { errors } = parseToAst(text);
+			expect(errors).toHaveLength(1);
+			return errors[0];
+		}
+
 		test("an unterminated tail reports the end of input", () => {
 			const text = "{ a: 1, t: `x${a}yz }";
-			const err = thrown(() => parseToAst(text));
+			const err = collected(text);
 			expect(err.code).toBe("UNTERMINATED_TEMPLATE");
 			expect(err.loc).toEqual({ start: pos(1, 21, 21), end: pos(1, 21, 21) });
 			expect(thrown(() => parseWithOptions(text)).code).toBe("UNTERMINATED_TEMPLATE");
@@ -259,14 +266,14 @@ describe("template token and quasi spans tile the source (issue #47)", () => {
 
 		test("an unterminated middle on a later line reports the end of input", () => {
 			const text = "`x${a}\r\ny${a}z";
-			const err = thrown(() => parseToAst(text));
+			const err = collected(text);
 			expect(err.code).toBe("UNTERMINATED_TEMPLATE");
 			expect(err.loc.start).toEqual(pos(2, 6, text.length));
 		});
 
 		test("an invalid escape in a tail segment points into that segment", () => {
 			const text = "{ a: 1, t: `x${a}\\u{zz}` }";
-			const err = thrown(() => parseToAst(text));
+			const err = collected(text);
 			expect(err.code).toBe("INVALID_UNICODE_ESCAPE");
 			expect(err.loc.start).toEqual(pos(1, 19, 19));
 		});
