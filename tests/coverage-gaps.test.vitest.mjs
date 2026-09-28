@@ -41,7 +41,7 @@ describe("Coverage Gaps - Parser Edge Cases", () => {
 			a: { b: { c: { d: 42 } } },
 			result: a.b.c.d
 		}`;
-		const result = parse(input) as any;
+		const result = parse(input);
 		expect(result.result).toBe(42);
 	});
 

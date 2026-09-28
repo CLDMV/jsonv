@@ -114,7 +114,7 @@ jobs:
             # jsonv doesn't have a build:ci script (only `build`, which runs the
             # full clean+tsc+types+cjs pipeline) — use it directly instead of the
             # template default.
-            build_command: "npm run build"
+            build_command: "npm run build:ci"
             # --- Satellite packages (optional) ----------------------------------------
             # Publish extra packages carved from this build's output (e.g. locale JSON,
             # generated types) at the SAME version/commit as the core, each with its own

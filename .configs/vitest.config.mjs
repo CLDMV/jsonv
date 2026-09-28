@@ -29,7 +29,8 @@ export default defineConfig({
 		}
 	},
 	test: {
-		include: ["tests/**/*.test.{js,mjs,ts}", "tests/**/*.test.vitest.{js,mjs,ts}"],
+		// CLDMV standing convention: vitest test files are always named `*.test.vitest.mjs`.
+		include: ["tests/**/*.test.vitest.mjs"],
 		exclude: ["node_modules", "dist", "types"],
 		environment: "node",
 		globals: true,
@@ -47,6 +48,12 @@ export default defineConfig({
 		// 	}
 		// },
 
-		silent: false
+		silent: false,
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "json", "json-summary", "html"],
+			include: ["src/**/*.mts"],
+			all: true
+		}
 	}
 });
