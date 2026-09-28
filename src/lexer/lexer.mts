@@ -134,7 +134,22 @@ export class Lexer {
 		this.interpolationBraces = [];
 
 		while (!this.isAtEnd()) {
-			this.skipWhitespace();
+			try {
+				this.skipWhitespace();
+			} catch (err) {
+				// `json` mode rejects whitespace outside RFC 8259's set; collect it
+				// like any other lexical error, then skip the offending character.
+				if (errors === null || !(err instanceof LexerError)) {
+					throw err;
+				}
+				errors.push(err);
+				if (!recover) {
+					while (!this.isAtEnd()) this.advance();
+					break;
+				}
+				this.advance();
+				continue;
+			}
 			if (this.isAtEnd()) break;
 
 			let token: Token | null;

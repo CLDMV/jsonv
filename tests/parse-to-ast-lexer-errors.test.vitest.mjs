@@ -39,7 +39,7 @@ describe("parseToAst collects lexical errors (issue #51)", () => {
 			["invalid unicode escape", '{ a: "\\u12" }', {}, "INVALID_UNICODE_ESCAPE"],
 			["invalid hex escape", '{ a: "\\x4" }', {}, "INVALID_HEX_ESCAPE"],
 			["unterminated block comment", "{ a: 1 } /* open", {}, "UNTERMINATED_COMMENT"],
-			["comment in JSON mode", '// c\n{ "a": 1 }', { mode: "json" }, "COMMENTS_NOT_ALLOWED"],
+			["comment in JSON mode", '// c\n{ "a": 1 }', { mode: "json" }, "FEATURE_NOT_ALLOWED_IN_MODE"],
 			["unexpected character", "{ a: @ }", {}, "UNEXPECTED_CHARACTER"],
 			["identifier after minus", "{ a: -Ix }", {}, "UNEXPECTED_TOKEN"],
 			["numeric literal starting with an underscore", "{ a: _1 }", {}, "INVALID_SEPARATOR"],
@@ -249,7 +249,7 @@ describe("parseToAst collects lexical errors (issue #51)", () => {
 		test("comments rejected in JSON mode are skipped, not returned", () => {
 			const text = '// line\n{ "a": /* block */ 1 }';
 			const { program, comments, errors } = parseToAst(text, { mode: "json", tolerant: true });
-			expect(summary(errors)).toEqual(["COMMENTS_NOT_ALLOWED@0", "COMMENTS_NOT_ALLOWED@15"]);
+			expect(summary(errors)).toEqual(["FEATURE_NOT_ALLOWED_IN_MODE@0", "FEATURE_NOT_ALLOWED_IN_MODE@15"]);
 			expect(comments).toEqual([]);
 			expect(program.body.properties[0].value).toMatchObject({ type: "Literal", value: 1 });
 		});

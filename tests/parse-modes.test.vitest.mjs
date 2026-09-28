@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { parseWithOptions, parseToAst, JsonvSyntaxError } from "../src/parser.mjs";
+import { parseWithOptions, parseToAst, JsonvSyntaxError, JsonvAggregateSyntaxError } from "../src/parser.mjs";
 import JSONV, { parse, parseWithOptions as indexParseWithOptions } from "../src/index.mjs";
 import * as api2011 from "../src/years/2011.mjs";
 import * as api2015 from "../src/years/2015.mjs";
@@ -19,7 +19,7 @@ const LABELS = { json: "JSON", json5: "JSON5" };
 
 /** Accepted, evaluating to `value` */
 const ok = (value) => ({ value });
-/** Rejected by the lexer (thrown everywhere, including parseToAst) at a single-line offset */
+/** Rejected by the lexer (thrown by parse/parseWithOptions, collected by parseToAst) at a single-line offset */
 const lx = (feature, offset) => ({ feature, offset, layer: "lexer" });
 /** Rejected by the parser (collected in parseToAst errors) at a single-line offset */
 const ps = (feature, offset) => ({ feature, offset, layer: "parser" });
@@ -135,17 +135,13 @@ describe("parse modes: feature matrix", () => {
 
 	describe("parseToAst", () => {
 		test.each(REJECTED.map((c) => [c.mode, c.name, c]))("%s rejects %s", (mode, _name, cell) => {
-			if (cell.expected.layer === "lexer") {
-				// Lexer-level errors are thrown, like every other lexical error
-				expectModeError(() => parseToAst(cell.source, { mode }), cell);
-				return;
-			}
-			// Parser-level errors are collected
+			// parseToAst collects lexer- and parser-level mode errors alike (#51), never throws
 			const { errors } = parseToAst(cell.source, { mode });
 			expect(errors).toHaveLength(1);
 			expect(errors[0].code).toBe(CODE);
-			expect(errors[0].message).toBe(`${cell.expected.feature} not allowed in ${LABELS[mode]} mode`);
+			expect(errors[0].message).toContain(`${cell.expected.feature} not allowed in ${LABELS[mode]} mode`);
 			expect(errors[0].loc.start).toEqual({ line: 1, column: cell.expected.offset, offset: cell.expected.offset });
+			expect([errors[0].line, errors[0].column, errors[0].offset]).toEqual([1, cell.expected.offset, cell.expected.offset]);
 		});
 
 		test.each(ACCEPTED.map((c) => [c.mode, c.name, c]))("%s accepts %s", (mode, _name, cell) => {
@@ -358,8 +354,15 @@ describe("parse modes: positions and error collection", () => {
 		expect(program.body.properties).toHaveLength(2);
 	});
 
-	test("tolerant parseWithOptions does not throw for parser-level mode errors", () => {
-		expect(parseWithOptions("[1, 2,]", { mode: "json", tolerant: true })).toEqual([1, 2]);
+	test("tolerant parseWithOptions reports parser-level mode errors in the aggregate error (#59)", () => {
+		let error;
+		try {
+			parseWithOptions("[1, 2,]", { mode: "json", tolerant: true });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeInstanceOf(JsonvAggregateSyntaxError);
+		expect(error.errors.map((e) => [e.code, e.offset])).toEqual([[CODE, 5]]);
 	});
 });
 
