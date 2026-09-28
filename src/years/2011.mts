@@ -26,14 +26,15 @@ import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSO
 
 /**
  * Parse jsonv text with ES2011 (JSON5) features
+ *
+ * The second argument is a reviver (the `JSON.parse` form) or a `ParseOptions`
+ * object. The year is fixed to 2011; `mode` defaults to `"jsonv"`.
+ * (jsonv at 2011 is JSON5 plus bare-identifier internal references; pass
+ * `mode: "json5"` for exactly JSON5.)
  */
-function parse(text: string, reviver?: (this: any, key: string, value: any) => any): any {
-	const options: ParseOptions = {
-		year: 2011,
-		mode: "json5",
-		reviver
-	};
-	return parseWithOptionsImpl(text, options);
+function parse(text: string, reviverOrOptions?: ((this: any, key: string, value: any) => any) | ParseOptions): any {
+	const options: ParseOptions | undefined = typeof reviverOrOptions === "function" ? { reviver: reviverOrOptions } : reviverOrOptions;
+	return parseWithOptionsImpl(text, { mode: "jsonv", ...options, year: 2011 });
 }
 
 /**

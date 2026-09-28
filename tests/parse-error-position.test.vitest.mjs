@@ -182,10 +182,19 @@ describe("JsonvSyntaxError (issue #28)", () => {
 	});
 
 	describe("tolerant mode", () => {
-		test("still does not throw when tolerant:true and the error is a parser-level (collected) error", () => {
-			// Sanity check: tolerant mode's existing non-throwing behavior for
-			// collected parser errors is unaffected by the new error class.
-			expect(() => parseWithOptions("[1, }", { tolerant: true })).not.toThrow();
+		test("a parser-level (collected) error in tolerant mode throws the aggregate JsonvSyntaxError (issue #59)", () => {
+			// Tolerant parses used to evaluate the partial document and return a
+			// value; since #59 the collected errors are thrown as one aggregate.
+			try {
+				parseWithOptions("[1, }", { tolerant: true });
+				expect.fail("should have thrown");
+			} catch (err) {
+				expect(err).toBeInstanceOf(JsonvSyntaxError);
+				expect(err.errors).toHaveLength(1);
+				expect(err.line).toBe(1);
+				expect(err.column).toBe(4);
+				expect(err.offset).toBe(4);
+			}
 		});
 
 		test("a lexer-level error reaching a tolerant parse is still a JsonvSyntaxError", () => {

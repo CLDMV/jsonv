@@ -17,9 +17,13 @@ export interface ParseOptions {
 
 	/**
 	 * Parsing mode compatibility
-	 * - 'jsonv': Full jsonv features for target year
-	 * - 'json5': JSON5-only features
-	 * - 'json': Strict JSON only
+	 * - 'jsonv': Full jsonv features for target year (default)
+	 * - 'json5': Exactly JSON5 1.0 (https://spec.json5.org/), no jsonv extensions
+	 * - 'json': Exactly RFC 8259 JSON
+	 *
+	 * In 'json5' and 'json' modes, a feature outside the mode is rejected with a
+	 * positioned `JsonvSyntaxError` whose `code` is `"FEATURE_NOT_ALLOWED_IN_MODE"`.
+	 * Any other value throws a `TypeError`.
 	 */
 	mode?: "jsonv" | "json5" | "json";
 
@@ -42,7 +46,22 @@ export interface ParseOptions {
 	preserveComments?: boolean;
 
 	/**
-	 * Tolerant mode: collect multiple errors instead of failing on first
+	 * Tolerant mode: collect multiple errors instead of failing on first.
+	 *
+	 * The parser recovers at the next property / element boundary after a
+	 * syntax error and keeps going, so one parse reports every syntax error.
+	 * - `parse` / `parseWithOptions` (and the year entry points): if any syntax
+	 *   error was collected, one `JsonvAggregateSyntaxError` (a
+	 *   `JsonvSyntaxError`) is thrown and the document is not evaluated. Its
+	 *   `errors` array holds every error in source order, each a
+	 *   `JsonvSyntaxError` with `line`, `column`, `offset` and `code`; its own
+	 *   message, position and code are the first error's, and the message ends
+	 *   with the total count. A lexical error (which stops tokenization) is
+	 *   reported the same way. Input without syntax errors evaluates exactly as
+	 *   in a strict parse.
+	 * - `parseToAst`: never throws for collected errors; they are returned in
+	 *   its `errors` array.
+	 *
 	 * Default: false
 	 */
 	tolerant?: boolean;

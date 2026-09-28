@@ -106,13 +106,13 @@ describe("jsonv fixtures", () => {
 					if (isViolation) {
 						// Violation fixtures should throw parse errors (test in strict mode)
 						expect(
-							() => parseWithOptions(content, { year: yearNum, strictBigInt: true }),
+							() => parseWithOptions(content, { year: yearNum, mode: "jsonv", strictBigInt: true }),
 							`Violation file ${relativePath} should fail to parse`
 						).toThrow();
 					} else {
 						// Valid fixtures should parse successfully (test in non-strict mode)
 						expect(() => {
-							const result = parseWithOptions(content, { year: yearNum, strictBigInt: false });
+							const result = parseWithOptions(content, { year: yearNum, mode: "jsonv", strictBigInt: false });
 							expect(result).toBeDefined();
 						}, `Valid fixture ${relativePath} should parse successfully`).not.toThrow();
 					}
@@ -120,4 +120,47 @@ describe("jsonv fixtures", () => {
 			}
 		});
 	}
+
+	// The 2011 feature fixtures that use only JSON5 syntax also parse under
+	// mode "json5"; the rest use a jsonv extension and are rejected there.
+	describe("ES2011 feature fixtures under mode: json5", () => {
+		const JSON5_ONLY = [
+			"comments-multi-line.jsonv",
+			"comments-single-line.jsonv",
+			"decimal-points.jsonv",
+			"infinity-nan.jsonv",
+			"multiline-strings.jsonv",
+			"single-quoted-strings.jsonv",
+			"trailing-commas.jsonv",
+			"unquoted-keys.jsonv"
+		];
+		const JSONV_EXTENSIONS = [
+			["forward-reference.jsonv", "Internal references"],
+			["hex-literals.jsonv", "Numeric keys"],
+			["internal-refs-bare.jsonv", "Internal references"]
+		];
+		const read = (name) => readFileSync(join(FIXTURES_DIR, "2011", "features", name), "utf-8");
+
+		it("covers every 2011 feature fixture", () => {
+			const listed = [...JSON5_ONLY, ...JSONV_EXTENSIONS.map(([name]) => name)].sort();
+			expect(readdirSync(join(FIXTURES_DIR, "2011", "features")).sort()).toEqual(listed);
+		});
+
+		for (const name of JSON5_ONLY) {
+			it(`should parse in json5 mode: 2011/features/${name}`, () => {
+				expect(parseWithOptions(read(name), { year: 2011, mode: "json5" })).toEqual(parseWithOptions(read(name), { year: 2011 }));
+			});
+		}
+
+		for (const [name, feature] of JSONV_EXTENSIONS) {
+			it(`should reject in json5 mode: 2011/features/${name}`, () => {
+				expect(() => parseWithOptions(read(name), { year: 2011, mode: "json5" })).toThrow(
+					expect.objectContaining({
+						code: "FEATURE_NOT_ALLOWED_IN_MODE",
+						message: expect.stringContaining(`${feature} not allowed in JSON5 mode`)
+					})
+				);
+			});
+		}
+	});
 });

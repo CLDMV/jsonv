@@ -19,14 +19,13 @@ import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSO
 
 /**
  * Parse jsonv text with ES2020 features (includes BigInt)
+ *
+ * The second argument is a reviver (the `JSON.parse` form) or a `ParseOptions`
+ * object. The year is fixed to 2020; `mode` defaults to `"jsonv"`.
  */
-function parse(text: string, reviver?: (this: any, key: string, value: any) => any): any {
-	const options: ParseOptions = {
-		year: 2020,
-		mode: "jsonv",
-		reviver
-	};
-	return parseWithOptionsImpl(text, options);
+function parse(text: string, reviverOrOptions?: ((this: any, key: string, value: any) => any) | ParseOptions): any {
+	const options: ParseOptions | undefined = typeof reviverOrOptions === "function" ? { reviver: reviverOrOptions } : reviverOrOptions;
+	return parseWithOptionsImpl(text, { mode: "jsonv", ...options, year: 2020 });
 }
 
 /**

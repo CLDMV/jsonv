@@ -13,7 +13,7 @@ import {
 	isRawJSON as isRawJSONImpl
 } from "./stringify.mjs";
 import { diagnose as diagnoseImpl, info as infoImpl } from "./diagnose.mjs";
-import { JsonvSyntaxError, JsonvReferenceError } from "./errors.mjs";
+import { JsonvSyntaxError, JsonvReferenceError, JsonvAggregateSyntaxError } from "./errors.mjs";
 import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON } from "./api-types.mjs";
 
 /**
@@ -21,7 +21,8 @@ import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSO
  * Compatible with JSON.parse(text, reviver) signature
  *
  * @param text - The jsonv text to parse
- * @param reviver - Optional reviver function to transform values
+ * @param reviverOrOptions - Optional reviver function to transform values, or a
+ *   {@link ParseOptions} object (e.g. `{ mode: "json" }`)
  * @returns The parsed JavaScript value
  *
  * @example
@@ -32,8 +33,8 @@ import type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSO
  * console.log(data); // { port: 8080, backup: 8080 }
  * ```
  */
-function parseJSON(text: string, reviver?: (this: any, key: string, value: any) => any): any {
-	return parse(text, reviver);
+function parseJSON(text: string, reviverOrOptions?: ((this: any, key: string, value: any) => any) | ParseOptions): any {
+	return parse(text, reviverOrOptions);
 }
 
 /**
@@ -177,7 +178,8 @@ export {
 	diagnose,
 	info,
 	JsonvSyntaxError,
-	JsonvReferenceError
+	JsonvReferenceError,
+	JsonvAggregateSyntaxError
 };
 
 // Default export
