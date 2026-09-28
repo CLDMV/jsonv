@@ -95,8 +95,38 @@ export class Lexer {
 	/**
 	 * Tokenize the entire input and return array of tokens
 	 * @returns Array of tokens
+	 * @throws {LexerError} On the first lexical error
 	 */
 	public tokenize(): Token[] {
+		return this.scan(null, false);
+	}
+
+	/**
+	 * Tokenize the entire input, collecting lexical errors instead of throwing them.
+	 *
+	 * Without `recover`, lexing stops at the first error: the result holds the
+	 * tokens lexed before it and an EOF token at the end of the input. With
+	 * `recover`, the lexer skips the unreadable text and keeps going (see
+	 * {@link Lexer.resync}); the unreadable text (other than a comment) is
+	 * replaced by one `Unknown` token spanning it so the parser can hold its
+	 * place without reporting a second error.
+	 *
+	 * @internal Used by `parseToAst`; `tokenize()` is the public entry point.
+	 * @param recover - Keep lexing after an error instead of stopping
+	 * @returns The tokens (ending with EOF) and the collected errors in source order
+	 */
+	public tokenizeCollectingErrors(recover: boolean): { tokens: Token[]; errors: LexerError[] } {
+		const errors: LexerError[] = [];
+		const tokens = this.scan(errors, recover);
+		return { tokens, errors };
+	}
+
+	/**
+	 * Shared tokenize loop.
+	 * @param errors - Sink for lexical errors, or `null` to throw them
+	 * @param recover - With a sink, keep lexing after an error instead of stopping
+	 */
+	private scan(errors: LexerError[] | null, recover: boolean): Token[] {
 		this.tokens = [];
 		this.pos = 0;
 		this.line = 1;
@@ -107,7 +137,21 @@ export class Lexer {
 			this.skipWhitespace();
 			if (this.isAtEnd()) break;
 
-			const token = this.nextToken();
+			let token: Token | null;
+			try {
+				token = this.nextToken();
+			} catch (err) {
+				if (errors === null || !(err instanceof LexerError)) {
+					throw err;
+				}
+				errors.push(err);
+				if (!recover) {
+					// Stop at the first error; the EOF token still sits at the end of the input.
+					while (!this.isAtEnd()) this.advance();
+					break;
+				}
+				token = this.resync();
+			}
 			if (token) {
 				// Filter comments unless preserveComments is enabled
 				if (token.type === TokenType.LINE_COMMENT || token.type === TokenType.BLOCK_COMMENT) {
@@ -125,6 +169,91 @@ export class Lexer {
 		this.tokens.push(this.createToken(TokenType.EOF, null, ""));
 
 		return this.tokens;
+	}
+
+	/**
+	 * Skip past the text that caused a lexical error so lexing can continue.
+	 *
+	 * The skip depends on the character the failed token started with:
+	 * - a quote: the rest of the string, through its closing quote or up to the end of the line;
+	 * - a backtick, or the `}` resuming a template: the rest of the template, through its closing backtick;
+	 * - `//` or `/*`: the whole comment;
+	 * - a digit, sign, `.` or identifier character: the rest of the number or identifier;
+	 * - anything else: the offending character alone.
+	 *
+	 * Skipped text other than a comment yields an `Unknown` token spanning it,
+	 * so the parser can keep a value's place without reporting a second error;
+	 * a skipped comment yields no token.
+	 *
+	 * @returns The `Unknown` token for the skipped text, or `null` for a comment
+	 */
+	private resync(): Token | null {
+		const start = this.tokenStart;
+		const first = this.input[start.offset];
+		const openBraces = this.interpolationBraces;
+		const inTemplate = first === "`" || (first === "}" && openBraces.length > 0 && openBraces[openBraces.length - 1] === 0);
+
+		if (first === '"' || first === "'" || inTemplate) {
+			// Rescan from the token start: the error may have stopped mid-escape.
+			this.rewind(start);
+			const close = inTemplate ? "`" : first;
+			this.advance(); // the opening quote, backtick or }
+			while (!this.isAtEnd()) {
+				const ch = this.peek();
+				if (!inTemplate && this.isLineTerminator(ch)) break;
+				this.advance();
+				if (ch === "\\") {
+					if (!this.isAtEnd()) this.advance();
+				} else if (ch === close) {
+					break;
+				}
+			}
+			if (first === "}") this.interpolationBraces.pop(); // the skipped segment closed the template
+			return this.createToken(TokenType.UNKNOWN, null, this.input.slice(start.offset, this.pos));
+		}
+
+		if (first === "/" && (this.input[start.offset + 1] === "/" || this.input[start.offset + 1] === "*")) {
+			this.rewind(start);
+			const block = this.input[start.offset + 1] === "*";
+			this.advance(); // /
+			this.advance(); // / or *
+			while (!this.isAtEnd()) {
+				if (!block && this.isLineTerminator(this.peek())) break;
+				if (block && this.peek() === "*" && this.peekNext() === "/") {
+					this.advance();
+					this.advance();
+					break;
+				}
+				this.advance();
+			}
+			return null;
+		}
+
+		if (this.isIdentifierPart(first) || first === "." || first === "+" || first === "-") {
+			if (this.pos === start.offset) this.advance();
+			while (!this.isAtEnd() && (this.isIdentifierPart(this.peek()) || this.peek() === ".")) {
+				this.advance();
+			}
+			return this.createToken(TokenType.UNKNOWN, null, this.input.slice(start.offset, this.pos));
+		}
+
+		// Skip the offending character alone, keeping a surrogate pair together.
+		this.rewind(start);
+		const code = this.input.charCodeAt(this.pos);
+		this.advance();
+		const next = this.input.charCodeAt(this.pos);
+		if (code >= 0xd800 && code <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) this.advance();
+		return this.createToken(TokenType.UNKNOWN, null, this.input.slice(start.offset, this.pos));
+	}
+
+	/**
+	 * Move the scan position back to an earlier position.
+	 * @param to - Position to resume scanning from
+	 */
+	private rewind(to: Position): void {
+		this.pos = to.offset;
+		this.line = to.line;
+		this.column = to.column;
 	}
 
 	/**
@@ -497,6 +626,29 @@ export class Lexer {
 	}
 
 	/**
+	 * Consume one template character and return its cooked text. A CRLF pair or a
+	 * lone CR is a single line terminator whose template value is LF (ECMAScript
+	 * TV of a LineTerminatorSequence); every other character is itself.
+	 */
+	private advanceTemplateCharacter(): string {
+		const ch = this.advance();
+		if (ch === "\r") {
+			if (this.peek() === "\n") this.advance();
+			return "\n";
+		}
+		return ch;
+	}
+
+	/**
+	 * Raw text of a template token: the source slice from `start` to `end` with
+	 * each CRLF pair and lone CR replaced by LF, as in the ECMAScript TRV. Escaped
+	 * `\r` (backslash, `r`) is two ordinary characters and is left alone.
+	 */
+	private templateRaw(start: number, end: number): string {
+		return this.input.slice(start, end).replace(/\r\n?/g, "\n");
+	}
+
+	/**
 	 * Parse unicode escape sequence (\uXXXX)
 	 */
 	private parseUnicodeEscape(length: number): string {
@@ -533,6 +685,8 @@ export class Lexer {
 	 * - `TemplateHead`: `` `text${ `` (the opening backtick through the `${`)
 	 *
 	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
+	 * As in ECMAScript, a CR or CRLF line terminator becomes LF in both `value`
+	 * and `raw`; `loc` still describes the original source.
 	 */
 	private scanTemplateLiteral(): Token {
 		const start = this.pos;
@@ -547,7 +701,7 @@ export class Lexer {
 
 			// Check for interpolation start
 			if (ch === "$" && this.peekNext() === "{") {
-				const raw = this.input.slice(start, this.pos + 2); // Include ${
+				const raw = this.templateRaw(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
 				this.interpolationBraces.push(0); // Enter template interpolation mode
@@ -557,7 +711,7 @@ export class Lexer {
 			// Check for closing backtick
 			if (ch === "`") {
 				this.advance(); // closing backtick
-				const raw = this.input.slice(start, this.pos);
+				const raw = this.templateRaw(start, this.pos);
 				return this.createToken(TokenType.TEMPLATE_LITERAL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
 
@@ -570,8 +724,8 @@ export class Lexer {
 				continue;
 			}
 
-			// Regular character
-			value += this.advance();
+			// Regular character (a CR or CRLF line terminator cooks to LF)
+			value += this.advanceTemplateCharacter();
 		}
 
 		throw this.createError("Unterminated template literal", "UNTERMINATED_TEMPLATE");
@@ -587,6 +741,8 @@ export class Lexer {
 	 * - `TemplateTail`: `` }text` `` (the closing `}` through the closing backtick)
 	 *
 	 * `raw` and `loc` cover the delimiters; `value` is the cooked text without them.
+	 * As in ECMAScript, a CR or CRLF line terminator becomes LF in both `value`
+	 * and `raw`; `loc` still describes the original source.
 	 */
 	private scanTemplateMiddleOrTail(): Token {
 		const start = this.pos;
@@ -600,7 +756,7 @@ export class Lexer {
 
 			// Check for another interpolation
 			if (ch === "$" && this.peekNext() === "{") {
-				const raw = this.input.slice(start, this.pos + 2); // Include ${
+				const raw = this.templateRaw(start, this.pos + 2); // Include ${
 				this.advance(); // $
 				this.advance(); // {
 				return this.createToken(TokenType.TEMPLATE_MIDDLE, value, raw, { line: startLine, column: startCol, offset: start });
@@ -609,7 +765,7 @@ export class Lexer {
 			// Check for closing backtick
 			if (ch === "`") {
 				this.advance(); // closing backtick
-				const raw = this.input.slice(start, this.pos);
+				const raw = this.templateRaw(start, this.pos);
 				this.interpolationBraces.pop(); // Exit template interpolation mode
 				return this.createToken(TokenType.TEMPLATE_TAIL, value, raw, { line: startLine, column: startCol, offset: start });
 			}
@@ -623,8 +779,8 @@ export class Lexer {
 				continue;
 			}
 
-			// Regular character
-			value += this.advance();
+			// Regular character (a CR or CRLF line terminator cooks to LF)
+			value += this.advanceTemplateCharacter();
 		}
 
 		throw this.createError("Unterminated template literal", "UNTERMINATED_TEMPLATE");

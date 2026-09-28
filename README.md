@@ -64,7 +64,7 @@ Main entry: [src/index.mts](src/index.mts)
 - `allowInternalReferences`: default `true`
 - `strictBigInt`: require `n` for unsafe integers (default `false`)
 - `strictOctal`: require `0o` (reject legacy `0755`, default `false`)
-- `tolerant`: collect multiple errors
+- `tolerant`: collect every syntax error instead of stopping at the first; `parseWithOptions` then throws them together as one `JsonvAggregateSyntaxError` (see [Errors](#errors))
 - `preserveComments`: return comments (with positions) from `Parser#parse()`; see [AST for tooling](#ast-for-tooling)
 
 ### Parse modes
@@ -101,6 +101,21 @@ try {
 ```
 This applies to every parse entry point (year-pinned APIs included) and every kind of positioned error — lexer-level (unterminated strings, invalid escapes, year-gated feature checks) and parser-level (unexpected tokens, strict-mode violations) alike.
 
+With `tolerant: true`, the parser recovers at the next property or element boundary after a syntax error and keeps going. If any syntax error was collected, `parseWithOptions` (year-pinned APIs included) throws a single `JsonvAggregateSyntaxError` and does not evaluate the document. It is a `JsonvSyntaxError` whose own `line`/`column`/`offset`/`code` are the first error's, whose message is the first error's message followed by the total count, and whose `errors` array holds every error in source order, each a `JsonvSyntaxError` with its own position and code (the same error a strict parse would throw for it). A lexical error is reported through the same aggregate. Input without syntax errors evaluates exactly as it does without `tolerant`:
+```js
+import { parseWithOptions, JsonvAggregateSyntaxError } from "@cldmv/jsonv";
+
+try {
+  parseWithOptions("{ a: 1,, b: 2,, c: }", { tolerant: true });
+} catch (err) {
+  if (err instanceof JsonvAggregateSyntaxError) {
+    err.message; // "Expected property key, got COMMA at line 1, column 7 (3 syntax errors in total)"
+    err.errors.map((e) => [e.line, e.column, e.code]); // [[1, 7, "PARSE_ERROR"], [1, 14, "PARSE_ERROR"], [1, 19, "PARSE_ERROR"]]
+  }
+}
+```
+`parseToAst` never throws for collected errors; it returns them in `errors`.
+
 Internal-reference resolution failures (an unresolved or circular internal reference) throw the sibling `JsonvReferenceError` (extends `ReferenceError`, `name` stays `"ReferenceError"`) instead, with the same structured `line`/`column`/`offset`/`code` shape, pointing at the offending reference:
 ```js
 import { parseWithOptions, JsonvReferenceError } from "@cldmv/jsonv";
@@ -123,7 +138,7 @@ const { program, comments, tokens, errors } = parseToAst("// port\n{ port: 8080 
 program.body.properties[0].key; // { type: "Identifier", name: "port", loc: { start: { line: 2, column: 2, offset: 10 }, ... } }
 comments[0].value; // " port"
 ```
-Every node, token and comment carries `loc: { start, end }` with `{ line, column, offset }` positions (`\n`, `\r\n`, `\r`, U+2028 and U+2029 each count as one line break). Property keys are positioned `Literal` / `Identifier` nodes, and `Property.loc` spans key through value. Parse errors are collected in `errors`; lexical errors throw `JsonvSyntaxError`. See [docs/ast.md](docs/ast.md) for the node reference.
+Every node, token and comment carries `loc: { start, end }` with `{ line, column, offset }` positions (`\n`, `\r\n`, `\r`, U+2028 and U+2029 each count as one line break). Property keys are positioned `Literal` / `Identifier` nodes, and `Property.loc` spans key through value. `parseToAst()` never throws for invalid input: lexical and parse errors are both collected in `errors` (with `code`, `line`, `column` and `offset`), and `tolerant: true` recovers from both and reports every one. See [docs/ast.md](docs/ast.md) for the node reference.
 
 ## Internal references
 ```jsonv
