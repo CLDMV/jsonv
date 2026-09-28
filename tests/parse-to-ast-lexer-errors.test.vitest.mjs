@@ -217,9 +217,10 @@ describe("parseToAst collects lexical errors (issue #51)", () => {
 
 		test("a bad escape before a backslash at the end of input skips to the end", () => {
 			const { tokens, errors } = parseToAst('[1, "\\u1\\', { tolerant: true });
+			// Only the first error at a position is kept (#59): the enclosing array's
+			// "Expected RBRACKET" at the same offset as its "Expected ',' or ']'" is dropped
 			expect(errors.map((e) => [e.code, e.offset])).toEqual([
 				["INVALID_UNICODE_ESCAPE", 8],
-				["PARSE_ERROR", 9],
 				["PARSE_ERROR", 9]
 			]);
 			expect(tokens.map((t) => t.raw)).toEqual(["[", "1", ","]);
@@ -281,12 +282,10 @@ describe("parseToAst collects lexical errors (issue #51)", () => {
 
 		test("recovers after a template head error at the end of input", () => {
 			const { errors, tokens } = parseToAst("[1, `open", { tolerant: true });
-			// The template runs to the end of input, so the array is left unclosed
-			expect(errors.map((e) => [e.code, e.offset, e.message])).toEqual([
-				["UNTERMINATED_TEMPLATE", 9, "Unterminated template literal"],
-				["PARSE_ERROR", 9, "Expected ',' or ']' in array"],
-				["PARSE_ERROR", 9, "Expected RBRACKET, got EOF"]
-			]);
+			// The template runs to the end of input, leaving the array unclosed; the
+			// unclosed-array errors fall at the same offset as the lexical error, and
+			// only the first error at a position is kept (#59)
+			expect(errors.map((e) => [e.code, e.offset, e.message])).toEqual([["UNTERMINATED_TEMPLATE", 9, "Unterminated template literal"]]);
 			expect(tokens.map((t) => t.raw)).toEqual(["[", "1", ","]);
 		});
 	});
