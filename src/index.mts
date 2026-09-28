@@ -5,7 +5,7 @@
  * Year-based API versioning tied to ECMAScript releases
  */
 
-import { parse, parseWithOptions } from "./parser.mjs";
+import { parse, parseWithOptions, parseToAst } from "./parser.mjs";
 import {
 	stringify as stringifyImpl,
 	stringifyWithOptions as stringifyOptsImpl,
@@ -169,6 +169,7 @@ function stringifyWithOptions(value: any, options?: StringifyOptions): string {
 export {
 	parseJSON as parse,
 	parseWithOptions,
+	parseToAst,
 	stringify,
 	stringifyWithOptions,
 	isRawJSON,
@@ -184,3 +185,24 @@ export default JSONV;
 
 // Type exports
 export type { ParseOptions, StringifyOptions, DiagnoseResult, InfoResult, RawJSON };
+export type {
+	AstResult,
+	ParseResult,
+	ParseError,
+	Comment,
+	SourceLocation,
+	Position,
+	ASTNode,
+	Program,
+	Expression,
+	Literal,
+	ObjectExpression,
+	ArrayExpression,
+	Property,
+	PropertyKeyNode,
+	Identifier,
+	TemplateLiteral,
+	TemplateElement,
+	MemberExpression
+} from "./ast-types.mjs";
+export type { Token } from "./lexer/lexer-types.mjs";
