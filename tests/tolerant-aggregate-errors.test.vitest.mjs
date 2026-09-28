@@ -329,6 +329,37 @@ describe("tolerant mode without syntax errors matches strict mode (issue #59)", 
 	});
 });
 
+describe("interplay with rejected interpolation literals (issues #50 / #57)", () => {
+	test("a rejected object literal in ${} comes back in the aggregate, not as 'Unresolved reference: <template>'", () => {
+		const text = "{ a: 1, t: `x${ { k: 1 } }y`, b: 2 }";
+		const err = thrown(() => parseWithOptions(text, { year: 2015, tolerant: true }));
+
+		expect(err).toBeInstanceOf(JsonvAggregateSyntaxError);
+		expect(err).not.toBeInstanceOf(JsonvReferenceError);
+		expect(err.errors.map((e) => [e.message, e.offset, e.code])).toEqual([
+			["Object literals are not supported in template interpolation at line 1, column 16", 16, "UNSUPPORTED_INTERPOLATION"]
+		]);
+		expect(err.message).toBe("Object literals are not supported in template interpolation at line 1, column 16 (1 syntax error in total)");
+	});
+
+	test("a rejected array literal is listed in source order among other syntax errors", () => {
+		const text = "{ a: 1,, t: `x${ [1] }`, c: }";
+		const err = thrown(() => parseWithOptions(text, { year: 2015, tolerant: true }));
+
+		expect(err.errors.map((e) => [e.offset, e.code])).toEqual([
+			[7, "PARSE_ERROR"],
+			[17, "UNSUPPORTED_INTERPOLATION"],
+			[28, "PARSE_ERROR"]
+		]);
+	});
+
+	test("strict mode still throws the rejection itself", () => {
+		const err = thrown(() => parseWithOptions("{ t: `x${ [1] }` }", { year: 2015 }));
+		expect(err).not.toBeInstanceOf(JsonvAggregateSyntaxError);
+		expect(err.code).toBe("UNSUPPORTED_INTERPOLATION");
+	});
+});
+
 describe("entry points (issue #59)", () => {
 	const text = "{ a: 1,, b: 2,, c: }";
 	const expectedOffsets = [7, 14, 19];

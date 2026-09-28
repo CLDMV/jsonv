@@ -97,12 +97,13 @@ describe("nested template literals (issue #49)", () => {
 			expect(err.offset).toBe(input.indexOf("["));
 		});
 
-		test("in tolerant mode a rejected array interpolation leaves the template unresolved", () => {
+		test("in tolerant mode a rejected array interpolation is reported in the aggregate syntax error (issue #59)", () => {
 			const input = "{ t: `a${ `b${ [1] }` }` }";
 			const err = thrown(() => parseWithOptions(input, { year: 2015, tolerant: true }));
-			expect(err).toBeInstanceOf(JsonvReferenceError);
-			expect(err.message).toBe("Unresolved reference: <template> (circular reference or undefined)");
-			expect(err.offset).toBe(input.indexOf("`"));
+			expect(err).toBeInstanceOf(JsonvSyntaxError);
+			expect(err).not.toBeInstanceOf(JsonvReferenceError);
+			expect(err.errors.map((e) => e.code)).toEqual(["UNSUPPORTED_INTERPOLATION"]);
+			expect(err.errors[0].offset).toBe(input.indexOf("[1]"));
 		});
 
 		test("a nested template as the top-level value of a root array", () => {
