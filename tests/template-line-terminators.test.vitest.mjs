@@ -1,4 +1,19 @@
 /**
+ *
+ *	@Project: @cldmv/jsonv
+ *	@Filename: /tests/template-line-terminators.test.vitest.mjs
+ *	@Date: 2026-09-28T19:25:58+00:00 (1790623558)
+ *	@Author: Nate Corcoran <CLDMV>
+ *	@Email: <Shinrai@users.noreply.github.com>
+ *	-----
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:39-07:00 (1790968839)
+ *	-----
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
+ */
+
+/**
  * Tests for GitHub issue #56: inside a template literal, a CRLF pair or a lone CR
  * is one line terminator whose cooked value (TV) and raw value (TRV) are both LF,
  * as in ECMAScript. Token and quasi `loc` keep describing the original source.

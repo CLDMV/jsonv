@@ -1,4 +1,19 @@
 /**
+ *
+ *	@Project: @cldmv/jsonv
+ *	@Filename: /tests/parser-ast.test.vitest.mjs
+ *	@Date: 2026-09-28T03:31:40+00:00 (1790566300)
+ *	@Author: Nate Corcoran <CLDMV>
+ *	@Email: <Shinrai@users.noreply.github.com>
+ *	-----
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:36-07:00 (1790968836)
+ *	-----
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
+ */
+
+/**
  * Tests for GitHub issue #30: the exported Parser AST must be usable by
  * tooling (e.g. @cldmv/eslint-plugin-jsonv) — comments and tokens returned
  * from parse(), positioned property-key nodes, full node spans, and correct

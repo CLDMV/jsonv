@@ -1,4 +1,19 @@
 /**
+ *
+ *	@Project: @cldmv/jsonv
+ *	@Filename: /tests/parse-modes.test.vitest.mjs
+ *	@Date: 2026-09-28T19:25:58+00:00 (1790623558)
+ *	@Author: Nate Corcoran <CLDMV>
+ *	@Email: <Shinrai@users.noreply.github.com>
+ *	-----
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:35-07:00 (1790968835)
+ *	-----
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
+ */
+
+/**
  * Parse modes (issue #52): `mode: "json"` accepts exactly RFC 8259 JSON,
  * `mode: "json5"` accepts exactly JSON5 1.0, and `mode: "jsonv"` keeps every
  * jsonv feature. A feature outside the mode is rejected with a positioned

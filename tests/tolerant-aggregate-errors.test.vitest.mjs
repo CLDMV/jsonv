@@ -1,4 +1,19 @@
 /**
+ *
+ *	@Project: @cldmv/jsonv
+ *	@Filename: /tests/tolerant-aggregate-errors.test.vitest.mjs
+ *	@Date: 2026-09-28T19:25:58+00:00 (1790623558)
+ *	@Author: Nate Corcoran <CLDMV>
+ *	@Email: <Shinrai@users.noreply.github.com>
+ *	-----
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:40-07:00 (1790968840)
+ *	-----
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
+ */
+
+/**
  * Tests for GitHub issue #59: a `tolerant: true` parse that collected syntax
  * errors throws one aggregate `JsonvSyntaxError` listing all of them in source
  * order instead of evaluating the recovered document, and error recovery
