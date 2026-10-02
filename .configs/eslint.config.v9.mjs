@@ -1,13 +1,16 @@
 /**
+ *
  *	@Project: @cldmv/jsonv
  *	@Filename: /.configs/eslint.config.v9.mjs
- *	@Date: 2026-01-16 (ESLint 9.39+ config)
- *	@Author: Nate Hyson <CLDMV>
+ *	@Date: 2026-01-18T21:20:36-08:00 (1768800036)
+ *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
- *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:09-07:00 (1790968809)
  *	-----
- *	ESLint 9.39+ flat config - successor to eslint.config.mjs
+ *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
  */
 
 import js from "@eslint/js";
