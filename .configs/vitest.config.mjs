@@ -1,14 +1,16 @@
 /**
+ *
  *	@Project: @cldmv/jsonv
  *	@Filename: /.configs/vitest.config.mjs
- *	@Date: 2026-01-14
- *	@Author: Nate Hyson <CLDMV>
+ *	@Date: 2026-01-18T21:20:36-08:00 (1768800036)
+ *	@Author: Nate Corcoran <CLDMV>
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
- *	@Last modified by: Nate Hyson <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-01-14
+ *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
+ *	@Last modified time: 2026-10-02T12:20:10-07:00 (1790968810)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
+ *
  */
 
 import { defineConfig } from "vitest/config";

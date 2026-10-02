@@ -65,7 +65,8 @@
 		"lint:v8": "set ESLINT_USE_FLAT_CONFIG=true&& eslint --config .configs/eslint.config.mjs src tests",
 		"format": "prettier --config .configs/.prettierrc --write \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
 		"format:check": "prettier --config .configs/.prettierrc --check \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
-		"dev": "NODE_OPTIONS='--conditions=json-dev' node"
+		"dev": "NODE_OPTIONS='--conditions=json-dev' node",
+		"fix:headers": "fix-headers --config .configs/fix-headers.json"
 	},
 	"keywords": [
 		"json",
@@ -117,7 +118,9 @@
 		"dist/"
 	],
 	"devDependencies": {
+		"@cldmv/configs": "^1.2.0",
 		"@cldmv/eslint-plugin-jsonv": "^1.0.3",
+		"@cldmv/fix-headers": "^2.1.1",
 		"@cldmv/vitest-runner": "^1.4.3",
 		"@eslint/css": "^2.0.0",
 		"@eslint/js": "^10.0.1",
