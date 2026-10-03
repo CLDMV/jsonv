@@ -14,11 +14,15 @@
  */
 
 /**
- * Build CJS wrappers for CommonJS compatibility
- * Creates .cjs files that load the ESM modules
+ * Build CJS wrappers for CommonJS compatibility.
+ *
+ * Each .cjs file is a thin wrapper that loads its ESM counterpart through Node's
+ * synchronous require(esm), so `require("@cldmv/jsonv")` returns the same module
+ * namespace object that `import` gives. The ESM graph therefore must not use
+ * top-level await (require(esm) rejects it with ERR_REQUIRE_ASYNC_MODULE).
  */
 
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from "fs";
+import { mkdirSync, writeFileSync, readdirSync, rmSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -27,127 +31,83 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
 const distDir = join(rootDir, "dist");
 const cjsDir = join(distDir, "cjs");
+const cjsYearsDir = join(cjsDir, "years");
+const cjsTypesDir = join(distDir, "types", "cjs");
+const cjsYearsTypesDir = join(cjsTypesDir, "years");
 
 console.log("\n📦 Building CJS wrappers...\n");
 
-// Ensure CJS directory exists
-if (!existsSync(cjsDir)) {
-	mkdirSync(cjsDir, { recursive: true });
-}
+// Start from a clean dist/cjs so a wrapper removed here (e.g. the old async loader.cjs)
+// never lingers from an earlier build.
+rmSync(cjsDir, { recursive: true, force: true });
+mkdirSync(cjsYearsDir, { recursive: true });
+mkdirSync(cjsYearsTypesDir, { recursive: true });
 
-// Create CJS loader that dynamically imports ESM
-const loaderContent = `/**
- * CommonJS loader for @cldmv/jsonv
- * Dynamically imports ESM modules
+/**
+ * Source of a CJS wrapper that synchronously requires an ESM file.
+ * @param {string} specifier - Package specifier the wrapper stands for (for the comment and error message).
+ * @param {string} esmPath - Path of the ESM file, relative to the wrapper.
+ * @returns {string} The wrapper source.
  */
-
-module.exports = (async () => {
-	const esm = await import('../index.mjs');
-	return esm;
-})();
-`;
-
-const loaderFile = join(cjsDir, "loader.cjs");
-writeFileSync(loaderFile, loaderContent, "utf8");
-console.log(`✓ Created CJS loader → ${loaderFile}`);
-
-// Create main CJS entry point
-const indexContent = `/**
- * CommonJS entry point for @cldmv/jsonv
+function wrapper(specifier, esmPath) {
+	return `/**
+ * CommonJS entry for ${specifier}
  */
+"use strict";
 
-const loader = require('./loader.cjs');
+// A thin wrapper: it loads the ESM build through Node's synchronous require(esm), so
+// require() returns the same module namespace object as import. Node.js versions without
+// require(esm) would fail with a bare ERR_REQUIRE_ESM, so fail early with a message that
+// says what to do instead.
+if (!process.features?.require_module) {
+	const error = new Error(
+		\`@cldmv/jsonv: require() needs Node.js ^20.19.0 or >=22.12.0 (this is \${process.version}). On older Node.js, load the package with import() instead.\`
+	);
+	error.code = "ERR_REQUIRE_ESM";
+	throw error;
+}
 
-module.exports = loader;
+module.exports = require("${esmPath}");
 `;
-
-const indexFile = join(cjsDir, "index.cjs");
-writeFileSync(indexFile, indexContent, "utf8");
-console.log(`✓ Created CJS index → ${indexFile}`);
-
-// Prepare CJS types directory
-const cjsTypesDir = join(distDir, "types", "cjs");
-if (!existsSync(cjsTypesDir)) {
-	mkdirSync(cjsTypesDir, { recursive: true });
 }
 
-// Create CJS wrappers for year modules
-const cjsYearsDir = join(cjsDir, "years");
-const cjsYearsTypesDir = join(cjsTypesDir, "years");
+// Main CJS entry point
+writeFileSync(join(cjsDir, "index.cjs"), wrapper("@cldmv/jsonv", "../index.mjs"), "utf8");
+console.log("✓ Created CJS index → dist/cjs/index.cjs");
 
-if (!existsSync(cjsYearsDir)) {
-	mkdirSync(cjsYearsDir, { recursive: true });
+// CJS wrappers for every module under dist/years/: the year modules plus the
+// loader and year-resolver utilities, all reachable through the "./*" export.
+const yearModules = readdirSync(join(distDir, "years"))
+	.filter((f) => f.endsWith(".mjs"))
+	.map((f) => f.slice(0, -".mjs".length));
+
+for (const name of yearModules) {
+	writeFileSync(join(cjsYearsDir, `${name}.cjs`), wrapper(`@cldmv/jsonv/${name}`, `../../years/${name}.mjs`), "utf8");
 }
-if (!existsSync(cjsYearsTypesDir)) {
-	mkdirSync(cjsYearsTypesDir, { recursive: true });
-}
+console.log(`✓ Created ${yearModules.length} CJS year/utility wrappers → dist/cjs/years/`);
 
-// Get all year .mjs files from dist/years/
-const distYearsDir = join(distDir, "years");
-const yearFiles = readdirSync(distYearsDir)
-	.filter((f) => f.match(/^\d{4}\.mjs$/))
-	.map((f) => parseInt(f.replace(".mjs", "")));
-
-for (const year of yearFiles) {
-	const yearCjsContent = `/**
- * CommonJS wrapper for @cldmv/jsonv/${year}
- */
-
-const loader = (async () => {
-	const esm = await import('../../years/${year}.mjs');
-	return esm;
-})();
-
-module.exports = loader;
-`;
-
-	const yearFile = join(cjsYearsDir, `${year}.cjs`);
-	writeFileSync(yearFile, yearCjsContent, "utf8");
-}
-console.log(`✓ Created ${yearFiles.length} CJS year modules`);
-
-// Generate CJS type declarations for all years
-for (const year of yearFiles) {
-	const yearDts = `export * from '../../years/${year}.mjs';
-import jsonv from '../../years/${year}.mjs';
-export default jsonv;
-`;
-	writeFileSync(join(cjsYearsTypesDir, `${year}.d.cts`), yearDts, "utf8");
-}
-console.log(`✓ Created ${yearFiles.length} CJS year types`);
-
-// Create CJS loader utility
-const loaderCjsContent = `/**
- * CommonJS wrapper for @cldmv/jsonv/loader
- */
-
-const loader = (async () => {
-	const esm = await import('../../years/loader.mjs');
-	return esm;
-})();
-
-module.exports = loader;
-`;
-
-const loaderYearFile = join(cjsYearsDir, "loader.cjs");
-writeFileSync(loaderYearFile, loaderCjsContent, "utf8");
-console.log(`✓ Created CJS loader → dist/cjs/years/loader.cjs`);
-
-// Create .d.cts type declarations for CJS modules
+// CJS type declarations. require(esm) returns the ESM namespace, so the
+// declarations re-export the ESM types (default export included when present).
 console.log("\n📝 Generating CJS type declarations...\n");
 
-// Main index.d.cts
 const indexDts = `export * from '../index.mjs';
 import jsonv from '../index.mjs';
 export default jsonv;
 `;
 writeFileSync(join(cjsTypesDir, "index.d.cts"), indexDts, "utf8");
-console.log(`✓ Created CJS types → dist/types/cjs/index.d.cts`);
+console.log("✓ Created CJS types → dist/types/cjs/index.d.cts");
 
-// Loader type
-const loaderDts = `export * from '../../years/loader.mjs';
+for (const name of yearModules) {
+	const hasDefault = /^\d{4}$/.test(name);
+	const dts = hasDefault
+		? `export * from '../../years/${name}.mjs';
+import jsonv from '../../years/${name}.mjs';
+export default jsonv;
+`
+		: `export * from '../../years/${name}.mjs';
 `;
-writeFileSync(join(cjsYearsTypesDir, "loader.d.cts"), loaderDts, "utf8");
-console.log(`✓ Created CJS loader types → dist/types/cjs/years/loader.d.cts`);
+	writeFileSync(join(cjsYearsTypesDir, `${name}.d.cts`), dts, "utf8");
+}
+console.log(`✓ Created ${yearModules.length} CJS year/utility types → dist/types/cjs/years/`);
 
 console.log("\n✅ CJS wrappers built successfully\n");
