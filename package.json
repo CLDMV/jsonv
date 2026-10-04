@@ -121,7 +121,7 @@
 	"devDependencies": {
 		"@cldmv/configs": "^1.2.0",
 		"@cldmv/eslint-plugin-jsonv": "^1.0.3",
-		"@cldmv/fix-headers": "^2.1.1",
+		"@cldmv/fix-headers": "^2.1.4",
 		"@cldmv/vitest-runner": "^1.4.3",
 		"@eslint/css": "^2.0.0",
 		"@eslint/js": "^10.0.1",
