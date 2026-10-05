@@ -119,7 +119,7 @@
 		"dist/"
 	],
 	"devDependencies": {
-		"@cldmv/configs": "^1.2.0",
+		"@cldmv/configs": "^1.2.4",
 		"@cldmv/eslint-plugin-jsonv": "^1.0.3",
 		"@cldmv/fix-headers": "^2.2.0",
 		"@cldmv/vitest-runner": "^1.4.3",
