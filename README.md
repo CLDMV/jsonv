@@ -17,6 +17,7 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 ### Latest: v1.1.4 (October 2026)
 
 - **`require()` returns the API synchronously** — `require("@cldmv/jsonv")` and `require("@cldmv/jsonv/<year>")` used to return a Promise of the ESM module; they now return the same exports as `import`, loaded through Node's `require(esm)`. Existing `await require(...)` code keeps working, but code that chained `.then()` on the `require()` result must use the result directly. CommonJS needs Node.js ^20.19.0 or >=22.12.0; older Node.js gets a clear `ERR_REQUIRE_ESM` pointing to `import()`. `@cldmv/jsonv/year-resolver` also gains the CommonJS wrapper it was missing (#80).
+- **Dev toolchain** — `@cldmv/fix-headers` 2.2.0 (`@Last modified by` now follows content edits only), `@cldmv/configs` 1.2.4, `@cldmv/vitest-runner` 1.5.1 and `typescript-eslint` 8.71.0, all dev-only; nothing was restamped (#77, #83, #85).
 - [View full v1.1.4 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md)
 
 ### Recent Releases
