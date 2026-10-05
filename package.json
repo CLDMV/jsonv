@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/jsonv",
-	"version": "1.1.3",
+	"version": "1.1.4",
 	"description": "Modern JSON parser extending JSON5 with ES2015-2025 features, year-based API",
 	"type": "module",
 	"main": "./dist/cjs/index.cjs",
@@ -56,10 +56,11 @@
 		"build:plugin": "node scripts/build-plugin.mjs",
 		"build:types": "tsc --project .configs/tsconfig.types.json",
 		"build:ci": "npm run lint --if-present && npm run format:check --if-present && npm run build",
-		"test": "node tests/run-vitest.mjs",
+		"test": "node tests/run-vitest.mjs && npm run test:cjs",
+		"test:cjs": "npm run build && node --test tests/cjs/entry.test.cjs",
 		"test:watch": "vitest --config .configs/vitest.config.mjs",
 		"test:types": "tsc --project .configs/tsconfig.build.json --noEmit",
-		"coverage": "node tests/run-vitest.mjs --coverage-quiet",
+		"coverage": "node tests/run-vitest.mjs --coverage-quiet && npm run test:cjs",
 		"ci:coverage": "npm run coverage",
 		"lint": "eslint --config .configs/eslint.config.v9.mjs src tests",
 		"lint:v8": "set ESLINT_USE_FLAT_CONFIG=true&& eslint --config .configs/eslint.config.mjs src tests",
@@ -118,9 +119,9 @@
 		"dist/"
 	],
 	"devDependencies": {
-		"@cldmv/configs": "^1.2.0",
+		"@cldmv/configs": "^1.2.4",
 		"@cldmv/eslint-plugin-jsonv": "^1.0.3",
-		"@cldmv/fix-headers": "^2.1.1",
+		"@cldmv/fix-headers": "^2.2.0",
 		"@cldmv/vitest-runner": "^1.4.3",
 		"@eslint/css": "^2.0.0",
 		"@eslint/js": "^10.0.1",
