@@ -14,18 +14,18 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.1.4 (October 2026)
+### Latest: v1.1.5 (October 2026)
 
-- **`require()` returns the API synchronously** — `require("@cldmv/jsonv")` and `require("@cldmv/jsonv/<year>")` used to return a Promise of the ESM module; they now return the same exports as `import`, loaded through Node's `require(esm)`. Existing `await require(...)` code keeps working, but code that chained `.then()` on the `require()` result must use the result directly. CommonJS needs Node.js ^20.19.0 or >=22.12.0; older Node.js gets a clear `ERR_REQUIRE_ESM` pointing to `import()`. `@cldmv/jsonv/year-resolver` also gains the CommonJS wrapper it was missing (#80).
-- **Dev toolchain** — `@cldmv/fix-headers` 2.2.0 (`@Last modified by` now follows content edits only), `@cldmv/configs` 1.2.4, `@cldmv/vitest-runner` 1.5.1 and `typescript-eslint` 8.71.0, all dev-only; nothing was restamped (#77, #83, #85).
-- [View full v1.1.4 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md)
+- **Dev toolchain refresh** — `vitest` 5.0.3, `eslint` 10.12.0, `globals` 17.13.0, `@cldmv/vitest-runner` 1.5.3 and `@cldmv/eslint-plugin-jsonv` 1.0.15, all dev-only and lockfile-only; no runtime code changed (#87, #88, #90, #92).
+- **Local test runs need Node.js 22.12.0 or later** — `@cldmv/vitest-runner` 1.5.3 raises its own Node.js floor from 20.19 to 22.12, which CI already used; the package's `engines` field and `require()` support are unchanged.
+- [View full v1.1.5 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md)
 
 ### Recent Releases
 
+- **v1.1.4** (October 2026) — `require()` returns the API synchronously instead of a Promise, and `@cldmv/jsonv/year-resolver` gains its missing CommonJS wrapper ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md))
 - **v1.1.3** (October 2026) — CI only: the in-repo PR mirror job runs instead of being skipped; `@cldmv/eslint-plugin-jsonv` dev bump ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.3.md))
 - **v1.1.2** (October 2026) — maintenance: uniform file headers, required-check mirror fix, `@types/node` bump; no runtime change ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.2.md))
 - **v1.1.1** (September 2026) — nine correctness fixes: `mode: "json"` / `"json5"` enforce their feature sets, tolerant mode reports collected syntax errors, forward-reference chains of any length resolve, and template tokens tile the source ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.1.md))
-- **v1.1.0** (September 2026) — `parseToAst()` returns comments and tokens with positioned keys and corrected spans; reference errors carry a position ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.0.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
