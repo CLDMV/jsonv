@@ -49,8 +49,8 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ### Requirements
 
-- **Node.js 18 or higher** for ESM `import` (the package's `engines` floor).
-- **`require()`** loads the ESM build through Node's `require(esm)`, so it needs **Node.js ^20.19.0 or >=22.12.0**. On older Node.js, load the package with `import()` instead.
+- **Node.js ^20.19.0 or >=22.13.0** (the package's `engines` range).
+- **`require()`** loads the ESM build through Node's `require(esm)`, which is why the floor sits there: older Node.js has no `require(esm)` (the CommonJS entry fails with a message telling you to use `import()` instead), and Node.js 22.12.x prints an `ExperimentalWarning` when `require()` loads an ES module.
 
 ### Install
 
@@ -264,11 +264,14 @@ const nearest = resolveYear(2024); // 2021
 Contributions are welcome — open an issue or a pull request on [GitHub](https://github.com/CLDMV/jsonv).
 
 ```bash
-npm run dev       # uses src/ via json-dev condition
-npm run build     # clean → ts → types → years → cjs
+npm run build     # clean → tsup → types → generated years + CommonJS wrappers
 npm test          # Vitest, then the CommonJS entry tests
 npm run lint      # ESLint v9 config
 ```
+
+**Build layout.** tsup compiles `src/**/*.mts` file by file into `dist/` (no bundling, so every year module and the shared parser stay separate files). The CommonJS entry is hand-written in `src/index.cjs` and copied verbatim to `dist/index.cjs`, beside `dist/index.mjs`; it loads the ESM build through `require(esm)`. `npm run generate:years` writes the forwarding modules for unpublished years and a `dist/years/<name>.cjs` wrapper beside every `dist/years/<name>.mjs`. Declarations go to `dist/types/`.
+
+**The `jsonv-dev` condition.** In a checkout, the `jsonv-dev` export condition maps `import` of `@cldmv/jsonv`, `@cldmv/jsonv/parser` and `@cldmv/jsonv/<year>` to the TypeScript source in `src/`. The test suite runs with it (Vitest compiles the `.mts` files), so tests exercise `src/` without a build. Plain Node.js can't run the source directly (it imports its siblings by their built `.mjs` names), so outside a TypeScript-aware tool use the build. `require()` is never mapped to `src/`: there is no `src/index.mjs` for `src/index.cjs` to load, so CommonJS callers in a checkout always get `dist/`, with or without the condition. `npm run test:cjs` builds first and checks exactly that.
 
 - Test runner: `npm test` (Vitest via `@cldmv/vitest-runner`, then `node:test` checks of the built CommonJS entry)
 - Fixtures: [tests/fixtures/](https://github.com/CLDMV/jsonv/tree/master/tests/fixtures) with `features/` and `violations/` per year

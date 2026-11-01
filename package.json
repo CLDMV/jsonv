@@ -3,41 +3,39 @@
 	"version": "1.1.6",
 	"description": "Modern JSON parser extending JSON5 with ES2015-2025 features, year-based API",
 	"type": "module",
-	"main": "./dist/cjs/index.cjs",
+	"main": "./dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "./dist/types/index.d.mts",
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.mts",
-			"json-dev": {
+			"jsonv-dev": {
 				"types": "./src/index.mts",
-				"import": "./src/index.mjs",
-				"require": "./src/cjs/index.cjs"
+				"import": "./src/index.mts"
 			},
+			"types": "./dist/types/index.d.mts",
 			"import": "./dist/index.mjs",
-			"require": "./dist/cjs/index.cjs"
+			"require": "./dist/index.cjs"
 		},
 		"./parser": {
-			"types": "./dist/types/parser.d.mts",
-			"json-dev": {
+			"jsonv-dev": {
 				"types": "./src/parser.mts",
 				"import": "./src/parser.mts"
 			},
+			"types": "./dist/types/parser.d.mts",
 			"import": "./dist/parser.mjs"
 		},
 		"./*": {
-			"json-dev": {
+			"jsonv-dev": {
 				"types": "./src/years/*.mts",
-				"import": "./src/years/*.mjs",
-				"require": "./src/cjs/years/*.cjs"
+				"import": "./src/years/*.mts"
 			},
 			"import": {
 				"types": "./dist/types/years/*.d.mts",
 				"default": "./dist/years/*.mjs"
 			},
 			"require": {
-				"types": "./dist/types/cjs/years/*.d.cts",
-				"default": "./dist/cjs/years/*.cjs"
+				"types": "./dist/types/years/*.d.mts",
+				"default": "./dist/years/*.cjs"
 			}
 		},
 		"./test/*": {
@@ -48,16 +46,15 @@
 		}
 	},
 	"scripts": {
-		"build": "npm run clean && npm run build:ts && npm run build:types && npm run generate:years && npm run build:cjs",
+		"build": "npm run clean && tsup && npm run build:types && npm run generate:years",
 		"clean": "node -e \"const{rmSync}=require('fs');rmSync('dist',{recursive:true,force:true});console.log('✓ Cleaned dist/')\"",
 		"generate:years": "node scripts/generate-years.mjs",
-		"build:ts": "tsc --project .configs/tsconfig.build.json",
-		"build:cjs": "node scripts/build-cjs.mjs",
 		"build:plugin": "node scripts/build-plugin.mjs",
 		"build:types": "tsc --project .configs/tsconfig.types.json",
 		"build:ci": "npm run lint --if-present && npm run format:check --if-present && npm run build",
+		"prepack": "npm run build",
 		"test": "node tests/run-vitest.mjs && npm run test:cjs",
-		"test:cjs": "npm run build && node --test tests/cjs/entry.test.cjs",
+		"test:cjs": "npm run build && node --conditions=jsonv-dev --test tests/cjs/entry.test.cjs",
 		"test:watch": "vitest --config .configs/vitest.config.mjs",
 		"test:types": "tsc --project .configs/tsconfig.build.json --noEmit",
 		"coverage": "node tests/run-vitest.mjs --coverage-quiet && npm run test:cjs",
@@ -66,7 +63,7 @@
 		"lint:v8": "set ESLINT_USE_FLAT_CONFIG=true&& eslint --config .configs/eslint.config.mjs src tests",
 		"format": "prettier --config .configs/.prettierrc --write \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
 		"format:check": "prettier --config .configs/.prettierrc --check \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
-		"dev": "NODE_OPTIONS='--conditions=json-dev' node",
+		"dev": "NODE_OPTIONS='--conditions=jsonv-dev' node",
 		"fix:headers": "fix-headers --config .configs/fix-headers.json"
 	},
 	"keywords": [
@@ -107,7 +104,7 @@
 	},
 	"homepage": "https://github.com/CLDMV/jsonv#readme",
 	"engines": {
-		"node": ">=18.0.0"
+		"node": "^20.19.0 || >=22.13.0"
 	},
 	"publishConfig": {
 		"access": "public"
@@ -116,7 +113,8 @@
 		"README.md",
 		"LICENSE",
 		"types/",
-		"dist/"
+		"dist/",
+		"!dist/**/*.map"
 	],
 	"devDependencies": {
 		"@cldmv/configs": "^1.2.4",
@@ -134,6 +132,7 @@
 		"eslint": "^10.11.0",
 		"globals": "^17.12.0",
 		"prettier": "^3.8.0",
+		"tsup": "^9.0.0",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.53.0",
 		"vitest": "^5.0.2"

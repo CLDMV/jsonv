@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:10-07:00 (1790968810)
+ *	@Last modified time: 2026-11-01T12:12:41-08:00 (1793563961)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,7 +19,7 @@ export default defineConfig({
 	pool: "forks",
 	resolve: {
 		conditions: [
-			"json-dev", // Custom condition for development
+			"jsonv-dev", // Package condition: maps the package exports to src/
 			"module",
 			"browser",
 			"development|production"
@@ -27,7 +27,7 @@ export default defineConfig({
 	},
 	ssr: {
 		resolve: {
-			conditions: ["json-dev", "node", "development|production"]
+			conditions: ["jsonv-dev", "node", "development|production"]
 		}
 	},
 	test: {
@@ -36,7 +36,7 @@ export default defineConfig({
 		exclude: ["node_modules", "dist", "types"],
 		environment: "node",
 		globals: true,
-		nodeOptions: ["--conditions=json-dev"],
+		nodeOptions: ["--conditions=jsonv-dev"],
 		env: {
 			NODE_ENV: "development"
 		},
