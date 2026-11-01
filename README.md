@@ -14,18 +14,18 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.1.5 (October 2026)
+### Latest: v1.2.0 (November 2026)
 
-- **Dev toolchain refresh** — `vitest` 5.0.3, `eslint` 10.12.0, `globals` 17.13.0, `@cldmv/vitest-runner` 1.5.3 and `@cldmv/eslint-plugin-jsonv` 1.0.15, all dev-only and lockfile-only; no runtime code changed (#87, #88, #90, #92).
-- **Local test runs need Node.js 22.12.0 or later** — `@cldmv/vitest-runner` 1.5.3 raises its own Node.js floor from 20.19 to 22.12, which CI already used; the package's `engines` field and `require()` support are unchanged.
-- [View full v1.1.5 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md)
+- **CLDMV library layout** — a tsup build, CommonJS wrappers beside the ESM files they load instead of a `dist/cjs/` folder, and a working `jsonv-dev` export condition in place of the broken `json-dev` one. Every public specifier keeps its API through `import` and `require()` (#110, #112).
+- **Node.js 22.22.0 or later is now required** — up from `>=18.0.0`. The broken `./test/*` export is gone (#113).
+- [View full v1.2.0 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md)
 
 ### Recent Releases
 
+- **v1.1.5** (October 2026) — dev toolchain refresh: `vitest` 5.0.3, `eslint` 10.12.0 and `@cldmv/vitest-runner` 1.5.3; no runtime code changed ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md))
 - **v1.1.4** (October 2026) — `require()` returns the API synchronously instead of a Promise, and `@cldmv/jsonv/year-resolver` gains its missing CommonJS wrapper ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md))
 - **v1.1.3** (October 2026) — CI only: the in-repo PR mirror job runs instead of being skipped; `@cldmv/eslint-plugin-jsonv` dev bump ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.3.md))
 - **v1.1.2** (October 2026) — maintenance: uniform file headers, required-check mirror fix, `@types/node` bump; no runtime change ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.2.md))
-- **v1.1.1** (September 2026) — nine correctness fixes: `mode: "json"` / `"json5"` enforce their feature sets, tolerant mode reports collected syntax errors, forward-reference chains of any length resolve, and template tokens tile the source ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.1.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
