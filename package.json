@@ -37,12 +37,6 @@
 				"types": "./dist/types/years/*.d.mts",
 				"default": "./dist/years/*.cjs"
 			}
-		},
-		"./test/*": {
-			"import": {
-				"types": "./dist/types/years/*.d.mts",
-				"default": "./test-dynamic.mjs"
-			}
 		}
 	},
 	"scripts": {
@@ -63,7 +57,6 @@
 		"lint:v8": "set ESLINT_USE_FLAT_CONFIG=true&& eslint --config .configs/eslint.config.mjs src tests",
 		"format": "prettier --config .configs/.prettierrc --write \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
 		"format:check": "prettier --config .configs/.prettierrc --check \"src/**/*.{mts,cts,ts}\" \"tests/**/*.{mjs,ts}\"",
-		"dev": "NODE_OPTIONS='--conditions=jsonv-dev' node",
 		"fix:headers": "fix-headers --config .configs/fix-headers.json"
 	},
 	"keywords": [
