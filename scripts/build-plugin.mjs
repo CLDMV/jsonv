@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:19-07:00 (1790968819)
+ *	@Last modified time: 2026-11-01T12:12:49-08:00 (1793563969)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -92,7 +92,7 @@ mkdirSync(pluginPackageDir, { recursive: true });
 // Copy dist/ folder
 const rootDistDir = join(rootDir, "dist");
 if (!existsSync(rootDistDir)) {
-	console.error("❌ Error: Root dist/ folder not found. Run 'npm run build:ts' first.");
+	console.error("❌ Error: Root dist/ folder not found. Run 'npm run build' first.");
 	process.exit(1);
 }
 

@@ -20,7 +20,7 @@ CJS:
 const { parse } = require("@cldmv/jsonv/2021");
 ```
 
-`require()` is synchronous and returns the same exports as `import` (existing `await require(...)` code keeps working). It loads the ESM build through Node's `require(esm)`, so it needs Node.js ^20.19.0 or >=22.12.0; on older Node.js, use `import()`.
+`require()` is synchronous and returns the same exports as `import` (existing `await require(...)` code keeps working). It loads the ESM build through Node's `require(esm)`, so it needs Node.js >=22.22.0 (the package's `engines` range); on older Node.js, use `import()`.
 
 Root alias:
 ```js
