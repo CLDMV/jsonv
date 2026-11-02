@@ -14,18 +14,18 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.1.5 (October 2026)
+### Latest: v1.2.0 (November 2026)
 
-- **Dev toolchain refresh** — `vitest` 5.0.3, `eslint` 10.12.0, `globals` 17.13.0, `@cldmv/vitest-runner` 1.5.3 and `@cldmv/eslint-plugin-jsonv` 1.0.15, all dev-only and lockfile-only; no runtime code changed (#87, #88, #90, #92).
-- **Local test runs need Node.js 22.12.0 or later** — `@cldmv/vitest-runner` 1.5.3 raises its own Node.js floor from 20.19 to 22.12, which CI already used; the package's `engines` field and `require()` support are unchanged.
-- [View full v1.1.5 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md)
+- **CLDMV library layout** — a tsup build, CommonJS wrappers beside the ESM files they load instead of a `dist/cjs/` folder, and a working `jsonv-dev` export condition in place of the broken `json-dev` one. Every public specifier keeps its API through `import` and `require()` (#110, #112).
+- **Node.js 22.22.0 or later is now required** — up from `>=18.0.0`. The broken `./test/*` export is gone (#113).
+- [View full v1.2.0 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md)
 
 ### Recent Releases
 
+- **v1.1.5** (October 2026) — dev toolchain refresh: `vitest` 5.0.3, `eslint` 10.12.0 and `@cldmv/vitest-runner` 1.5.3; no runtime code changed ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md))
 - **v1.1.4** (October 2026) — `require()` returns the API synchronously instead of a Promise, and `@cldmv/jsonv/year-resolver` gains its missing CommonJS wrapper ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md))
 - **v1.1.3** (October 2026) — CI only: the in-repo PR mirror job runs instead of being skipped; `@cldmv/eslint-plugin-jsonv` dev bump ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.3.md))
 - **v1.1.2** (October 2026) — maintenance: uniform file headers, required-check mirror fix, `@types/node` bump; no runtime change ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.2.md))
-- **v1.1.1** (September 2026) — nine correctness fixes: `mode: "json"` / `"json5"` enforce their feature sets, tolerant mode reports collected syntax errors, forward-reference chains of any length resolve, and template tokens tile the source ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.1.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
@@ -49,8 +49,8 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ### Requirements
 
-- **Node.js 18 or higher** for ESM `import` (the package's `engines` floor).
-- **`require()`** loads the ESM build through Node's `require(esm)`, so it needs **Node.js ^20.19.0 or >=22.12.0**. On older Node.js, load the package with `import()` instead.
+- **Node.js >=22.22.0** (the package's `engines` range).
+- **`require()`** loads the ESM build through Node's `require(esm)`, which is why the floor sits there: older Node.js has no `require(esm)` (the CommonJS entry fails with a message telling you to use `import()` instead).
 
 ### Install
 
@@ -264,11 +264,14 @@ const nearest = resolveYear(2024); // 2021
 Contributions are welcome — open an issue or a pull request on [GitHub](https://github.com/CLDMV/jsonv).
 
 ```bash
-npm run dev       # uses src/ via json-dev condition
-npm run build     # clean → ts → types → years → cjs
+npm run build     # clean → tsup → types → generated years + CommonJS wrappers
 npm test          # Vitest, then the CommonJS entry tests
 npm run lint      # ESLint v9 config
 ```
+
+**Build layout.** tsup compiles `src/**/*.mts` file by file into `dist/` (no bundling, so every year module and the shared parser stay separate files). The CommonJS entry is hand-written in `src/index.cjs` and copied verbatim to `dist/index.cjs`, beside `dist/index.mjs`; it loads the ESM build through `require(esm)`. `npm run generate:years` writes the forwarding modules for unpublished years and a `dist/years/<name>.cjs` wrapper beside every `dist/years/<name>.mjs`. Declarations go to `dist/types/`.
+
+**The `jsonv-dev` condition.** In a checkout, the `jsonv-dev` export condition maps `import` of `@cldmv/jsonv`, `@cldmv/jsonv/parser` and `@cldmv/jsonv/<year>` to the TypeScript source in `src/`. The test suite runs with it (Vitest compiles the `.mts` files), so tests exercise `src/` without a build. Plain Node.js can't run the source directly (it imports its siblings by their built `.mjs` names), so outside a TypeScript-aware tool use the build. `require()` is never mapped to `src/`: there is no `src/index.mjs` for `src/index.cjs` to load, so CommonJS callers in a checkout always get `dist/`, with or without the condition. `npm run test:cjs` builds first and checks exactly that.
 
 - Test runner: `npm test` (Vitest via `@cldmv/vitest-runner`, then `node:test` checks of the built CommonJS entry)
 - Fixtures: [tests/fixtures/](https://github.com/CLDMV/jsonv/tree/master/tests/fixtures) with `features/` and `violations/` per year
