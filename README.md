@@ -49,8 +49,9 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ### Requirements
 
-- **Node.js >=22.22.0** (the package's `engines` range).
-- **`require()`** loads the ESM build through Node's `require(esm)`, which is why the floor sits there: older Node.js has no `require(esm)` (the CommonJS entry fails with a message telling you to use `import()` instead).
+- **Node.js 18.0.0 or later** for `import` (the package's `engines` range). jsonv has no dependencies and also runs in browsers.
+- **`require()`** loads the ESM build through Node's `require(esm)`, so it needs Node.js ^20.19.0 or >=22.13.0. On older Node.js the CommonJS entry fails with a message telling you to use `import()` instead.
+- Developing this package needs Node.js 22.22.0 or later (`devEngines`).
 
 ### Install
 
