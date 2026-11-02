@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-11-01T12:12:55-08:00 (1793563975)
+ *	@Last modified time: 2026-11-01T16:28:13-08:00 (1793579293)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -34,8 +34,9 @@ export default defineConfig({
 	entry: ["src/**/*.mts"],
 	format: ["esm"],
 	outDir: "dist",
-	// jsonv also runs in browsers, so keep the syntax level the tsc build used.
-	target: "es2022",
+	// jsonv also runs in browsers, so keep the syntax level the tsc build used; node18 is the runtime floor
+	// in engines.node. esbuild emits only syntax every listed target supports.
+	target: ["es2022", "node18"],
 	platform: "neutral",
 	bundle: false,
 	splitting: false,
