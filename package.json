@@ -97,7 +97,14 @@
 	},
 	"homepage": "https://github.com/CLDMV/jsonv#readme",
 	"engines": {
-		"node": ">=22.22.0"
+		"node": ">=18.0.0"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": ">=22.22.0",
+			"onFail": "error"
+		}
 	},
 	"publishConfig": {
 		"access": "public"
