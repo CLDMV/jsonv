@@ -14,18 +14,17 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.2.0 (November 2026)
+### Latest: v1.2.1 (November 2026)
 
-- **CLDMV library layout** — a tsup build, CommonJS wrappers beside the ESM files they load instead of a `dist/cjs/` folder, and a working `jsonv-dev` export condition in place of the broken `json-dev` one. Every public specifier keeps its API through `import` and `require()` (#110, #112).
-- **Node.js 22.22.0 or later is now required** — up from `>=18.0.0`. The broken `./test/*` export is gone (#113).
-- [View full v1.2.0 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md)
+- **`engines.node` is `>=18.0.0` again ([#118](https://github.com/CLDMV/jsonv/pull/118))** — v1.2.0 declared `>=22.22.0`, the floor of the development toolchain rather than of the package. jsonv has no dependencies, so `import` works from Node.js 18.0.0 again, and `require()` needs Node.js `^20.19.0` or `>=22.13.0` for `require(esm)`. The 22.22.0 toolchain floor moves to `devEngines`, so it only applies when working on this repository. The parser and every public specifier are unchanged.
+- [View full v1.2.1 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.1.md)
 
 ### Recent Releases
 
+- **v1.2.0** (November 2026) — CLDMV library layout: a tsup build, CommonJS wrappers beside the ESM files, and a working `jsonv-dev` condition in place of the broken `json-dev` one; declared Node.js `>=22.22.0` and dropped the broken `./test/*` export (#112) ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md))
 - **v1.1.5** (October 2026) — dev toolchain refresh: `vitest` 5.0.3, `eslint` 10.12.0 and `@cldmv/vitest-runner` 1.5.3; no runtime code changed ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md))
 - **v1.1.4** (October 2026) — `require()` returns the API synchronously instead of a Promise, and `@cldmv/jsonv/year-resolver` gains its missing CommonJS wrapper ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md))
 - **v1.1.3** (October 2026) — CI only: the in-repo PR mirror job runs instead of being skipped; `@cldmv/eslint-plugin-jsonv` dev bump ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.3.md))
-- **v1.1.2** (October 2026) — maintenance: uniform file headers, required-check mirror fix, `@types/node` bump; no runtime change ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.2.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
