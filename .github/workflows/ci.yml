@@ -139,7 +139,7 @@ on:
                 description: "Command to run type checking"
                 type: string
                 required: false
-                default: "npm run test:types"
+                default: "npm run types:check"
             skip_type_check:
                 description: "Skip the type-check step in the coverage-badge job"
                 type: boolean
@@ -271,7 +271,7 @@ jobs:
             upload_coverage_artifact: ${{ github.event.inputs.upload_coverage_artifact != 'false' }}
 
             # ── Type check (runs inside the coverage-badge job) ────────────────────
-            type_check_command: ${{ github.event.inputs.type_check_command || 'npm run test:types' }}
+            type_check_command: ${{ github.event.inputs.type_check_command || 'npm run types:check' }}
             skip_type_check: ${{ github.event.inputs.skip_type_check == 'true' }}
 
             # ── PR coverage badge ─────────────────────────────────────────────────

@@ -23,7 +23,7 @@
  *    transformed by esbuild. It `require()`s ./index.mjs, which Node loads synchronously because the module
  *    graph has no top-level await.
  *
- * `npm run build` then emits the declarations (build:types) and the forwarding year modules plus their CJS
+ * `npm run build` then emits the declarations (types:build) and the forwarding year modules plus their CJS
  * wrappers (generate:years). Sourcemaps are generated for local debugging but excluded from the published
  * tarball via package.json's `files` negation entry.
  */
