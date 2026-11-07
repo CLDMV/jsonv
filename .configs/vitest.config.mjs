@@ -13,49 +13,44 @@
  *
  */
 
-import { defineConfig } from "vitest/config";
+import { defineConfig, mergeConfig } from "vitest/config";
+import { devCondition } from "@cldmv/configs/vitest.config.mjs";
+import { fileURLToPath } from "node:url";
 
-export default defineConfig({
-	pool: "forks",
-	resolve: {
-		conditions: [
-			"jsonv-dev", // Package condition: maps the package exports to src/
-			"module",
-			"browser",
-			"development|production"
-		]
-	},
-	ssr: {
-		resolve: {
-			conditions: ["jsonv-dev", "node", "development|production"]
-		}
-	},
-	test: {
-		// CLDMV standing convention: vitest test files are always named `*.test.vitest.mjs`.
-		include: ["tests/**/*.test.vitest.mjs"],
-		exclude: ["node_modules", "dist", "types"],
-		environment: "node",
-		globals: true,
-		nodeOptions: ["--conditions=jsonv-dev"],
-		env: {
-			NODE_ENV: "development"
-		},
-		testTimeout: 10000,
-		reporters: [["default", { summary: false }]],
-		logHeapUsage: true,
-		// pool: "forks",
-		// poolOptions: {
-		// 	forks: {
-		// 		singleFork: false
-		// 	}
-		// },
+const root = fileURLToPath(new URL("..", import.meta.url));
 
-		silent: false,
-		coverage: {
-			provider: "v8",
-			reporter: ["text", "json", "json-summary", "html"],
-			include: ["src/**/*.mts"],
-			all: true
+// devCondition() puts the package's jsonv-dev condition (which maps the package exports to src/)
+// ahead of Vite's default conditions for the client and SSR resolvers, and on the worker command line.
+export default mergeConfig(
+	devCondition({ root }),
+	defineConfig({
+		pool: "forks",
+		test: {
+			// CLDMV standing convention: vitest test files are always named `*.test.vitest.mjs`.
+			include: ["tests/**/*.test.vitest.mjs"],
+			exclude: ["node_modules", "dist", "types"],
+			environment: "node",
+			globals: true,
+			env: {
+				NODE_ENV: "development"
+			},
+			testTimeout: 10000,
+			reporters: [["default", { summary: false }]],
+			logHeapUsage: true,
+			// pool: "forks",
+			// poolOptions: {
+			// 	forks: {
+			// 		singleFork: false
+			// 	}
+			// },
+
+			silent: false,
+			coverage: {
+				provider: "v8",
+				reporter: ["text", "json", "json-summary", "html"],
+				include: ["src/**/*.mts"],
+				all: true
+			}
 		}
-	}
-});
+	})
+);

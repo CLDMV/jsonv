@@ -1,6 +1,6 @@
 {
 	"name": "@cldmv/jsonv",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"description": "Modern JSON parser extending JSON5 with ES2015-2025 features, year-based API",
 	"type": "module",
 	"main": "./dist/index.cjs",
@@ -40,17 +40,17 @@
 		}
 	},
 	"scripts": {
-		"build": "npm run clean && tsup && npm run build:types && npm run generate:years",
+		"build": "npm run clean && tsup && npm run types:build && npm run generate:years",
 		"clean": "node -e \"const{rmSync}=require('fs');rmSync('dist',{recursive:true,force:true});console.log('✓ Cleaned dist/')\"",
 		"generate:years": "node scripts/generate-years.mjs",
 		"build:plugin": "node scripts/build-plugin.mjs",
-		"build:types": "tsc --project .configs/tsconfig.types.json",
+		"types:build": "tsc --project .configs/tsconfig.types.json",
 		"build:ci": "npm run lint --if-present && npm run format:check --if-present && npm run build",
 		"prepack": "npm run build",
 		"test": "node tests/run-vitest.mjs && npm run test:cjs",
 		"test:cjs": "npm run build && node --conditions=jsonv-dev --test tests/cjs/entry.test.cjs",
 		"test:watch": "vitest --config .configs/vitest.config.mjs",
-		"test:types": "tsc --project .configs/tsconfig.build.json --noEmit",
+		"types:check": "tsc --project .configs/tsconfig.build.json --noEmit",
 		"coverage": "node tests/run-vitest.mjs --coverage-quiet && npm run test:cjs",
 		"ci:coverage": "npm run coverage",
 		"lint": "eslint --config .configs/eslint.config.v9.mjs src tests",
@@ -117,7 +117,7 @@
 		"!dist/**/*.map"
 	],
 	"devDependencies": {
-		"@cldmv/configs": "^1.3.0",
+		"@cldmv/configs": "^1.4.0",
 		"@cldmv/eslint-plugin-jsonv": "^1.0.17",
 		"@cldmv/fix-headers": "^2.2.4",
 		"@cldmv/vitest-runner": "^1.5.6",
