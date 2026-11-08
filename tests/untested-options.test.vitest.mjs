@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:40-07:00 (1790968840)
+ *	@Last modified time: 2026-11-07T21:47:09-08:00 (1794116829)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,9 +19,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseWithOptions } from "../src/parser.mjs";
+import { parseWithOptions } from "@cldmv/jsonv/parser";
 import { stringifyWithOptions } from "../src/stringify.mjs";
-import { parse as parse2015 } from "../src/years/2015.mjs";
+import { parse as parse2015 } from "@cldmv/jsonv/2015";
 
 describe("Untested API Options", () => {
 	describe("allowInternalReferences: false", () => {

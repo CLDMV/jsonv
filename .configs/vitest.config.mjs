@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-11-01T12:12:41-08:00 (1793563961)
+ *	@Last modified time: 2026-11-07T21:47:04-08:00 (1794116824)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,9 +21,12 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 // devCondition() puts the package's jsonv-dev condition (which maps the package exports to src/)
 // ahead of Vite's default conditions for the client and SSR resolvers, and on the worker command line.
-export default mergeConfig(
-	devCondition({ root }),
-	defineConfig({
+// `--mode=dist` (npm run test:dist) leaves the -dev condition off, so tests that import "@cldmv/jsonv" by name run
+// against the build in dist/ instead of src/.
+export default defineConfig(({ mode }) =>
+	mergeConfig(
+		mode === "dist" ? {} : devCondition({ root }),
+		defineConfig({
 		pool: "forks",
 		test: {
 			// CLDMV standing convention: vitest test files are always named `*.test.vitest.mjs`.
@@ -53,4 +56,5 @@ export default mergeConfig(
 			}
 		}
 	})
+	)
 );

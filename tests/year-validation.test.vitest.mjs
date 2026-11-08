@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:40-07:00 (1790968840)
+ *	@Last modified time: 2026-11-07T21:47:09-08:00 (1794116829)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,9 +19,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parse as parse2011 } from "../src/years/2011.mjs";
-import { parse as parse2015 } from "../src/years/2015.mjs";
-import { parse as parse2020 } from "../src/years/2020.mjs";
+import { parse as parse2011 } from "@cldmv/jsonv/2011";
+import { parse as parse2015 } from "@cldmv/jsonv/2015";
+import { parse as parse2020 } from "@cldmv/jsonv/2020";
 
 describe("Year-based Feature Validation", () => {
 	describe("Numeric Separators (ES2021) - should fail in earlier years", () => {
