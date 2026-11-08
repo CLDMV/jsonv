@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:20-07:00 (1790968820)
+ *	@Last modified time: 2026-11-07T21:47:06-08:00 (1794116826)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,7 +19,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parse, parseWithOptions, stringify } from "../src/index.mjs";
+import { parse, parseWithOptions, stringify } from "@cldmv/jsonv";
 
 describe("Lexer Edge Cases", () => {
 	describe("Comment edge cases", () => {

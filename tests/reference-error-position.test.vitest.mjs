@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:36-07:00 (1790968836)
+ *	@Last modified time: 2026-11-07T21:47:08-08:00 (1794116828)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -22,8 +22,8 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { parse, parseWithOptions, JsonvReferenceError } from "../src/index.mjs";
-import { JsonvReferenceError as JsonvReferenceErrorFromParser } from "../src/parser.mjs";
+import { parse, parseWithOptions, JsonvReferenceError } from "@cldmv/jsonv";
+import { JsonvReferenceError as JsonvReferenceErrorFromParser } from "@cldmv/jsonv/parser";
 
 describe("JsonvReferenceError (issue #32)", () => {
 	describe("exported class", () => {
