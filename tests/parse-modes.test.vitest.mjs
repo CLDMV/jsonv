@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:35-07:00 (1790968835)
+ *	@Last modified time: 2026-11-07T21:47:08-08:00 (1794116828)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,12 +21,12 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { parseWithOptions, parseToAst, JsonvSyntaxError, JsonvAggregateSyntaxError } from "../src/parser.mjs";
-import JSONV, { parse, parseWithOptions as indexParseWithOptions } from "../src/index.mjs";
-import * as api2011 from "../src/years/2011.mjs";
-import * as api2015 from "../src/years/2015.mjs";
-import * as api2020 from "../src/years/2020.mjs";
-import * as api2021 from "../src/years/2021.mjs";
+import { parseWithOptions, parseToAst, JsonvSyntaxError, JsonvAggregateSyntaxError } from "@cldmv/jsonv/parser";
+import JSONV, { parse, parseWithOptions as indexParseWithOptions } from "@cldmv/jsonv";
+import * as api2011 from "@cldmv/jsonv/2011";
+import * as api2015 from "@cldmv/jsonv/2015";
+import * as api2020 from "@cldmv/jsonv/2020";
+import * as api2021 from "@cldmv/jsonv/2021";
 import { Lexer } from "../src/lexer/lexer.mjs";
 
 const CODE = "FEATURE_NOT_ALLOWED_IN_MODE";
