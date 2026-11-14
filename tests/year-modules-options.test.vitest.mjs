@@ -19,9 +19,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import * as api2015 from "../src/years/2015.mjs";
-import * as api2020 from "../src/years/2020.mjs";
-import * as api2021 from "../src/years/2021.mjs";
+import * as api2015 from "@cldmv/jsonv/2015";
+import * as api2020 from "@cldmv/jsonv/2020";
+import * as api2021 from "@cldmv/jsonv/2021";
 
 describe("Year Module Options: 2015", () => {
 	describe("parseWithOptions()", () => {

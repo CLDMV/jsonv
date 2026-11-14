@@ -265,7 +265,8 @@ Contributions are welcome — open an issue or a pull request on [GitHub](https:
 
 ```bash
 npm run build     # clean → tsup → types → generated years + CommonJS wrappers
-npm test          # Vitest, then the CommonJS entry tests
+npm test          # Vitest on src/, the CommonJS entry tests, then Vitest again on the build
+npm run test:dist # Build, then run the Vitest suite against dist/
 npm run lint      # ESLint v9 config
 ```
 

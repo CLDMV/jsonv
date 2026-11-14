@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:34-07:00 (1790968834)
+ *	@Last modified time: 2026-11-07T21:47:08-08:00 (1794116828)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -23,7 +23,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV_API from "../src/index.mjs";
+import JSONV_API from "@cldmv/jsonv";
 
 describe.each(["jsonv", "json5"])("JSON5 Spec Compliance (mode: %s)", (mode) => {
 	const JSONV = { parse: (text) => JSONV_API.parse(text, { mode }), stringify: JSONV_API.stringify };

@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:34-07:00 (1790968834)
+ *	@Last modified time: 2026-11-07T21:47:08-08:00 (1794116828)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,10 +21,10 @@
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV, { parse, parseWithOptions, JsonvReferenceError, JsonvSyntaxError } from "../src/index.mjs";
-import JSONV2015 from "../src/years/2015.mjs";
-import JSONV2020 from "../src/years/2020.mjs";
-import JSONV2021 from "../src/years/2021.mjs";
+import JSONV, { parse, parseWithOptions, JsonvReferenceError, JsonvSyntaxError } from "@cldmv/jsonv";
+import JSONV2015 from "@cldmv/jsonv/2015";
+import JSONV2020 from "@cldmv/jsonv/2020";
+import JSONV2021 from "@cldmv/jsonv/2021";
 
 /**
  * Run `fn` and return the error it throws, failing the test if it does not throw.
