@@ -14,17 +14,17 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.2.3 (November 2026)
+### Latest: v1.2.4 (November 2026)
 
-- **Packaging and tooling release, no parser changes** — the CommonJS entry is the generic CLDMV shim and `require("@cldmv/jsonv")` returns the same module object as before ([#137](https://github.com/CLDMV/jsonv/pull/137)); the suite also runs against the built `dist/` ([#125](https://github.com/CLDMV/jsonv/pull/125)); CI cancels superseded runs; dev toolchain on `@cldmv/vitest-runner` 1.11.3.
-- [View full v1.2.3 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.3.md)
+- **CI configuration only, no package changes** — `dependabot.yml` takes the CLDMV/.github v4.47.0 groups, so the CLDMV dev tools arrive in one Dependabot PR ([#141](https://github.com/CLDMV/jsonv/pull/141)). The published package is the same as v1.2.3.
+- [View full v1.2.4 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.4.md)
 
 ### Recent Releases
 
+- **v1.2.3** (November 2026) — the CommonJS entry is the generic CLDMV shim, with `require()` unchanged; the suite also runs against `dist/`; CI cancels superseded runs; dev toolchain on `@cldmv/vitest-runner` 1.11.3 ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.3.md))
 - **v1.2.2** (November 2026) — tooling release: tests run against `src/` through the `jsonv-dev` condition via `devCondition()`, and the type scripts are `types:check` and `types:build`; no library changes ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.2.md))
 - **v1.2.1** (November 2026) — `engines.node` is `>=18.0.0` again; the 22.22.0 toolchain floor moves to `devEngines` ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.1.md))
 - **v1.2.0** (November 2026) — CLDMV library layout: a tsup build, CommonJS wrappers beside the ESM files, and a working `jsonv-dev` condition in place of the broken `json-dev` one; declared Node.js `>=22.22.0` and dropped the broken `./test/*` export (#112) ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md))
-- **v1.1.5** (October 2026) — dev toolchain refresh: `vitest` 5.0.3, `eslint` 10.12.0 and `@cldmv/vitest-runner` 1.5.3; no runtime code changed ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
