@@ -51,6 +51,13 @@ function assertSameExports(required, esm) {
 	);
 }
 
+/**
+ * Key set of a module object, ignoring Node's `__esModule` interop marker.
+ * @param {object} mod - A require() result or an import() namespace.
+ * @returns {string[]} Sorted export names.
+ */
+const exportKeys = (mod) => Object.keys(mod).filter((key) => key !== "__esModule").sort();
+
 test("require() of the CJS entry returns the same namespace as import", async () => {
 	const required = require("../../dist/index.cjs");
 	const esm = await import("../../dist/index.mjs");
@@ -58,6 +65,19 @@ test("require() of the CJS entry returns the same namespace as import", async ()
 	assert.equal(typeof required.then, "undefined", "require() must not return a Promise");
 	assertSameExports(required, esm);
 	assert.deepEqual(required.parse('{"a":1}'), { a: 1 });
+});
+
+test("require() of the CJS entry is the module object: the exact ESM key set, not a single unwrapped value", async () => {
+	const required = require("../../dist/index.cjs");
+	const esm = await import("../../dist/index.mjs");
+
+	assert.equal(typeof required, "object");
+	assert.notEqual(typeof required, "function");
+	assert.deepEqual(exportKeys(required), exportKeys(esm));
+	assert.ok(new Set(exportKeys(esm).map((key) => esm[key])).size > 1, "the shim returns the module object only while exports differ");
+	for (const key of exportKeys(esm)) {
+		assert.strictEqual(required[key], esm[key], `export "${key}" is not the same value`);
+	}
 });
 
 test("require() of a year wrapper returns the same namespace as import", async () => {

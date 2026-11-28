@@ -14,20 +14,13 @@
  */
 
 /**
- * CommonJS entry point: a thin, synchronous re-export of the ESM build.
+ * CommonJS entry point: the generic CLDMV shim over the ESM build.
  *
- * Node's `require()` can load an ES module synchronously and get back its
- * exports directly as long as the module graph doesn't use top-level await,
- * so this file re-exports dist/index.mjs instead of a second, CommonJS copy
- * of the library.
+ * `require("@cldmv/jsonv")` returns what `import` sees. The package exports several distinct values, so the
+ * shim hands back the module object (`{ parse, stringify, ... }`) with every export on it.
  *
- * Node.js versions without require(esm) would fail with a bare
- * ERR_REQUIRE_ESM, so the check below fails early with a message that says
- * what to do instead.
- *
- * tsup.config.mjs copies this file verbatim to dist/index.cjs, where
- * `require("./index.mjs")` resolves to the built ESM entry. The source is
- * TypeScript, so src/ has no index.mjs beside it: in a checkout, `require()`
+ * tsup.config.mjs copies this file verbatim to dist/index.cjs, where `require("./index.mjs")` resolves to the
+ * built ESM entry. The source is TypeScript, so src/ has no index.mjs beside it: in a checkout, `require()`
  * always loads the build (the `jsonv-dev` condition only maps `import`).
  *
  * @module @cldmv/jsonv
@@ -42,4 +35,12 @@ if (!process.features?.require_module) {
 	throw error;
 }
 
-module.exports = require("./index.mjs");
+// Same exports as `import`. One distinct exported value (aliases of it count once) comes back as that value,
+// so require(x)(...) works; anything else comes back as the module object ({ default, ...named }).
+const esm = require("./index.mjs");
+const values = new Set(
+	Object.keys(esm)
+		.filter((key) => key !== "__esModule")
+		.map((key) => esm[key])
+);
+module.exports = values.size === 1 ? values.values().next().value : esm;
