@@ -81,14 +81,34 @@ updates:
           - dependency-name: "typescript"
             versions: [">=7"]
       groups:
+          # Each package matches exactly one named group below, and the generic
+          # patch/minor groups exclude every named family, so the result does
+          # not depend on group order. (Dependabot's docs say the first match
+          # wins, but grouped PRs have filed vitest under `patch` despite the
+          # vitest group coming first, so the template doesn't rely on order.)
+          #
+          # CLDMV dev tools (@cldmv/vitest-runner, @cldmv/fix-headers,
+          # @cldmv/configs, the jsonv plugins, ...) move together in one PR so
+          # a repo picks up a fleet tool release in a single bump. Minor and
+          # patch only: a major arrives as its own PR, because auto-merge skips
+          # majors and one major in the group would hold the minors back.
+          cldmv-dev:
+              dependency-type: "development"
+              patterns:
+                  - "@cldmv/*"
+              update-types: ["minor", "patch"]
+          # Runtime @cldmv/* dependencies get their own PR, separate from the
+          # dev tools, because they change what the package ships.
+          cldmv:
+              dependency-type: "production"
+              patterns:
+                  - "@cldmv/*"
+              update-types: ["minor", "patch"]
           # vitest and @vitest/coverage-v8 (and other @vitest/* packages) peer
           # each other EXACTLY, so a partial bump (e.g. vitest to 5.0.0 while
           # @vitest/coverage-v8 stays 4.1.11) breaks `npm ci` with an ERESOLVE.
           # Bump the whole family together in one PR so the exact-peer
-          # versions never diverge. Must come before security/patch/minor
-          # below — Dependabot assigns each update to the FIRST matching
-          # group, and this one has no applies-to restriction so it always
-          # wins for vitest-family packages regardless of update type.
+          # versions never diverge, majors included.
           vitest:
               patterns:
                   - "vitest"
@@ -96,25 +116,36 @@ updates:
           # @eslint/js peers eslint with a major-locked range ("^10.0.0"), so a
           # future eslint major bump without @eslint/js moving too would hit
           # the same npm ci ERESOLVE class as the vitest/coverage-v8 split.
-          # @cldmv/eslint-plugin-jsonv doesn't peer eslint directly but is
-          # bundled here to keep the lint-config family moving together.
           eslint:
               patterns:
                   - "eslint"
                   - "@eslint/*"
-                  - "@cldmv/eslint-plugin-*"
-          # @cldmv/prettier-plugin-jsonv peers prettier with a major-locked
-          # range ("^3.0.0") — same reasoning as the eslint group above.
+          # prettier on its own, so its majors stay out of the generic groups.
+          # @cldmv/prettier-plugin-jsonv (peers prettier "^3.0.0") moves with
+          # the CLDMV groups above.
           prettier:
               patterns:
                   - "prettier"
-                  - "@cldmv/prettier-plugin-*"
           security:
               applies-to: security-updates
               patterns: ["*"]
           patch:
               applies-to: version-updates
               update-types: ["patch"]
+              exclude-patterns:
+                  - "@cldmv/*"
+                  - "vitest"
+                  - "@vitest/*"
+                  - "eslint"
+                  - "@eslint/*"
+                  - "prettier"
           minor:
               applies-to: version-updates
               update-types: ["minor"]
+              exclude-patterns:
+                  - "@cldmv/*"
+                  - "vitest"
+                  - "@vitest/*"
+                  - "eslint"
+                  - "@eslint/*"
+                  - "prettier"
