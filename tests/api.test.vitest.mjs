@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:19-07:00 (1790968819)
+ *	@Last modified time: 2026-11-07T21:47:05-08:00 (1794116825)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,7 +19,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV from "../src/index.mjs";
+import JSONV from "@cldmv/jsonv";
 
 describe("JSONV API - End User Experience", () => {
 	describe("Default export", () => {
@@ -245,14 +245,14 @@ describe("JSONV API - End User Experience", () => {
 
 	describe("Named exports", () => {
 		test("should export parse as named export", async () => {
-			const { parse } = await import("../src/index.mjs");
+			const { parse } = await import("@cldmv/jsonv");
 			expect(parse).toBeTypeOf("function");
 			const result = parse('{"key":"value"}');
 			expect(result).toEqual({ key: "value" });
 		});
 
 		test("should export parseWithOptions as named export", async () => {
-			const { parseWithOptions } = await import("../src/index.mjs");
+			const { parseWithOptions } = await import("@cldmv/jsonv");
 			expect(parseWithOptions).toBeTypeOf("function");
 			const result = parseWithOptions('{"key":"value"}', { mode: "json" });
 			expect(result).toEqual({ key: "value" });

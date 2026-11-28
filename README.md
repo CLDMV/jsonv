@@ -14,17 +14,17 @@ On top of the literal syntax, jsonv adds **internal references** — file-scoped
 
 ## ✨ What's New
 
-### Latest: v1.2.2 (November 2026)
+### Latest: v1.2.3 (November 2026)
 
-- **Tooling release, no library changes** — the vitest config now uses `devCondition()` from `@cldmv/configs`, so tests really run against `src/` through the `jsonv-dev` export condition, and the type scripts are renamed to the fleet names `types:check` and `types:build` ([#121](https://github.com/CLDMV/jsonv/pull/121), [#123](https://github.com/CLDMV/jsonv/pull/123)). The parser and every public specifier are unchanged.
-- [View full v1.2.2 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.2.md)
+- **Packaging and tooling release, no parser changes** — the CommonJS entry is the generic CLDMV shim and `require("@cldmv/jsonv")` returns the same module object as before ([#137](https://github.com/CLDMV/jsonv/pull/137)); the suite also runs against the built `dist/` ([#125](https://github.com/CLDMV/jsonv/pull/125)); CI cancels superseded runs; dev toolchain on `@cldmv/vitest-runner` 1.11.3.
+- [View full v1.2.3 Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.3.md)
 
 ### Recent Releases
 
+- **v1.2.2** (November 2026) — tooling release: tests run against `src/` through the `jsonv-dev` condition via `devCondition()`, and the type scripts are `types:check` and `types:build`; no library changes ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.2.md))
 - **v1.2.1** (November 2026) — `engines.node` is `>=18.0.0` again; the 22.22.0 toolchain floor moves to `devEngines` ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.1.md))
 - **v1.2.0** (November 2026) — CLDMV library layout: a tsup build, CommonJS wrappers beside the ESM files, and a working `jsonv-dev` condition in place of the broken `json-dev` one; declared Node.js `>=22.22.0` and dropped the broken `./test/*` export (#112) ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.2.0.md))
 - **v1.1.5** (October 2026) — dev toolchain refresh: `vitest` 5.0.3, `eslint` 10.12.0 and `@cldmv/vitest-runner` 1.5.3; no runtime code changed ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.5.md))
-- **v1.1.4** (October 2026) — `require()` returns the API synchronously instead of a Promise, and `@cldmv/jsonv/year-resolver` gains its missing CommonJS wrapper ([Changelog](https://github.com/CLDMV/jsonv/blob/master/docs/changelog/v1/v1.1.4.md))
 
 📚 **For complete version history and detailed release notes, see the [docs/changelog/](https://github.com/CLDMV/jsonv/tree/master/docs/changelog/) folder.**
 
@@ -265,7 +265,8 @@ Contributions are welcome — open an issue or a pull request on [GitHub](https:
 
 ```bash
 npm run build     # clean → tsup → types → generated years + CommonJS wrappers
-npm test          # Vitest, then the CommonJS entry tests
+npm test          # Vitest on src/, the CommonJS entry tests, then Vitest again on the build
+npm run test:dist # Build, then run the Vitest suite against dist/
 npm run lint      # ESLint v9 config
 ```
 

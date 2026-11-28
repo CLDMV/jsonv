@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:20-07:00 (1790968820)
+ *	@Last modified time: 2026-11-07T21:47:05-08:00 (1794116825)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,7 +21,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parse, parseWithOptions, stringify, stringifyWithOptions } from "../src/index.mjs";
+import { parse, parseWithOptions, stringify, stringifyWithOptions } from "@cldmv/jsonv";
 
 describe("Coverage Gaps - Parser Edge Cases", () => {
 	it("should handle unknown token type fallback", () => {

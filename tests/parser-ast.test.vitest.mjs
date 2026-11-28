@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:36-07:00 (1790968836)
+ *	@Last modified time: 2026-11-07T21:47:08-08:00 (1794116828)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -21,8 +21,8 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { parseToAst as parseToAstFromRoot, parseWithOptions as parseWithOptionsFromRoot } from "../src/index.mjs";
-import { Parser, parseToAst, parseWithOptions, TokenType, JsonvSyntaxError } from "../src/parser.mjs";
+import { parseToAst as parseToAstFromRoot, parseWithOptions as parseWithOptionsFromRoot } from "@cldmv/jsonv";
+import { Parser, parseToAst, parseWithOptions, TokenType, JsonvSyntaxError } from "@cldmv/jsonv/parser";
 
 /** Build a Position literal. */
 const pos = (line, column, offset) => ({ line, column, offset });

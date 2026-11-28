@@ -7,7 +7,7 @@
  *	@Email: <Shinrai@users.noreply.github.com>
  *	-----
  *	@Last modified by: Nate Corcoran <CLDMV> (Shinrai@users.noreply.github.com)
- *	@Last modified time: 2026-10-02T12:20:39-07:00 (1790968839)
+ *	@Last modified time: 2026-11-07T21:47:09-08:00 (1794116829)
  *	-----
  *	@Copyright: Copyright (c) 2013-2026 Catalyzed Motivation Inc. All rights reserved.
  *
@@ -19,7 +19,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import JSONV from "../src/index.mjs";
+import JSONV from "@cldmv/jsonv";
 
 describe("stringify() - Basic Serialization", () => {
 	test("should stringify primitives", () => {
